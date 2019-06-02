@@ -5,31 +5,32 @@
 ;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 ;----
 
-KERNEL_STACK_TOP EQU 0x009fc00
+%include "const.inc"
 
 [bits 32]
 [section .text]
 
-extern main	
+extern init_arch
+extern main
 
 global _start
 ;这个标签是整个内核的入口，从loader跳转到这儿
 _start:
-	mov byte [0x000b8000+160*3+0], 'K'
-	mov byte [0x000b8000+160*3+1], 0X07
-	mov byte [0x000b8000+160*3+2], 'E'
-	mov byte [0x000b8000+160*3+3], 0X07
-	mov byte [0x000b8000+160*3+4], 'R'
-	mov byte [0x000b8000+160*3+5], 0X07
-	mov byte [0x000b8000+160*3+6], 'N'
-	mov byte [0x000b8000+160*3+7], 0X07
-	mov byte [0x000b8000+160*3+8], 'E'
-	mov byte [0x000b8000+160*3+9], 0X07
-	mov byte [0x000b8000+160*3+10], 'L'
-	mov byte [0x000b8000+160*3+11], 0X07
+	mov byte [0x800b8000+160*4+0], 'K'
+	mov byte [0x800b8000+160*4+1], 0X07
+	mov byte [0x800b8000+160*4+2], 'E'
+	mov byte [0x800b8000+160*4+3], 0X07
+	mov byte [0x800b8000+160*4+4], 'R'
+	mov byte [0x800b8000+160*4+5], 0X07
+	mov byte [0x800b8000+160*4+6], 'N'
+	mov byte [0x800b8000+160*4+7], 0X07
+	mov byte [0x800b8000+160*4+8], 'E'
+	mov byte [0x800b8000+160*4+9], 0X07
+	mov byte [0x800b8000+160*4+10], 'L'
+	mov byte [0x800b8000+160*4+11], 0X07
 	
 	;init all segment registeres
-	;设置一下段，然后进入init/mian.c里面的main函数运行
+	;设置一下段
 	mov ax, 0x10	;the data 
 	mov ds, ax 
 	mov es, ax 
@@ -37,11 +38,24 @@ _start:
 	mov gs, ax 
 	mov ss, ax 
 	mov esp, KERNEL_STACK_TOP
+	mov ebx, KERNEL_STACK_TOP
+
+	;把寄存器清零
 	
-	;jmp $
-	call main					;into c mian
+
+
+	;初始化平台架构
+	call init_arch					;into arch
+
+	;如果返回非0就说明初始化失败
+	cmp eax, 0
+	jne stop_run
+
+	;初始化平台成功，接下来跳入到内核中去执行
+	call main
 
 stop_run:
+	;cli
 	hlt
 	jmp stop_run
 jmp $	

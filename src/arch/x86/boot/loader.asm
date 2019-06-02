@@ -8,7 +8,7 @@
 %include "const.inc"
 
 org 0x90000
-bits 16
+[bits 16]
 align 16
 	;进入loader程序会从这里开始执行
 	;跳到Entry
@@ -385,10 +385,21 @@ Flush:
 	mov byte [0xb8000+160*2+12], 'T'
 	mov byte [0xb8000+160*2+13], 0X07
 	
+	call StepPage
+
+	mov byte [0x800b8000+160*3+0], 'P'
+	mov byte [0x800b8000+160*3+1], 0X07
+	mov byte [0x800b8000+160*3+2], 'A'
+	mov byte [0x800b8000+160*3+3], 0X07
+	mov byte [0x800b8000+160*3+4], 'G'
+	mov byte [0x800b8000+160*3+5], 0X07
+	mov byte [0x800b8000+160*3+6], 'E'
+	mov byte [0x800b8000+160*3+7], 0X07
+
 	;从elf内核文件中读取内核的代码段和数据段到1M的位置
 	call ReadKernel
 
-	jmp $
+	;jmp $
 
 	;这个时候，我们就可以跳转到1M这个地方去执行我们的内核了
 	;由于在makefile中我们制定了-e _start,所以，就会把kernel/_start.asm中的
@@ -396,8 +407,8 @@ Flush:
 	;这个地方跳转过去，就是相当于跳转到_start执行
 	jmp 0X08:KERNEL_START_ADDR
 	
-	push eax
-	jmp $
+	;push eax
+	;jmp $
 
 ; 遍历每一个 Program Header，根据 Program Header 中的信息来确定把什么放进内存，放到什么位置，以及放多少。
 ;把内核的代码段和数据段从elf文件中读取到1个对应的内存地址中
@@ -457,6 +468,40 @@ memcpy:
 	pop	ebp
 
 	ret			; 函数结束，返回	
-	
+
+StepPage:  
+    mov ecx,1024                       ;1024个目录项
+    mov ebx,PAGE_DIR_PHY_ADDR                 ;页目录的物理地址
+    xor esi,esi
+.CleanPDT:
+    mov dword [ebx+esi],0x00000000  ;页目录表项清零 
+    add esi,4
+    loop .CleanPDT
+
+    mov edi, PAGE_TBL_PHY_ADDR
+    mov ebx, PAGE_DIR_PHY_ADDR
+    mov dword [ebx], PAGE_TBL_PHY_ADDR|0x07
+    mov dword [ebx+512*4], PAGE_TBL_PHY_ADDR|0x07    
+    mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR|0x07
+   	
+	;低端4M内存直接对应，可以直接访问到
+   	mov cx, 1024
+    mov esi, 0|0x07
+    
+.SetKPT:	;kernel page table
+    mov [edi], esi
+    add esi, 0x1000
+    add edi,4
+    loop .SetKPT
+   	
+.SetMode:
+   	mov eax , PAGE_DIR_PHY_ADDR
+    mov cr3,eax
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax
+.F:
+    ret	
+
 ;fill it with 1kb
 times (4096-($-$$)) db 0

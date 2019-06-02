@@ -10,14 +10,18 @@ NASM 		= nasm
 CC			= gcc
 
 #The file path
-INCLUDE_PATH = ../include/
+INCLUDE_PATH = ../include/kernel/
 
 #flags
 ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
-C_FLAGS	= -I $(INCLUDE_PATH) -c -fno-builtin -Wall -Wunused -m32 -fno-stack-protector
+C_FLAGS	= -c -I $(INCLUDE_PATH) -fno-builtin -nostdlib \
+	-Wall -Wunused \
+	-m32 -fno-stack-protector
 
-OBJS =  entry.o\
-	
+OBJS =  arch.o \
+		entry.o \
+		
+
 #First read here
 .PHONY: all
 
@@ -29,9 +33,10 @@ compile: $(OBJS)
 #Clean temporary files
 clean:
 	-rm *.o
-	
+
+%.o: %.c
+	$(CC) $(C_FLAGS) -o $@ $<	
+
 %.o: %.asm
 	$(NASM) $(ASM_FLAGS) -o $@ $<
 	
-.o: %.c
-	$(CC) $(C_FLAGS) -o $@ $<

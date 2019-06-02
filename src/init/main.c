@@ -19,10 +19,8 @@
  */
 int main()
 {
-	
-	while (1) {
-		
-	}
+	char *v = (char *)0x800b8000;
+	v[0] = 'M';
 	
 	return 0;
 }

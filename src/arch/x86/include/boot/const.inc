@@ -1,5 +1,5 @@
 ;----
-;file:      arch/x86/include/const.inc
+;file:      arch/x86/include/boot/const.inc
 ;auther:    Jason Hu
 ;time:      2019/6/2
 ;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -39,7 +39,7 @@ FILE_SEG EQU 0x4200
 
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
-KERNEL_START_ADDR EQU 0x100000
+KERNEL_START_ADDR EQU 0x80000000
 
 ;loader stack top is 0x90000
 LOADER_STACK_TOP EQU 0x90000
@@ -83,3 +83,13 @@ BITS_PER_PIXE	EQU		0		; 每个颜色占用多少像素
 VIDEO_WIDTH	EQU		2			; x的分辨率	宽度
 VIDEO_HEIGHT	EQU		4			; y的分辨率	高度
 VIDEO_RAM	EQU		6			; VRAM 地址
+
+;分页机制
+
+;内核页目录表地址
+PAGE_DIR_PHY_ADDR EQU   0x201000
+;内核页表地址
+PAGE_TBL_PHY_ADDR EQU   0x202000
+
+;显存页表地址
+VRAM_PT_PHY_ADDR    equ 0x203000

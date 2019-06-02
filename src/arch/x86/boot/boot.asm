@@ -8,7 +8,7 @@
 %include "const.inc"
 
 org 0x7c00
-bits 16
+[bits 16]
 align 16
 
 Entry:

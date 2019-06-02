@@ -58,7 +58,7 @@ ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
 #----objs----
 #arch kernel objs
 ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
-
+					$(ARCH_KERNEL_DIR)arch.o \
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS)
 
