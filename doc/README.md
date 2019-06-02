@@ -26,3 +26,22 @@
 :)  
 ## 注意
 - 编码格式统一 utf-8
+
+## 注释的重要性
+1.在文件开头必须添加注释，表明文件是什么，内容主要是 文件、作者、日期、版权 其它内容可以自行添加  
+文件路径要写全  
+举例：
+汇编代码
+;----
+;file:  arch/x86/include/const.inc
+;auther:    Jason Hu
+;time:  2018/1/23
+;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;----
+C语言代码
+/*
+ file:		init/main.c
+ auther:	Jason Hu
+ time:		2019/6/2
+ copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+ */
