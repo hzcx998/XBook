@@ -29,18 +29,18 @@
 
 ## 注释的重要性
 1.在文件开头必须添加注释，表明文件是什么，内容主要是：
-文件  文件的全路径  
-作者  作者名字  
-日期  文件创建日期  
-版权  版权声明  
+文件：文件的全路径  
+作者：作者名字  
+日期：文件创建日期  
+版权：版权声明  
 其它内容可以自行添加  
 
-    举例：  
+举例：  
     汇编代码  
     ;----  
-    ;file:  arch/x86/include/const.inc  
+    ;file:      arch/x86/include/const.inc  
     ;auther:    Jason Hu  
-    ;time:  2018/1/23  
+    ;time:      2018/1/23  
     ;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.  
     ;----  
     C语言代码  
@@ -50,3 +50,4 @@
      time:		2019/6/2  
      copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.  
      */  
+
