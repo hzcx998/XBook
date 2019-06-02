@@ -1,9 +1,9 @@
-;boot/const.inc
-;description: boot&loader's const var
-;auther: Hu Zicheng
-;time: 2018/1/23
-;Copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
-;E-mail: 2323168280@qq.com
+;----
+;file:  arch/x86/include/const.inc
+;auther:    Hu Zicheng
+;time:  2018/1/23
+;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;----
 
 ;----boot const----
 ;we read loader.bin from disk sector 2

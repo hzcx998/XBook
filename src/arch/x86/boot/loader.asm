@@ -1,5 +1,5 @@
 ;----
-;File:	arch/x86/boot/loader.asm
+;file:	arch/x86/boot/loader.asm
 ;auther: Jason Hu
 ;time: 2018/6/1
 ;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
@@ -8,7 +8,7 @@
 %include "const.inc"
 
 org 0x90000
-[bits 16]
+bits 16
 align 16
 	;进入loader程序会从这里开始执行
 	;跳到Entry

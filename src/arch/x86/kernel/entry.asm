@@ -1,9 +1,9 @@
-;kernel/start.asm
-;description: after loader, it will be threre
-;auther: huzicheng
-;time: 2019/2/20
-;Copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
-;E-mail: 2323168280@qq.com
+;----
+;file:	arch/x86/kernel/entry.asm
+;auther:	Jason Hu
+;time:	2019/6/2
+;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;----
 
 KERNEL_STACK_TOP EQU 0x009fc00
 

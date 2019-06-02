@@ -1,5 +1,5 @@
 ;----
-;File:	arch/x86/boot/boot.asm
+;file:	arch/x86/boot/boot.asm
 ;auther: Jason Hu
 ;time: 2018/6/1
 ;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
