@@ -4,7 +4,8 @@
         "string.h": "c",
         "page.h": "c",
         "stdint.h": "c",
-        "vga.h": "c"
+        "vga.h": "c",
+        "bitmap.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
