@@ -7,6 +7,7 @@
 
 #include <page.h>
 #include <vga.h>
+#include <ards.h>
 #include <share/stdint.h>
 #include <book/bitmap.h>
 #include <share/string.h>
@@ -34,7 +35,8 @@ int init_page()
 	pdt[0] = 0;
 
 	//设置物理内存管理方式，以页框为单位
-	init_memoryPool(64*1024*1024);
+	
+	init_memoryPool(256*1024*1024);
 	
 	printk("< init page done.\n");
 
@@ -44,7 +46,6 @@ int init_page()
 static void init_memoryPool(uint32_t total_mem)
 {
 	printk("> init memory pool start.\n");
-
 	//计算内存
 	uint32_t used_mem = FREE_PHY_START;
 	uint32_t free_mem = total_mem - used_mem;

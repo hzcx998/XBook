@@ -184,7 +184,7 @@ CheckMemory:
 	inc word [es:ARDS_ZONE_SIZE-4]
 	cmp ebx, 0
 	jnz .E820MemGetLoop
-	jmp SetProtectMode
+	jmp VideoGraphciSet
 .E820CheckFailed:
 	jmp $
 ;初始化图形界面的基本信息以及切换到图形模式
@@ -225,7 +225,7 @@ VideoGraphciSet:
 	;切换到指定的模式
 	mov	BX,VBEMODE+0x4000	;bx=模式号
 	mov	ax,0x4f02	;切换模式模式功能，指定ax=0x4f01
-	int	0x10
+	;int	0x10
 	
 	mov ax, VIDEO_INFO_SEG
 	mov ds, ax

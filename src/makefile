@@ -63,6 +63,7 @@ ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	$(ARCH_KERNEL_DIR)page.o \
 	$(ARCH_KERNEL_DIR)x86.o \
 	$(ARCH_KERNEL_DIR)vga.o \
+	$(ARCH_KERNEL_DIR)ards.o \
 
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS)

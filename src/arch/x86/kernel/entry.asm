@@ -42,20 +42,13 @@ _start:
 
 	;把寄存器清零
 	
-
-
 	;初始化平台架构
 	call init_arch					;into arch
-
-	;如果返回非0就说明初始化失败
-	cmp eax, 0
-	jne stop_run
 
 	;初始化平台成功，接下来跳入到内核中去执行
 	call main
 
 stop_run:
-	;cli
 	hlt
 	jmp stop_run
 jmp $	

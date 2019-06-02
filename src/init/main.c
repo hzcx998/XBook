@@ -5,6 +5,8 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
+#include <book/arch.h>
+
 /*
  * 功能: 内核的主函数
  * 参数: 无
@@ -13,8 +15,10 @@
  */
 int main()
 {
-	char *v = (char *)0x800b8000;
-	v[0] = 'M';
+	printk("> main start.\n");
 	
+
+
+	printk("< main done.\n");
 	return 0;
 }

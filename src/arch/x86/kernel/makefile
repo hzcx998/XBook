@@ -25,6 +25,7 @@ OBJS =  arch.o \
 		page.o \
 		x86.o \
 		vga.o \
+		ards.o \
 
 #First read here
 .PHONY: all
