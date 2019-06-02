@@ -35,18 +35,18 @@
 版权  版权声明  
 其它内容可以自行添加  
 
-举例：  
-    汇编代码
-    ;----
-    ;file:  arch/x86/include/const.inc
-    ;auther:    Jason Hu
-    ;time:  2018/1/23
-    ;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
-    ;----
-    C语言代码
-    /*
-     file:		init/main.c
-     auther:	Jason Hu
-     time:		2019/6/2
-     copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
-     */
+    举例：  
+    汇编代码  
+    ;----  
+    ;file:  arch/x86/include/const.inc  
+    ;auther:    Jason Hu  
+    ;time:  2018/1/23  
+    ;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.  
+    ;----  
+    C语言代码  
+    /*  
+     file:		init/main.c  
+     auther:	Jason Hu  
+     time:		2019/6/2  
+     copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.  
+     */  
