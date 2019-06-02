@@ -15,7 +15,6 @@ extern main
 global _start
 ;这个标签是整个内核的入口，从loader跳转到这儿
 _start:
-	;put 'K'
 	mov byte [0x000b8000+160*3+0], 'K'
 	mov byte [0x000b8000+160*3+1], 0X07
 	mov byte [0x000b8000+160*3+2], 'E'

@@ -28,6 +28,7 @@
 - 编码格式统一 utf-8  
 
 ## 注释的重要性  
+注释可以用英文也可以用中文，看个人爱好  
 1.在文件开头必须添加注释，表明文件是什么，内容主要是：  
 文件：文件的全路径  
 作者：作者名字  
@@ -44,9 +45,27 @@
     ;----  
     C语言代码  
     /*  
-     file:		init/main.c  
-     auther:	Jason Hu  
-     time:		2019/6/2  
-     copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.  
-     */  
+    * file:		init/main.c  
+    * auther:	Jason Hu  
+    * time:		2019/6/2  
+    * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.  
+    */  
 
+2.在编写函数的时候要加上对函数的注释，主要内容是：  
+功能：函数的主要功能
+参数：有哪些参数
+返回值：返回哪些值，不同的值有啥意思
+说明：需要提供的其它更多信息
+##
+    /*
+    * function: the mian of kernel
+    * parameters: none
+    * return: do not return, just pretend to return
+    * explain: after boot and loader, it will be there!
+    */
+    /*
+    * 功能: 内核的主函数
+    * 参数: 无
+    * 返回: 不返回，只是假装返回
+    * 说明: 引导和加载完成后，就会跳到这里
+    */
