@@ -50,6 +50,13 @@
     * time:		2019/6/2  
     * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.  
     */  
+    makefile代码
+    #----  
+    #file:		arch/x86/boot/makefile  
+    #auther: 	Jason Hu  
+    #time: 		2019/6/2  
+    #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.  
+    #----  
 
 2.在编写函数的时候要加上对函数的注释，主要内容是：  
 功能：函数的主要功能  
