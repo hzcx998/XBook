@@ -16,7 +16,8 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS = bitmap.o \
+OBJS = string.o \
+	vsprintf.o
 
 #First read here
 .PHONY: all
@@ -29,7 +30,6 @@ compile: $(OBJS)
 #Clean temporary files
 clean:
 	-rm *.o
-	-rm *.elf
 	
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<

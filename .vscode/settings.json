@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "arch.h": "c"
-    }
+        "arch.h": "c",
+        "string.h": "c",
+        "page.h": "c",
+        "stdint.h": "c",
+        "vga.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

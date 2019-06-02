@@ -48,6 +48,7 @@ ARCH_IA64 = arch/ia64/
 ARCH_DIR = $(ARCH_X86)
 INIT_DIR = init/
 KERNEL_DIR = kernel/
+SHARE_DIR = share/
 
 
 #sub dir
@@ -58,7 +59,11 @@ ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
 #----objs----
 #arch kernel objs
 ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
-					$(ARCH_KERNEL_DIR)arch.o \
+	$(ARCH_KERNEL_DIR)arch.o \
+	$(ARCH_KERNEL_DIR)page.o \
+	$(ARCH_KERNEL_DIR)x86.o \
+	$(ARCH_KERNEL_DIR)vga.o \
+
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS)
 
@@ -66,11 +71,14 @@ ARCH_OBJS = $(ARCH_KERNEL_OBJS)
 INIT_OBJS = $(INIT_DIR)main.o \
 
 #kernel objs
-KERNEL_OBJS = 
+KERNEL_OBJS = $(KERNEL_DIR)bitmap.o \
 
+#share objs
+SHARE_OBJS = $(SHARE_DIR)string.o \
+	$(SHARE_DIR)vsprintf.o
 
 #objs
-OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) 
+OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(SHARE_OBJS)
 
 
 #----bin and elf----
@@ -93,6 +101,7 @@ compile:
 	cd $(ARCH_DIR) && $(MAKE)
 	cd $(INIT_DIR) && $(MAKE)
 	cd $(KERNEL_DIR) && $(MAKE)
+	cd $(SHARE_DIR) && $(MAKE)
 
 link: $(KERNEL_ELF)
 
@@ -112,14 +121,15 @@ bochs:
 bochsdbg:
 	$(BOCHSDBG) -q -f $(BXRC)
 
+#-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
 	$(QEMU) -m 256 -fda $(FLAPPY_IMG)  \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
 	-boot a
+
 
 #clean temporary files
 clean:
 	cd $(ARCH_DIR) && $(MAKE) clean
 	cd $(KERNEL_DIR) && $(MAKE) clean
 	cd $(INIT_DIR) && $(MAKE) clean
-	
+	cd $(SHARE_DIR) && $(MAKE) clean

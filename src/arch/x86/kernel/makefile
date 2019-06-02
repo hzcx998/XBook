@@ -10,17 +10,21 @@ NASM 		= nasm
 CC			= gcc
 
 #The file path
-INCLUDE_PATH = ../include/kernel/
+ARCH_KERNEL_PATH = ../include/kernel/
+INCLUDE_PATH = ../../../include/
 
 #flags
-ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
-C_FLAGS	= -c -I $(INCLUDE_PATH) -fno-builtin -nostdlib \
+ASM_FLAGS	= -I $(ARCH_KERNEL_PATH) -f elf
+C_FLAGS	= -c -fno-builtin -nostdlib \
+	-I $(ARCH_KERNEL_PATH) -I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
 OBJS =  arch.o \
 		entry.o \
-		
+		page.o \
+		x86.o \
+		vga.o \
 
 #First read here
 .PHONY: all

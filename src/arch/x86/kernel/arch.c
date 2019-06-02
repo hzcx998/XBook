@@ -1,11 +1,13 @@
 /*
  * file:		arch/x86/kernel/arch.c
- * auther:	Jason Hu
+ * auther:		Jason Hu
  * time:		2019/6/2
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
 #include <arch.h>
+#include <page.h>
+#include <vga.h>
 
 /*
  * 功能: 平台架构初始化入口
@@ -15,9 +17,8 @@
  */
 int init_arch()
 {
-	int *pdt = (int *)0x80201000;
-
-	pdt[0] = 0;
+	init_vga();
+	init_page();
 
 
 	return 0;
