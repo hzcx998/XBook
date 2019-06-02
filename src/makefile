@@ -2,10 +2,10 @@
 #File:	makefile
 #Auther: Jason Hu
 #Time: 2019/6/1
-#Copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+#copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
-#----------tools----------
+#----tools----
 #tool dir
 BOCHS_DIR = ../bochs/
 
@@ -18,7 +18,7 @@ BOCHS 		= bochs
 BOCHSDBG 		= bochsdbg
 BXRC 		= $(BOCHS_DIR)bochsrc.bxrc
 
-#----------img----------
+#----img----
 #img dir
 IMG_DIR = ../img/
 
@@ -26,7 +26,7 @@ FLAPPY_IMG 	= $(IMG_DIR)a.img
 HDA_IMG		= $(IMG_DIR)c.img
 HDB_IMG		= $(IMG_DIR)d.img
 
-#----------flags----------
+#----flags----
 #out a map file: -Map kernel.map
 #i386 link flags
 LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80000000
@@ -38,7 +38,7 @@ LOADER_CNTS = 8
 KERNEL_OFF = 10
 KERNEL_CNTS = 400
 
-#----------dir----------
+#----dir----
 #arch
 ARCH_X86 = arch/x86/
 ARCH_IA64 = arch/ia64/
@@ -55,7 +55,7 @@ ARCH_BOOT_DIR = $(ARCH_DIR)boot/
 ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
 
 
-#----------objs----------
+#----objs----
 #arch kernel objs
 ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 
@@ -73,7 +73,7 @@ KERNEL_OBJS =
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) 
 
 
-#----------bin and elf----------
+#----bin and elf----
 #boot temp file
 BOOT_BIN =  $(ARCH_BOOT_DIR)boot.bin
 LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
@@ -81,7 +81,7 @@ LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
 #kernel temp file
 KERNEL_ELF =  $(KERNEL_DIR)kernel.elf
 
-#----------cmd----------	
+#----cmd----	
 .PHONY: default
 
 default: compile link disk

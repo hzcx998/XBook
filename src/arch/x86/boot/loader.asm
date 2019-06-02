@@ -1,8 +1,8 @@
 ;----
-;file:	arch/x86/boot/loader.asm
-;auther: Jason Hu
-;time: 2018/6/1
-;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;file:		arch/x86/boot/loader.asm
+;auther: 	Jason Hu
+;time: 		2019/6/1
+;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 ;----
 
 %include "const.inc"

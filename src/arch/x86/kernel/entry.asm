@@ -1,8 +1,8 @@
 ;----
-;file:	arch/x86/kernel/entry.asm
+;file:		arch/x86/kernel/entry.asm
 ;auther:	Jason Hu
-;time:	2019/6/2
-;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;time:		2019/6/2
+;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 ;----
 
 KERNEL_STACK_TOP EQU 0x009fc00

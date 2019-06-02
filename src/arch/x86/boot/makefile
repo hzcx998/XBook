@@ -1,8 +1,8 @@
 #----
-#File:	arch/x86/boot/makefile
-#Auther: Jason Hu
-#Time: 2019/6/2
-#Copyright:	(C) 2018-2019 by Retal developers. All rights reserved.
+#file:		arch/x86/boot/makefile
+#auther: 	Jason Hu
+#time: 		2019/6/2
+#copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
 #The tools name

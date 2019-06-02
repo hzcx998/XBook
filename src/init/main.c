@@ -1,8 +1,8 @@
 /*
- File:		init/main.c
- Auther:	Jason Hu
- Time:		2019/6/2
- Copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+ file:		init/main.c
+ auther:	Jason Hu
+ time:		2019/6/2
+ copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
 int main()

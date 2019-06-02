@@ -1,8 +1,8 @@
 ;----
-;file:  arch/x86/include/const.inc
-;auther:    Hu Zicheng
-;time:  2018/1/23
-;copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+;file:      arch/x86/include/const.inc
+;auther:    Jason Hu
+;time:      2019/6/2
+;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 ;----
 
 ;----boot const----

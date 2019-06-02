@@ -1,10 +1,10 @@
 #----
-#Makefile for x86
-#Auther: Jason Hu
-#Time: 2019/6/2
-#Copyright:	(C) 2018-2019 by Retal developers. All rights reserved.
-#E-mail: 2323168280@qq.com
+#file:		arch/x86/makefile
+#auther: 	Jason Hu
+#time: 		2019/6/2
+#copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
+
 
 #First read here
 .PHONY: all

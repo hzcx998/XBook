@@ -2,7 +2,7 @@
 #File: kernel/makefile
 #Auther: Jason Hu
 #Time: 2019/6/2
-#Copyright:	(C) 2018-2019 by BookOS developers. All rights reserved.
+#copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
 #The tools name
