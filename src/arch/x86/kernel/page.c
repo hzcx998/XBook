@@ -8,6 +8,8 @@
 #include <page.h>
 #include <vga.h>
 #include <ards.h>
+#include <x86.h>
+
 #include <share/stdint.h>
 #include <book/bitmap.h>
 #include <share/string.h>
@@ -38,14 +40,19 @@ int init_page()
 	//设置物理内存管理方式，以页框为单位
 	phy_memory_total = init_ards();
 	init_memoryPool(phy_memory_total);
-	/*
+	
 	void *a = alloc_kernelPage(100);
 	
 	void *b = alloc_kernelPage(1000);
 	void *c = alloc_kernelPage(10000);
 	void *d = alloc_kernelPage(10);
 	printk("%x %x %x %x\n", a, b, c, d);
-	*/
+	
+	free_kernelPage(a,100);
+	free_kernelPage(b,1000);
+	free_kernelPage(c,10000);
+	free_kernelPage(d,10);
+
 	printk("< init page done.\n");
 
 	return 0;
@@ -117,30 +124,6 @@ static void init_memoryPool(uint32_t total_mem)
 	printk("< init memory pool done.\n");
 }
 
-void *alloc_pageVirtualAddr(pool_flags_t pf, uint32_t pages)
-{
-	int bit_idx_start = -1;
-	uint32_t i, vaddr_start = 0;
-	if (pf == PF_KERNEL) {
-		//内核内存池
-		bit_idx_start = bitmap_scan(&kernel_vir_addr.vaddr_bitmap, pages);
-		
-		if (bit_idx_start == -1) {
-			//分配失败
-			return NULL;
-		}
-		//设置分配的那么多个位图位为1
-		for (i = 0; i < pages; i++) {
-			bitmap_set(&kernel_vir_addr.vaddr_bitmap, bit_idx_start + i, 1);
-		}
-		vaddr_start = kernel_vir_addr.vir_addr_start + bit_idx_start*PAGE_SIZE;
-	} else {
-		//用户内存池
-
-	}
-	return (void *)vaddr_start;
-}
-
 uint32_t *page_ptePtr(uint32_t vaddr)
 {
 	uint32_t *pte = (uint32_t *)(0xffc00000 + \
@@ -155,6 +138,59 @@ uint32_t *page_pdePtr(uint32_t vaddr)
 	return pde;
 }
 
+uint32_t page_addrV2P(uint32_t vaddr)
+{
+	uint32_t* pte = page_ptePtr(vaddr);
+	/* 
+	(*pte)的值是页表所在的物理页框地址,
+	去掉其低12位的页表项属性+虚拟地址vaddr的低12位
+	*/
+	return ((*pte & 0xfffff000) + (vaddr & 0x00000fff));
+}
+
+void *alloc_pageVirtualAddr(pool_flags_t pf, uint32_t pages)
+{
+	int bit_idx_start = -1;
+	uint32_t i, vaddr_start = 0;
+	if (pf == PF_KERNEL) {
+		//内核虚拟地址
+		bit_idx_start = bitmap_scan(&kernel_vir_addr.vaddr_bitmap, pages);
+		
+		if (bit_idx_start == -1) {
+			//分配失败
+			return NULL;
+		}
+		//设置分配的那么多个位图位为1
+		for (i = 0; i < pages; i++) {
+			bitmap_set(&kernel_vir_addr.vaddr_bitmap, bit_idx_start + i, 1);
+		}
+		vaddr_start = kernel_vir_addr.vir_addr_start + bit_idx_start*PAGE_SIZE;
+	} else {
+		//用户虚拟地址
+
+	}
+	return (void *)vaddr_start;
+}
+
+void free_pageVirtualAddr(pool_flags_t pf, void *vaddr, uint32_t pages)
+{
+	uint32_t bit_idx_start = 0;
+	uint32_t vir_addr = (uint32_t)vaddr;
+	uint32_t n = 0;
+	if (pf == PF_KERNEL) {
+		//内核虚拟地址
+		bit_idx_start = (vir_addr - kernel_vir_addr.vir_addr_start)/PAGE_SIZE;
+		while (n < pages) {
+			bitmap_set(&kernel_vir_addr.vaddr_bitmap, bit_idx_start + n, 0);
+			n++;
+		}
+		
+	} else {
+		//用户虚拟地址
+
+	}
+}
+
 void *pool_allocPhyMem(struct memory_pool_s *mem_pool)
 {
 	int bit_idx = bitmap_scan(&mem_pool->pool_bitmap, 1);
@@ -164,6 +200,22 @@ void *pool_allocPhyMem(struct memory_pool_s *mem_pool)
 	bitmap_set(&mem_pool->pool_bitmap, bit_idx, 1);
 	uint32_t page_phy_addr = mem_pool->phy_addr_start +  bit_idx*PAGE_SIZE;
 	return (void *) page_phy_addr;
+}
+
+void pool_freePhyMem(uint32_t phy_addr)
+{
+	struct memory_pool_s *mem_pool;
+	uint32_t bit_idx = 0;
+	//根据地址判断是内核的地址还是用户的地址
+	if (phy_addr >= user_memory_pool.phy_addr_start) {
+		mem_pool = &user_memory_pool;
+	} else {
+		mem_pool = &kernel_memory_pool;
+	}
+
+	bit_idx = (phy_addr-mem_pool->phy_addr_start)/PAGE_SIZE;
+	//把对应的位置置0，表示没有被使用
+	bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
 
 /*
@@ -204,6 +256,16 @@ void page_tableAdd(void *vir_addr, void *phy_addr)
 	}
 }
 
+void page_tableRemovePTE(uint32_t vaddr)
+{
+	//获取页表项，并把存在位置0表明页不存在
+	uint32_t *pte = page_ptePtr(vaddr);
+	*pte &= ~PAGE_P_1;
+
+	//更新tlb
+	X86Invlpg(vaddr);
+}
+
 void *page_allocMemory(pool_flags_t pf, uint32_t pages)
 {
 	void *vaddr_start = alloc_pageVirtualAddr(pf, pages);
@@ -228,8 +290,45 @@ void *page_allocMemory(pool_flags_t pf, uint32_t pages)
 	return vaddr_start;
 }
 
+void page_freeMemory(pool_flags_t pf, void *vaddr, uint32_t pages)
+{
+	uint32_t phy_addr;
+	uint32_t vir_addr = (uint32_t )vaddr;
+	uint32_t n = 0;
+	phy_addr = page_addrV2P(vir_addr);
+	uint8_t kflags;	//是否是内核池
+
+	if (phy_addr >= user_memory_pool.phy_addr_start) {
+		//用户内存池
+		kflags = 0;
+	} else {
+		//内核内存池
+		kflags = 1;
+	}
+
+	while (n < pages) {
+		phy_addr = page_addrV2P(vir_addr);
+
+		if (kflags) {
+			//对应的判断
+
+		} else {
+			//对应的判断
+			
+		}
+
+		pool_freePhyMem(phy_addr);
+		page_tableRemovePTE(vir_addr);
+
+		n++;
+		vir_addr += PAGE_SIZE;
+	}
+	free_pageVirtualAddr(pf, vaddr, pages);
+}
+
+
 /*
- * 功能: 分配n个物理页，返回虚拟地址
+ * 功能: 分配n个内核页，返回虚拟地址
  * 参数: pages 	需要多少个页
  * 返回: NULL 失败，非NULL就是我们分配的虚拟地址
  * 说明: 有了虚拟地址分配函数后，就可以通过以页框为单位的方式编写内存管理算法
@@ -243,3 +342,14 @@ void *alloc_kernelPage(uint32_t pages)
 	return vaddr;
 }
 
+/*
+ * 功能: 释放n个物理页
+ * 参数: vaddr 	虚拟地址
+ * 		pages 	需要多少个页
+ * 返回: 无
+ * 说明: 为了和alloc_kernelPage对应，这里写了一个释放内核的地址
+ */
+void free_kernelPage(void *vaddr, uint32_t pages)
+{
+	page_freeMemory(PF_KERNEL, vaddr, pages);
+}

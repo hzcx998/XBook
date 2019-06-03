@@ -33,6 +33,7 @@ global 	StoreEflags
 global 	PortRead
 global 	PortWrite
 global 	CpuUD2
+global 	X86Invlpg
 
 [section .text]
 [bits 32]
@@ -243,4 +244,7 @@ PortWrite:	;void PortWrite(u16 port, void* buf, uint32_t n);
 CpuUD2:
 	ud2
 	ret
-	
+X86Invlpg:
+	mov eax, [esp + 4]
+	invlpg [eax]
+	ret	

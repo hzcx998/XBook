@@ -36,5 +36,6 @@ uint32_t LoadEflags(void);
 void StoreEflags(uint32_t eflags);
 void PortRead(uint16_t port, void* buf, uint32_t n);
 void PortWrite(uint16_t port, void* buf, uint32_t n);
+void X86Invlpg(uint32_t vaddr);
 
 #endif	/*_ARCH_X86_H*/

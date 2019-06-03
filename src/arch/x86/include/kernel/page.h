@@ -88,14 +88,21 @@ typedef enum {
 
 uint32_t *page_ptePtr(uint32_t vaddr);
 uint32_t *page_pdePtr(uint32_t vaddr);
+uint32_t page_addrV2P(uint32_t vaddr);
 
 void *alloc_pageVirtualAddr(pool_flags_t pf, uint32_t pages);
+void free_pageVirtualAddr(pool_flags_t pf, void *vaddr, uint32_t pages);
+
 void *pool_allocPhyMem(struct memory_pool_s *mem_pool);
+void pool_freePhyMem(uint32_t phy_addr);
 
 void *page_allocMemory(pool_flags_t pf, uint32_t pages);
+void page_freeMemory(pool_flags_t pf, void *vaddr, uint32_t pages);
+
+void page_tableAdd(void *vir_addr, void *phy_addr);
+void page_tableRemovePTE(uint32_t vaddr);
 
 void *alloc_kernelPage(uint32_t pages);
-
-
+void free_kernelPage(void *vaddr, uint32_t pages);
 
 #endif  /*_X86_PAGE_H*/
