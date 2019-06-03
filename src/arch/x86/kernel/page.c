@@ -38,14 +38,14 @@ int init_page()
 	//设置物理内存管理方式，以页框为单位
 	phy_memory_total = init_ards();
 	init_memoryPool(phy_memory_total);
-	
+	/*
 	void *a = alloc_kernelPage(100);
 	
 	void *b = alloc_kernelPage(1000);
 	void *c = alloc_kernelPage(10000);
 	void *d = alloc_kernelPage(10);
 	printk("%x %x %x %x\n", a, b, c, d);
-	
+	*/
 	printk("< init page done.\n");
 
 	return 0;

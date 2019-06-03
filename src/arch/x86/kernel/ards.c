@@ -20,7 +20,7 @@ uint32_t init_ards()
 		ards_nr = MAX_ARDS_NR;
 	}
 	struct ards_s *ards = (struct ards_s *) (ARDS_ADDR+4);	//ards 地址
-	printk("ards nr %d ards address %x\n",ards_nr, ards);
+	//printk("ards nr %d ards address %x\n",ards_nr, ards);
 	int i;
 	for(i = 0; i < ards_nr; i++){
 		//寻找可用最大内存
@@ -29,7 +29,7 @@ uint32_t init_ards()
 			if(ards->base_low+ards->length_low > total_size){
 				total_size = ards->base_low+ards->length_low;
 			}
-			printk("base %x length %x\n",ards->base_low, ards->length_low);
+			//printk("base %x length %x\n",ards->base_low, ards->length_low);
 		}
 		
 		ards++;
