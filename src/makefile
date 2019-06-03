@@ -29,7 +29,7 @@ HDB_IMG		= $(IMG_DIR)d.img
 #----flags----
 #out a map file: -Map kernel.map
 #i386 link flags
-LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80000000
+LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80100000
 
 #system disk
 LOADER_OFF = 2		

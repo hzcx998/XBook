@@ -19,6 +19,8 @@ virtual_addr_t kernel_vir_addr;
 
 static void init_memoryPool(uint32_t total_mem);
 
+static uint64_t phy_memory_total;
+
 /*
  * 功能: 初始化分页模式相关
  * 参数: 无
@@ -33,10 +35,16 @@ int init_page()
 	uint32_t *pdt = (uint32_t *)PAGE_DIR_VIR_ADDR;
 	//把页目录表的第1项清空，这样，我们就只能通过高地址访问内核了
 	pdt[0] = 0;
-
 	//设置物理内存管理方式，以页框为单位
+	phy_memory_total = init_ards();
+	init_memoryPool(phy_memory_total);
 	
-	init_memoryPool(256*1024*1024);
+	void *a = alloc_kernelPage(100);
+	
+	void *b = alloc_kernelPage(1000);
+	void *c = alloc_kernelPage(10000);
+	void *d = alloc_kernelPage(10);
+	printk("%x %x %x %x\n", a, b, c, d);
 	
 	printk("< init page done.\n");
 
@@ -46,6 +54,12 @@ int init_page()
 static void init_memoryPool(uint32_t total_mem)
 {
 	printk("> init memory pool start.\n");
+
+	if (total_mem > X86_PHY_MEM_MAX) {
+		total_mem = X86_PHY_MEM_MAX;
+	}
+	printk(" \\_memory size is %x bytes %d MB.\n", total_mem, total_mem/(1024*1024));
+
 	//计算内存
 	uint32_t used_mem = FREE_PHY_START;
 	uint32_t free_mem = total_mem - used_mem;
@@ -86,7 +100,7 @@ static void init_memoryPool(uint32_t total_mem)
 	//初始化位图
 	bitmap_init(&kernel_memory_pool.pool_bitmap);
 	bitmap_init(&user_memory_pool.pool_bitmap);
-	
+
 	//初始化内核虚拟地址，理论上内核虚拟内存的长度是小于物理内存的长度，在这里，让他们一样
 	kernel_vir_addr.vaddr_bitmap.btmp_bytes_len = kernel_bitmap_len;
 	//位图放到用户内存池后面
@@ -98,7 +112,6 @@ static void init_memoryPool(uint32_t total_mem)
 	printk("  \\_kernel virtual addr: bitmap start:%x  vir addr start:%x\n", \
 		kernel_vir_addr.vaddr_bitmap.bits, kernel_vir_addr.vir_addr_start);
 	
-
 	bitmap_init(&kernel_vir_addr.vaddr_bitmap);
 
 	printk("< init memory pool done.\n");

@@ -5,7 +5,7 @@
 ;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 ;----
 
-KERNEL_STACK_TOP EQU 0x8009fc00
+KERNEL_STACK_TOP EQU 0x8009f000
 
 EOI EQU 0X20
 INT_M_CTL	equ	0x20	; I/O port for interrupt controller         <Master>

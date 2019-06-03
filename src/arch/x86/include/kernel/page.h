@@ -63,6 +63,10 @@ typedef struct virtual_addr_s
 //内核或者用户内存池位图最大为2G
 #define MAX_MEM_POOL_BITMAP_SIZE 0x10000
 
+
+#define X86_PHY_MEM_MAX 0xfffff000
+
+
 /*
 内存池结构体，用于管理内核内存和用户内存
 和virtual_addr结构类似，只是多了个大小

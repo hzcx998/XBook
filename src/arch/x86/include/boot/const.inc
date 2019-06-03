@@ -16,7 +16,7 @@ LOADER_CNTS EQU 8
 ;so the segment is 0x9000, we are in real mode now.
 LOADER_SEG EQU 0x9000	
 
-;----loader const----
+;---loader const----
 ;we read kernel.elf from disk sector 10 
 KERNEL_OFF EQU 10	
 
@@ -36,10 +36,9 @@ FILE_OFF EQU 500
 
 FILE_SEG EQU 0x4200
 
-
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
-KERNEL_START_ADDR EQU 0x80000000
+KERNEL_START_ADDR EQU 0x80100000
 
 ;loader stack top is 0x90000
 LOADER_STACK_TOP EQU 0x90000
@@ -48,44 +47,10 @@ LOADER_STACK_TOP EQU 0x90000
 ;every time we load 128 sectors
 BLOCK_SIZE EQU 128
 
-;memory manage, load memory info in ards, we will use it when
-;we init memory
-;ards zone(0x500~0x600)
-ARDS_SEG	EQU		0x50	;ards start segment
-ARDS_ZONE_SIZE	EQU		0x100	;ards zone
 
-;vbe info is for graphic
-VBEINFO_SEG	EQU		0x60	
-VBEINFO_ZONE_SIZE	EQU		0x100	
-
-VBEMODE_SEG	EQU		0x70	
-VBEMODE_ZONE_SIZE	EQU		0x100	
-
-VIDEO_INFO_SEG	EQU		0x80	
-VIDEO_INFO_ZONE_SIZE	EQU		0x100	
-;16 bits
-MODE_640_480_16 EQU 0x111
-MODE_800_600_16 EQU 0x114
-MODE_1024_768_16 EQU 0x117
-MODE_1280_1024_16 EQU 0x11A
-
-;24 bits
-;24bit 不能再vmware中使用，不知道为何，可能是不支持
-MODE_640_480_24 EQU 0x112
-MODE_800_600_24 EQU 0x115
-MODE_1024_768_24 EQU 0x118
-MODE_1280_1024_24 EQU 0x11B
-MODE_VMWARE_800_600_24	EQU	0x4140
-
-VBEMODE	EQU	MODE_800_600_16
-
-BITS_PER_PIXE	EQU		0		; 每个颜色占用多少像素
-VIDEO_WIDTH	EQU		2			; x的分辨率	宽度
-VIDEO_HEIGHT	EQU		4			; y的分辨率	高度
-VIDEO_RAM	EQU		6			; VRAM 地址
+ARDS_SEG	EQU		0x100	;ards start segment
 
 ;分页机制
-
 ;内核页目录表地址
 PAGE_DIR_PHY_ADDR EQU   0x201000
 ;内核页表地址

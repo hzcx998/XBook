@@ -38,10 +38,7 @@ _start:
 	mov gs, ax 
 	mov ss, ax 
 	mov esp, KERNEL_STACK_TOP
-	mov ebx, KERNEL_STACK_TOP
 
-	;把寄存器清零
-	
 	;初始化平台架构
 	call init_arch					;into arch
 
