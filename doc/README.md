@@ -15,7 +15,7 @@
     举例：init, init_cpu, create_window_button, alloc_kernel_memory_page，window_set_title  
     2.结构体命名：结构体名称小写，每个单词之间用下划线隔开
     举例：  
-    typedef struct foo_program
+    struct foo_program
     {  
         int foo;  
     };  
