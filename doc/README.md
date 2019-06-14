@@ -13,12 +13,12 @@
 ## C代码:  
     1.函数命名: 第一个单词小写，第二个单词也小写，第一个单词和第二个单词用下划线隔开，后面的单词都大写，没有下划线。  
     举例：init, init_cpu, create_windowButton, alloc_kernelMemoryPage，window_setTitle  
-    2.结构体命名：结构体名称小写，每个单词之间用下划线隔开，在最后加上_s，并且要写typedef，typedef后的新名字为和前面一样只是最后改成了_t  
+    2.结构体命名：结构体名称小写，每个单词之间用下划线隔开 
     举例：  
-    typedef struct foo_program_s  
+    struct foo_program
     {  
         int foo;  
-    }foo_program_t;  
+    }; 
     3.宏定义都是大写字母，单词间用下划线隔开  
     举例: MAX_DIR_NR, FOO_MAX_NR  
     4.注意多实用空格，其它的可以自我发挥。  

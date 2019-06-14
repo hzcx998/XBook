@@ -40,9 +40,8 @@ int init_page()
 	//设置物理内存管理方式，以页框为单位
 	phy_memory_total = init_ards();
 	init_memoryPool(phy_memory_total);
-	
+	/*
 	void *a = alloc_kernelPage(100);
-	
 	void *b = alloc_kernelPage(1000);
 	void *c = alloc_kernelPage(10000);
 	void *d = alloc_kernelPage(10);
@@ -52,7 +51,7 @@ int init_page()
 	free_kernelPage(b,1000);
 	free_kernelPage(c,10000);
 	free_kernelPage(d,10);
-
+	*/
 	printk("< init page done.\n");
 
 	return 0;
@@ -99,9 +98,9 @@ static void init_memoryPool(uint32_t total_mem)
 	user_memory_pool.pool_bitmap.bits = (void *)(MEM_POOL_BITMAP_VIR_ADDR_START + MAX_MEM_POOL_BITMAP_SIZE);
 	
 	//显示信息
-	printk("  \\_kernel memory pool: bitmap start:%x\n    phy addr start:%x size:%x\n", \
+	printk("  |-kernel memory pool: bitmap start:%x\n    phy addr start:%x size:%x\n", \
 		kernel_memory_pool.pool_bitmap.bits, kernel_memory_pool.phy_addr_start, kernel_memory_pool.pool_size);
-	printk("  \\_user memory pool: bitmap start:%x\n    phy addr start:%x size:%x\n", \
+	printk("  |-user memory pool: bitmap start:%x\n    phy addr start:%x size:%x\n", \
 		user_memory_pool.pool_bitmap.bits, user_memory_pool.phy_addr_start, user_memory_pool.pool_size);
 	
 	//初始化位图
@@ -116,7 +115,7 @@ static void init_memoryPool(uint32_t total_mem)
 	//虚拟地址的开始地址
 	kernel_vir_addr.vir_addr_start = KERNEL_HEAP_START;	
 
-	printk("  \\_kernel virtual addr: bitmap start:%x  vir addr start:%x\n", \
+	printk("  |-kernel virtual addr: bitmap start:%x  vir addr start:%x\n", \
 		kernel_vir_addr.vaddr_bitmap.bits, kernel_vir_addr.vir_addr_start);
 	
 	bitmap_init(&kernel_vir_addr.vaddr_bitmap);
