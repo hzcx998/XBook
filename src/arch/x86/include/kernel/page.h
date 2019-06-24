@@ -29,11 +29,11 @@ int init_page();
 /*
 虚拟地址结构体
 */
-typedef struct virtual_addr_s
+struct virtual_addr
 {
-    struct bitmap_s vaddr_bitmap;   //位图结构
+    struct bitmap vaddr_bitmap;   //位图结构
     uint32_t vir_addr_start;           //虚拟地址起始地址
-}virtual_addr_t;
+};
 
 
 #define	 PAGE_P_1	  	1	// 0001 exist in memory
@@ -71,12 +71,12 @@ typedef struct virtual_addr_s
 内存池结构体，用于管理内核内存和用户内存
 和virtual_addr结构类似，只是多了个大小
 */
-typedef struct memory_pool_s
+struct memory_pool
 {
-    struct bitmap_s pool_bitmap;   //位图结构
+    struct bitmap pool_bitmap;   //位图结构
     uint32_t phy_addr_start;        //物理内存的开始地址
     uint32_t pool_size;             //内存池大小
-}memory_pool_t;
+};
 
 /*
 mem pool flags
@@ -93,7 +93,7 @@ uint32_t page_addrV2P(uint32_t vaddr);
 void *alloc_pageVirtualAddr(pool_flags_t pf, uint32_t pages);
 void free_pageVirtualAddr(pool_flags_t pf, void *vaddr, uint32_t pages);
 
-void *pool_allocPhyMem(struct memory_pool_s *mem_pool);
+void *pool_allocPhyMem(struct memory_pool *mem_pool);
 void pool_freePhyMem(uint32_t phy_addr);
 
 void *page_allocMemory(pool_flags_t pf, uint32_t pages);

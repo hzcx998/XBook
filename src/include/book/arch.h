@@ -17,6 +17,8 @@
    #include "../arch/x86/include/kernel/vga.h"
    #include "../arch/x86/include/kernel/x86.h"
    #include "../arch/x86/include/kernel/ards.h"
+   #include "../arch/x86/include/kernel/interrupt.h"
+   
 #endif   /*_ARCH_X86_*/
 
 #endif   /*_BOOK_ARCH_H*/

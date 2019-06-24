@@ -22,4 +22,18 @@
 #define false 0
 #endif
 
+#ifndef PUBLIC
+#define PUBLIC 
+#endif
+
+#ifndef PRIVATE
+#define PRIVATE static
+#endif
+
+#ifndef EXTERN
+#define EXTERN extern
+#endif
+
+
+
 #endif  /*_SHARE_TYPES_H*/

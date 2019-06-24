@@ -7,7 +7,9 @@
 
 #include <arch.h>
 #include <page.h>
-#include <vga.h>
+#include <segment.h>
+#include <gate.h>
+#include <book/debug.h>
 
 /*
  * 功能: 平台架构初始化入口
@@ -17,7 +19,11 @@
  */
 int init_arch()
 {
-	init_vga();
+	//初始化内核调试功能，基于硬件抽象层
+	InitKernelDebugHal();
+	InitSegmentDescriptor();
+	InitGateDescriptor();
+	
 	init_page();
 
 

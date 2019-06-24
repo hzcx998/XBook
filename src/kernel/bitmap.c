@@ -14,7 +14,7 @@
  * 返回: 无
  * 说明: 初始化一个位图结构，其实就是把位图数据指针指向的地址清0
  */
-void bitmap_init(struct bitmap_s* btmp) 
+void bitmap_init(struct bitmap *btmp) 
 {
    memset(btmp->bits, 0, btmp->btmp_bytes_len);   
 }
@@ -27,7 +27,7 @@ void bitmap_init(struct bitmap_s* btmp)
  *       false 说明该位是0
  * 说明: 可以通过检测寻找哪些是已经使用的，哪些还没有使用
  */
-bool bitmap_scanTest(struct bitmap_s* btmp, uint32_t bit_idx) 
+bool bitmap_scanTest(struct bitmap *btmp, uint32_t bit_idx) 
 {
    uint32_t byte_idx = bit_idx / 8;   
    uint32_t bit_odd  = bit_idx % 8;  
@@ -42,7 +42,7 @@ bool bitmap_scanTest(struct bitmap_s* btmp, uint32_t bit_idx)
  *       大于0 返回扫描到的首个位图地址
  * 说明: 可以通过检测寻找哪些是已经使用的，哪些还没有使用
  */
-int bitmap_scan(struct bitmap_s* btmp, uint32_t cnt) {
+int bitmap_scan(struct bitmap *btmp, uint32_t cnt) {
    uint32_t idx_byte = 0;
 
    while (( 0xff == btmp->bits[idx_byte]) && (idx_byte < btmp->btmp_bytes_len)) {
@@ -93,7 +93,7 @@ int bitmap_scan(struct bitmap_s* btmp, uint32_t cnt) {
  * 返回: 无
  * 说明: 可以通过设置位图某位的值来表达某一个事物是否使用
  */
-void bitmap_set(struct bitmap_s* btmp, uint32_t bit_idx, int8_t value)
+void bitmap_set(struct bitmap *btmp, uint32_t bit_idx, int8_t value)
 {
    uint32_t byte_idx = bit_idx / 8;
    uint32_t bit_odd  = bit_idx % 8;

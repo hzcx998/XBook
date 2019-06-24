@@ -6,18 +6,19 @@
  */
 
 #include <page.h>
-#include <vga.h>
 #include <ards.h>
 #include <x86.h>
 
 #include <share/stdint.h>
 #include <book/bitmap.h>
 #include <share/string.h>
+#include <book/debug.h>
+
 //内核和用户的内存池
-memory_pool_t kernel_memory_pool, user_memory_pool;
+struct memory_pool kernel_memory_pool, user_memory_pool;
 
 //内核的虚拟地址，由于用户有很多个，所以用户的虚拟地址定义在进程结构体重
-virtual_addr_t kernel_vir_addr;
+struct virtual_addr  kernel_vir_addr;
 
 static void init_memoryPool(uint32_t total_mem);
 
@@ -190,7 +191,7 @@ void free_pageVirtualAddr(pool_flags_t pf, void *vaddr, uint32_t pages)
 	}
 }
 
-void *pool_allocPhyMem(struct memory_pool_s *mem_pool)
+void *pool_allocPhyMem(struct memory_pool *mem_pool)
 {
 	int bit_idx = bitmap_scan(&mem_pool->pool_bitmap, 1);
 	if (bit_idx == -1) {
@@ -203,7 +204,7 @@ void *pool_allocPhyMem(struct memory_pool_s *mem_pool)
 
 void pool_freePhyMem(uint32_t phy_addr)
 {
-	struct memory_pool_s *mem_pool;
+	struct memory_pool *mem_pool;
 	uint32_t bit_idx = 0;
 	//根据地址判断是内核的地址还是用户的地址
 	if (phy_addr >= user_memory_pool.phy_addr_start) {
@@ -273,7 +274,7 @@ void *page_allocMemory(pool_flags_t pf, uint32_t pages)
 	}
 	
 	uint32_t vaddr = (uint32_t)vaddr_start, n = pages;
-	struct memory_pool_s *mem_pool = pf&PF_KERNEL ? &kernel_memory_pool:&user_memory_pool;
+	struct memory_pool *mem_pool = pf&PF_KERNEL ? &kernel_memory_pool:&user_memory_pool;
 
 	while (n-- > 0) {
 		void *page_phy_addr = pool_allocPhyMem(mem_pool);

@@ -16,8 +16,11 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS = bitmap.o \
-
+OBJS = 	bitmap.o \
+		hal.o \
+		debug.o \
+		syscall.o \
+		
 #First read here
 .PHONY: all
 

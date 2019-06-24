@@ -6,7 +6,17 @@
         "stdint.h": "c",
         "vga.h": "c",
         "bitmap.h": "c",
-        "config.h": "c"
+        "config.h": "c",
+        "hal.h": "c",
+        "display.h": "c",
+        "const.h": "c",
+        "vsprintf.h": "c",
+        "debug.h": "c",
+        "segment.h": "c",
+        "gate.h": "c",
+        "pic.h": "c",
+        "types.h": "c",
+        "stddef.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

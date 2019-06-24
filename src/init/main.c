@@ -6,6 +6,9 @@
  */
 
 #include <book/arch.h>
+#include <book/hal.h>
+#include <hal/hal.h>
+#include <book/debug.h>
 
 /*
  * 功能: 内核的主函数
@@ -16,7 +19,11 @@
 int main()
 {
 	printk("> main start.\n");
+	//初始化硬件抽象层
+	InitHal();
 	
+
+
 
 
 	printk("< main done.\n");

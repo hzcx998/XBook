@@ -6,7 +6,7 @@
  */
 
 #include <ards.h>
-#include <vga.h>
+#include <book/debug.h>
 
 uint32_t init_ards()
 {

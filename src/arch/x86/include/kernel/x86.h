@@ -30,8 +30,6 @@ void StoreGDTR(uint32_t gdtr);
 void LoadGDTR(uint32_t limit, uint32_t addr);
 void StoreIDTR(uint32_t idtr);
 void LoadIDTR(uint32_t limit, uint32_t addr);
-void EnableIRQ(uint32_t irq);
-void DisableIRQ(uint32_t irq);
 uint32_t LoadEflags(void);
 void StoreEflags(uint32_t eflags);
 void PortRead(uint16_t port, void* buf, uint32_t n);

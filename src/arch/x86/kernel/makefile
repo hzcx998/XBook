@@ -24,9 +24,12 @@ OBJS =  arch.o \
 		entry.o \
 		page.o \
 		x86.o \
-		vga.o \
 		ards.o \
-
+		segment.o \
+		gate.o \
+		interrupt.o \
+		pic.o \
+		
 #First read here
 .PHONY: all
 

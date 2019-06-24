@@ -49,12 +49,11 @@ ARCH_DIR = $(ARCH_X86)
 INIT_DIR = init/
 KERNEL_DIR = kernel/
 SHARE_DIR = share/
-
+HAL_DIR = hal/
 
 #sub dir
 ARCH_BOOT_DIR = $(ARCH_DIR)boot/
 ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
-
 
 #----objs----
 #arch kernel objs
@@ -62,8 +61,12 @@ ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	$(ARCH_KERNEL_DIR)arch.o \
 	$(ARCH_KERNEL_DIR)page.o \
 	$(ARCH_KERNEL_DIR)x86.o \
-	$(ARCH_KERNEL_DIR)vga.o \
 	$(ARCH_KERNEL_DIR)ards.o \
+	$(ARCH_KERNEL_DIR)segment.o \
+	$(ARCH_KERNEL_DIR)gate.o \
+	$(ARCH_KERNEL_DIR)pic.o \
+	$(ARCH_KERNEL_DIR)interrupt.o \
+	
 
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS)
@@ -72,14 +75,20 @@ ARCH_OBJS = $(ARCH_KERNEL_OBJS)
 INIT_OBJS = $(INIT_DIR)main.o \
 
 #kernel objs
-KERNEL_OBJS = $(KERNEL_DIR)bitmap.o \
+KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
+				$(KERNEL_DIR)hal.o \
+				$(KERNEL_DIR)debug.o \
+				$(KERNEL_DIR)syscall.o \
 
+#hal objs
+HAL_OBJS = 	$(HAL_DIR)char/display.o \
+			$(HAL_DIR)char/clock.o
 #share objs
 SHARE_OBJS = $(SHARE_DIR)string.o \
 	$(SHARE_DIR)vsprintf.o
 
 #objs
-OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(SHARE_OBJS)
+OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS)
 
 
 #----bin and elf----
@@ -103,6 +112,7 @@ compile:
 	cd $(INIT_DIR) && $(MAKE)
 	cd $(KERNEL_DIR) && $(MAKE)
 	cd $(SHARE_DIR) && $(MAKE)
+	cd $(HAL_DIR) && $(MAKE)
 
 link: $(KERNEL_ELF)
 
@@ -134,3 +144,4 @@ clean:
 	cd $(KERNEL_DIR) && $(MAKE) clean
 	cd $(INIT_DIR) && $(MAKE) clean
 	cd $(SHARE_DIR) && $(MAKE) clean
+	cd $(HAL_DIR) && $(MAKE) clean
