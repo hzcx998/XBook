@@ -12,7 +12,7 @@
     汇编的规则就这些，其它的可以自我发挥！
 ## C代码:  
     1.函数命名: 每个单词开头大写  
-    举例：Init, InitCpu, CreateWindow, AllocKernelMemoryPage，windowSetTitle  
+    举例：Init, InitCpu, CreateWindow, AllocKernelMemoryPage，WindowSetTitle  
     2.结构体命名：每个单词开头大写  
     举例：  
     struct FooProgram  
