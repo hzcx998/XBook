@@ -50,6 +50,7 @@ INIT_DIR = init/
 KERNEL_DIR = kernel/
 SHARE_DIR = share/
 HAL_DIR = hal/
+DRIVER_DIR = driver/
 
 #sub dir
 ARCH_BOOT_DIR = $(ARCH_DIR)boot/
@@ -87,8 +88,12 @@ HAL_OBJS = 	$(HAL_DIR)char/display.o \
 SHARE_OBJS = $(SHARE_DIR)string.o \
 	$(SHARE_DIR)vsprintf.o
 
+#driver objs
+DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
+				$(DRIVER_DIR)char/console.o \
+
 #objs
-OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS)
+OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) $(DRIVER_OBJS)
 
 
 #----bin and elf----
@@ -113,6 +118,7 @@ compile:
 	cd $(KERNEL_DIR) && $(MAKE)
 	cd $(SHARE_DIR) && $(MAKE)
 	cd $(HAL_DIR) && $(MAKE)
+	cd $(DRIVER_DIR) && $(MAKE)
 
 link: $(KERNEL_ELF)
 
@@ -145,3 +151,4 @@ clean:
 	cd $(INIT_DIR) && $(MAKE) clean
 	cd $(SHARE_DIR) && $(MAKE) clean
 	cd $(HAL_DIR) && $(MAKE) clean
+	cd $(DRIVER_DIR) && $(MAKE) clean

@@ -16,7 +16,9 @@
         "gate.h": "c",
         "pic.h": "c",
         "types.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "list.h": "c",
+        "clock.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

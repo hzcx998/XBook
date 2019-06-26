@@ -29,12 +29,11 @@ int init_page();
 /*
 虚拟地址结构体
 */
-struct virtual_addr
+struct VirtualAddr
 {
-    struct bitmap vaddr_bitmap;   //位图结构
-    uint32_t vir_addr_start;           //虚拟地址起始地址
+    struct Bitmap vaddrBitmap;   //位图结构
+    unsigned int virAddrStart;           //虚拟地址起始地址
 };
-
 
 #define	 PAGE_P_1	  	1	// 0001 exist in memory
 #define	 PAGE_P_0	  	0	// 0000 not exist in memory
@@ -71,11 +70,11 @@ struct virtual_addr
 内存池结构体，用于管理内核内存和用户内存
 和virtual_addr结构类似，只是多了个大小
 */
-struct memory_pool
+struct MemoryPool
 {
-    struct bitmap pool_bitmap;   //位图结构
-    uint32_t phy_addr_start;        //物理内存的开始地址
-    uint32_t pool_size;             //内存池大小
+    struct Bitmap poolBitmap;   //位图结构
+    unsigned int phyAddrStart;        //物理内存的开始地址
+    unsigned int poolSize;             //内存池大小
 };
 
 /*
@@ -86,23 +85,23 @@ typedef enum {
     PF_USER,
 }pool_flags_t;
 
-uint32_t *page_ptePtr(uint32_t vaddr);
-uint32_t *page_pdePtr(uint32_t vaddr);
-uint32_t page_addrV2P(uint32_t vaddr);
+unsigned int *PagePtePtr(unsigned int vaddr);
+unsigned int *PagePdePtr(unsigned int vaddr);
+unsigned int PageAddrV2P(unsigned int vaddr);
 
-void *alloc_pageVirtualAddr(pool_flags_t pf, uint32_t pages);
-void free_pageVirtualAddr(pool_flags_t pf, void *vaddr, uint32_t pages);
+void *AllocPageVirtualAddr(pool_flags_t pf, unsigned int pages);
+void FreePageVirtualAddr(pool_flags_t pf, void *vaddr, unsigned int pages);
 
-void *pool_allocPhyMem(struct memory_pool *mem_pool);
-void pool_freePhyMem(uint32_t phy_addr);
+void *PoolAllocPhyMem(struct MemoryPool *memPool);
+void PoolFreePhyMem(unsigned int phyAddr);
 
-void *page_allocMemory(pool_flags_t pf, uint32_t pages);
-void page_freeMemory(pool_flags_t pf, void *vaddr, uint32_t pages);
+void *PageAllocMemory(pool_flags_t pf, unsigned int pages);
+void PageFreeMemory(pool_flags_t pf, void *vaddr, unsigned int pages);
 
-void page_tableAdd(void *vir_addr, void *phy_addr);
-void page_tableRemovePTE(uint32_t vaddr);
+void PageTableAdd(void *virAddr, void *phyAddr);
+void PageTableRemovePTE(unsigned int vaddr);
 
-void *alloc_kernelPage(uint32_t pages);
-void free_kernelPage(void *vaddr, uint32_t pages);
+void *AllocKernelPage(unsigned int pages);
+void FreeKernelPage(void *vaddr, unsigned int pages);
 
 #endif  /*_X86_PAGE_H*/

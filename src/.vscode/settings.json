@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "debug.h": "c",
+        "clock.h": "c",
+        "display.h": "c",
+        "console.h": "c",
+        "hal.h": "c",
+        "arch.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}

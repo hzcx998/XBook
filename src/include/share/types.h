@@ -34,6 +34,9 @@
 #define EXTERN extern
 #endif
 
+#ifndef INLINE
+#define INLINE inline
+#endif
 
 
 #endif  /*_SHARE_TYPES_H*/

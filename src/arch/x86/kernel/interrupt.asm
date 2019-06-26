@@ -123,6 +123,7 @@ InterruptExit:
 ;		Out8(INT_S_CTLMASK, in_byte(INT_S_CTLMASK) | (1 << IRQ));
 ;	}
 ;----
+global DisableIRQ
 DisableIRQ:	;void DisableIRQ(uint32_t IRQ);
     mov     ecx, [esp + 4]          ; IRQ
     pushf
@@ -164,6 +165,7 @@ DisableIRQ:	;void DisableIRQ(uint32_t IRQ);
 ;               out_byte(INT_S_CTLMASK, in_byte(INT_S_CTLMASK) & ~(1 << IRQ));
 ;       }
 ;----
+global EnableIRQ
 EnableIRQ:	;void EnableIRQ(uint32_t IRQ);
     mov     ecx, [esp + 4]          ; IRQ
     pushf

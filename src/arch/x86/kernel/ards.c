@@ -8,33 +8,29 @@
 #include <ards.h>
 #include <book/debug.h>
 
-uint32_t init_ards()
+uint64_t InitArds()
 {
-	printk("> init ards start.\n");
+	uint64_t totalSize = 0;
 
-	uint32_t total_size = 0;
-
-	uint32_t ards_nr =  *((uint32_t *)ARDS_ADDR);	//ards 结构数
+	unsigned int ardsNum =  *((uint64_t *)ARDS_ADDR);	//ards 结构数
 	
-	if (ards_nr > MAX_ARDS_NR) {
-		ards_nr = MAX_ARDS_NR;
+	if (ardsNum > MAX_ARDS_NR) {
+		ardsNum = MAX_ARDS_NR;
 	}
-	struct ards_s *ards = (struct ards_s *) (ARDS_ADDR+4);	//ards 地址
-	//printk("ards nr %d ards address %x\n",ards_nr, ards);
+	struct Ards *ards = (struct Ards *) (ARDS_ADDR+4);	//ards 地址
+	//printk("ards nr %d ards address %x\n",ardsNum, ards);
 	int i;
-	for(i = 0; i < ards_nr; i++){
+	for(i = 0; i < ardsNum; i++){
 		//寻找可用最大内存
 		if(ards->type == 1){
 			//冒泡排序获得最大内存
-			if(ards->base_low+ards->length_low > total_size){
-				total_size = ards->base_low+ards->length_low;
+			if(ards->baseLow+ards->lengthLow > totalSize){
+				totalSize = ards->baseLow+ards->lengthLow;
 			}
-			//printk("base %x length %x\n",ards->base_low, ards->length_low);
+			//printk("base %x length %x\n",ards->baseLow, ards->lengthLow);
 		}
 		
 		ards++;
 	}
-	printk("< init page done.\n");
-
-	return total_size;
+	return totalSize;
 }

@@ -9,6 +9,17 @@
 #include <hal/char/display.h>
 #include <book/arch.h>
 
+/*
+ * 对显示的抽象，做了什么？
+ * ->在初始化中，对显示的环境进行初始化
+ * ->提供了数据的写入和读出操作
+ * ->有对硬件的一些基础控制
+ * 通过这些基础的东西，可以满足显示驱动的需要。
+ * 感觉这个抽象有点过了，以至于和驱动几乎一样。
+ * 但这个是要在以后慢慢总结才行的。
+ */
+
+#define DISPLAY_VRAM 0x800b8000
 
 #define	CRTC_ADDR_REG	0x3D4	/* CRT Controller Registers - Addr Register */
 #define	CRTC_DATA_REG	0x3D5	/* CRT Controller Registers - Data Register */
@@ -19,7 +30,19 @@
 #define	V_MEM_BASE	DISPLAY_VRAM	/* base of color video memory */
 #define	V_MEM_SIZE	0x8000	/* 32K: B8000H -> BFFFFH */
 
-PRIVATE unsigned short DisplayGetCursor()
+/*
+ * 私有数据结构
+ */
+PRIVATE struct DisplayPrivate {
+	unsigned int currentStartAddr;
+	unsigned int vramAddr;
+	unsigned int vramLimit;
+	unsigned int cursor;
+	unsigned char color;
+	unsigned int cursorRead;
+}displayPrivate;
+
+PRIVATE unsigned short DisplayHalGetCursor()
 {
 	unsigned short posLow, posHigh;		//设置光标位置的高位的低位
 	//取得光标位置
@@ -31,7 +54,7 @@ PRIVATE unsigned short DisplayGetCursor()
 	return (posHigh<<8 | posLow);	//返回合成后的值
 }
 
-PRIVATE void DisplaySetCursor(unsigned short cursor_pos)
+PRIVATE void DisplayHalSetCursor(unsigned short cursor_pos)
 {
 	//设置光标位置 0-2000
 
@@ -47,7 +70,7 @@ PRIVATE void DisplaySetCursor(unsigned short cursor_pos)
 	StoreEflags(flags);
 }
 
-PRIVATE void DisplaySetVideoStartAdr(unsigned short addr)
+PRIVATE void DisplayHalSetVideoStartAdr(unsigned short addr)
 {
 	//执行前保存flags状态，然后关闭中断
 	flags_t flags = LoadEflags();
@@ -61,184 +84,164 @@ PRIVATE void DisplaySetVideoStartAdr(unsigned short addr)
 	StoreEflags(flags);
 }
 
-
-
 /*
  * 定义需要用到的函数 
  */
 
-PRIVATE void DisplayInit();
-PRIVATE void DisplayOpen();
-PRIVATE void DisplayRead(unsigned char *buffer, unsigned int counts);
-PRIVATE void DisplayWrite(unsigned char *buffer, unsigned int counts);
-PRIVATE void DisplayClose();
-PRIVATE void DisplayIoctl(unsigned int type, unsigned int value);
-
-struct HalOperate halOperate = {
-	.Init = &DisplayInit,
-	.Open = &DisplayOpen,
-	.Read = &DisplayRead,
-	.Write = &DisplayWrite,
-	.Close = &DisplayClose,
-	.Ioctl = &DisplayIoctl,
-};
-
-struct Hal hal = {
-	.halOperate = &halOperate,
-	"display hal",
-	0,
-};
-
-struct DisplayHal displayHal = {
-	.hal = &hal,
-};
-
-PRIVATE void DisplayFlush()
+PRIVATE void DisplayHalFlush()
 {
-	DisplaySetCursor(displayHal.cursor);
-	DisplaySetVideoStartAdr(displayHal.currentStartAddr);
+	DisplayHalSetCursor(displayPrivate.cursor);
+	DisplayHalSetVideoStartAdr(displayPrivate.currentStartAddr);
 }
 
-PRIVATE void DisplayScrollScreen(int direction)
+PRIVATE void DisplayHalScrollScreen(int direction)
 {
 	if(direction == SCREEN_UP){
-		if(displayHal.currentStartAddr > displayHal.vramAddr){
-			displayHal.currentStartAddr -= SCREEN_WIDTH;
+		if(displayPrivate.currentStartAddr > displayPrivate.vramAddr){
+			displayPrivate.currentStartAddr -= SCREEN_WIDTH;
 		}
 	}else if(direction == SCREEN_DOWN){
-		if(displayHal.currentStartAddr + SCREEN_SIZE < displayHal.vramAddr + displayHal.vramLimit){
-			displayHal.currentStartAddr += SCREEN_WIDTH;
+		if(displayPrivate.currentStartAddr + SCREEN_SIZE < displayPrivate.vramAddr + displayPrivate.vramLimit){
+			displayPrivate.currentStartAddr += SCREEN_WIDTH;
 		}
 	}
-	DisplayFlush();
+	DisplayHalFlush();
 }
 
-PRIVATE void DisplayChar(unsigned char ch)
+PRIVATE void DisplayHalChar(unsigned char ch)
 {
-	unsigned char *vram = (unsigned char *)(V_MEM_BASE + displayHal.cursor *2) ;
+	unsigned char *vram = (unsigned char *)(V_MEM_BASE + displayPrivate.cursor *2) ;
 	switch(ch){
 		case '\n':
-			if(displayHal.cursor < displayHal.vramAddr + displayHal.vramLimit - SCREEN_WIDTH){
-				displayHal.cursor = displayHal.vramAddr + SCREEN_WIDTH*((displayHal.cursor - displayHal.vramAddr)/SCREEN_WIDTH+1);
+			if(displayPrivate.cursor < displayPrivate.vramAddr + displayPrivate.vramLimit - SCREEN_WIDTH){
+				//如果是回车，那还是要把回车写进去
+				*vram++ = '\n';
+				*vram = 0;
+				displayPrivate.cursor = displayPrivate.vramAddr + SCREEN_WIDTH*((displayPrivate.cursor - displayPrivate.vramAddr)/SCREEN_WIDTH+1);
 			}
 			break;
 		case '\b':
-			if(displayHal.cursor > displayHal.vramAddr){
-				displayHal.cursor--;
+			if(displayPrivate.cursor > displayPrivate.vramAddr){
+				displayPrivate.cursor--;
 				*(vram-2) = ' ';
-				*(vram-1) = displayHal.color;
+				*(vram-1) = displayPrivate.color;
 			}
 			break;
 		default: 
-			if(displayHal.cursor < displayHal.vramAddr + displayHal.vramLimit - 1){
+			if(displayPrivate.cursor < displayPrivate.vramAddr + displayPrivate.vramLimit - 1){
 				*vram++ = ch;
-				*vram++ = displayHal.color;
-				displayHal.cursor++;
+				*vram = displayPrivate.color;
+				displayPrivate.cursor++;
 			}
 			break;
 	}
-	while(displayHal.cursor >= displayHal.currentStartAddr + SCREEN_SIZE){
-		DisplayScrollScreen(SCREEN_DOWN);
+	while(displayPrivate.cursor >= displayPrivate.currentStartAddr + SCREEN_SIZE){
+		DisplayHalScrollScreen(SCREEN_DOWN);
 	}
-	DisplayFlush();
+	DisplayHalFlush();
 }
 
-PRIVATE void DisplayCleanScreen()
+PRIVATE unsigned char DisplayHalGetChar()
 {
-	displayHal.cursor = displayHal.vramAddr;
-	displayHal.currentStartAddr = displayHal.vramAddr;
-	DisplayFlush();
-	uint8_t *vram = (uint8_t *)(V_MEM_BASE + displayHal.cursor *2) ;
+	//如果在屏幕范围内
+	if(displayPrivate.cursorRead < SCREEN_SIZE){
+		unsigned char *vram = (unsigned char *)(V_MEM_BASE + displayPrivate.cursorRead *2) ;
+		displayPrivate.cursorRead++;
+		return *vram;
+	}
+	return 0;
+}
+
+PRIVATE void DisplayHalCleanScreen()
+{
+	displayPrivate.cursor = displayPrivate.vramAddr;
+	displayPrivate.currentStartAddr = displayPrivate.vramAddr;
+	DisplayHalFlush();
+	uint8_t *vram = (uint8_t *)(V_MEM_BASE + displayPrivate.cursor *2) ;
 	int i;
-	for(i = 0; i < displayHal.vramLimit*2; i+=2){
+	for(i = 0; i < displayPrivate.vramLimit*2; i+=2){
 		*vram = 0;
 		vram += 2;
 	}
 }
 
-PRIVATE void DisplaySetColor(unsigned char color)
+PRIVATE void DisplayHalSetColor(unsigned char color)
 {
-	displayHal.color = color;
+	displayPrivate.color = color;
 }
 
-PRIVATE void DisplayResetColor()
+PRIVATE void DisplayHalResetColor()
 {
-	displayHal.color = COLOR_DEFAULT;
+	displayPrivate.color = COLOR_DEFAULT;
 }
 
-/*
- *抽象层函数接口
- */
-
-PRIVATE void DisplayOpen()
+PRIVATE void DisplayHalRead(unsigned char *buffer, unsigned int count)
 {
-	displayHal.isOpen++;
-}
-
-PRIVATE void DisplayClose()
-{
-	displayHal.isOpen--;
-	if (displayHal.isOpen < 0) {
-		displayHal.isOpen = 0;
+	int i = 0;
+	while (i < count)
+	{
+		//从显存中获取一个字符
+		buffer[i] = DisplayHalGetChar();
+		i++;
 	}
 }
 
-PRIVATE void DisplayRead(unsigned char *buffer, unsigned int count)
+PRIVATE void DisplayHalWrite(unsigned char *buffer, unsigned int count)
 {
-	
-}
-
-PRIVATE void DisplayWrite(unsigned char *buffer, unsigned int count)
-{
-	if (displayHal.isOpen) {
-		while (*buffer && count > 0) {
-			DisplayChar(*buffer);
-			buffer++;
-			count--;
-		}
+	while (count > 0) {
+		DisplayHalChar(*buffer);
+		buffer++;
+		count--;
 	}
 }
 
-PRIVATE void DisplayIoctl(unsigned int type, unsigned int value)
+PRIVATE void DisplayHalIoctl(unsigned int type, unsigned int value)
 {
-	if (displayHal.isOpen) {
+	//根据类型设置不同的值
+	switch (type)
+	{
+	case DISPLAY_HAL_IO_COLOR:
+		DisplayHalSetColor(value);
+		break;
+	case DISPLAY_HAL_IO_CURSOR:
+		displayPrivate.cursor = value;
+		DisplayHalSetCursor(displayPrivate.cursor);
+		break;
+	case DISPLAY_HAL_IO_CLEAR:
 
-		//根据类型设置不同的值
-		switch (type)
-		{
-		case DISPLAY_HAL_IO_COLOR:
-			DisplaySetColor(value);
-			break;
-		case DISPLAY_HAL_IO_CURSOR:
-			displayHal.cursor = value;
-			DisplaySetCursor(displayHal.cursor);
-			break;
-		case DISPLAY_HAL_IO_CLEAR:
+		DisplayHalCleanScreen();
+		break;
+	case DISPLAY_HAL_IO_RDCURSOR:
 
-			DisplayCleanScreen();
-			break;
-		
-
-		default:
-			break;
-		}
+		displayPrivate.cursorRead = value;
+		break;
+	
+	default:
+		break;
 	}
 }
 
-PRIVATE void DisplayInit()
+PRIVATE void DisplayHalInit()
 {
-	displayHal.isOpen = 0;
-
-
-	displayHal.vramAddr = 0;
-	displayHal.vramLimit = V_MEM_SIZE>>1;
-	displayHal.currentStartAddr = 0;
+	displayPrivate.vramAddr = 0;
+	displayPrivate.vramLimit = V_MEM_SIZE>>1;
+	displayPrivate.currentStartAddr = 0;
 	
-	displayHal.cursor = 80*5;
-	
-	displayHal.color = COLOR_DEFAULT;
-	
-	DisplaySetCursor(displayHal.cursor);
+	displayPrivate.cursor = 80*5;
+	displayPrivate.cursorRead = 0;
 
-	DisplayChar('D');
+	displayPrivate.color = COLOR_DEFAULT;
+	
+	DisplayHalSetCursor(displayPrivate.cursor);
 }
+
+/* hal操作函数 */
+PRIVATE struct HalOperate halOperate = {
+	.Init = &DisplayHalInit,
+	.Read = &DisplayHalRead,
+	.Write = &DisplayHalWrite,
+	.Ioctl = &DisplayHalIoctl,
+};
+
+/* hal对象，需要把它导入到hal系统中 */
+PUBLIC HAL(halOfDisplay, halOperate, "display");

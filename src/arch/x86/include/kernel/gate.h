@@ -17,6 +17,9 @@
 #define IDT_VADDR		0x80200800
 #define IDT_LIMIT		0x000007ff
 
+/* IRQ中断在idt中的起始位置 */
+#define IDT_IRQ_START	0X20
+
 /*
 门描述符结构
 */
@@ -28,10 +31,10 @@ struct GateDescriptor {
 };
 
 //初始化门描述符
-void InitGateDescriptor();
+PUBLIC void InitGateDescriptor();
 
 //设置门描述符
-void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t offset, \
+PUBLIC void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t offset, \
 		unsigned int selector, unsigned int attributes, unsigned char privilege);
 
 #endif	/*_ARCH_SEGMENT_H*/

@@ -12,15 +12,15 @@
 #include <share/types.h>
 
 #define BITMAP_MASK 1
-typedef struct bitmap
-{
-   uint32_t btmp_bytes_len;
+struct Bitmap {
+   unsigned int btmpBytesLen;
    /* 在遍历位图时,整体上以字节为单位,细节上是以位为单位,所以此处位图的指针必须是单字节 */
-   uint8_t* bits;
-}bitmap_t;
+   unsigned char* bits;
+};
 
-void bitmap_init(struct bitmap* btmp);
-bool bitmap_scanTest(struct bitmap* btmp, uint32_t bit_idx);
-int bitmap_scan(struct bitmap* btmp, uint32_t cnt);
-void bitmap_set(struct bitmap* btmp, uint32_t bit_idx, int8_t value);
+PUBLIC void BitmapInit(struct Bitmap* btmp);
+PUBLIC bool BitmapScanTest(struct Bitmap* btmp, unsigned int bitIdx);
+PUBLIC int BitmapScan(struct Bitmap* btmp, unsigned int cnt);
+PUBLIC void BitmapSet(struct Bitmap* btmp, unsigned int bitIdx, char value);
+
 #endif

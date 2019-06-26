@@ -34,59 +34,59 @@ intr_handler_t interruptHandlerTable[MAX_INTERRUPT_NR];
 char* interruptNameTable[MAX_INTERRUPT_NR];		     
 
 // 汇编部分的中断处理函数的入口点组成的数组
-extern intr_handler_t interruptEntryTable[MAX_INTERRUPT_NR];	    // 声明引用定义在kernel.S中的中断处理函数入口数组
+EXTERN intr_handler_t interruptEntryTable[MAX_INTERRUPT_NR];	    // 声明引用定义在kernel.S中的中断处理函数入口数组
 
-extern void InterruptEntry0x00();
-extern void InterruptEntry0x01();
-extern void InterruptEntry0x02();
-extern void InterruptEntry0x03();
-extern void InterruptEntry0x04();
-extern void InterruptEntry0x05();
-extern void InterruptEntry0x06();
-extern void InterruptEntry0x07();
-extern void InterruptEntry0x08();
-extern void InterruptEntry0x09();
-extern void InterruptEntry0x0a();
-extern void InterruptEntry0x0b();
-extern void InterruptEntry0x0c();
-extern void InterruptEntry0x0d();
-extern void InterruptEntry0x0e();
-extern void InterruptEntry0x0f();
-extern void InterruptEntry0x10();
-extern void InterruptEntry0x11();
-extern void InterruptEntry0x12();
-extern void InterruptEntry0x13();
-extern void InterruptEntry0x14();
-extern void InterruptEntry0x15();
-extern void InterruptEntry0x16();
-extern void InterruptEntry0x17();
-extern void InterruptEntry0x18();
-extern void InterruptEntry0x19();
-extern void InterruptEntry0x1a();
-extern void InterruptEntry0x1b();
-extern void InterruptEntry0x1c();
-extern void InterruptEntry0x1d();
-extern void InterruptEntry0x1e();
-extern void InterruptEntry0x1f();
+EXTERN void InterruptEntry0x00();
+EXTERN void InterruptEntry0x01();
+EXTERN void InterruptEntry0x02();
+EXTERN void InterruptEntry0x03();
+EXTERN void InterruptEntry0x04();
+EXTERN void InterruptEntry0x05();
+EXTERN void InterruptEntry0x06();
+EXTERN void InterruptEntry0x07();
+EXTERN void InterruptEntry0x08();
+EXTERN void InterruptEntry0x09();
+EXTERN void InterruptEntry0x0a();
+EXTERN void InterruptEntry0x0b();
+EXTERN void InterruptEntry0x0c();
+EXTERN void InterruptEntry0x0d();
+EXTERN void InterruptEntry0x0e();
+EXTERN void InterruptEntry0x0f();
+EXTERN void InterruptEntry0x10();
+EXTERN void InterruptEntry0x11();
+EXTERN void InterruptEntry0x12();
+EXTERN void InterruptEntry0x13();
+EXTERN void InterruptEntry0x14();
+EXTERN void InterruptEntry0x15();
+EXTERN void InterruptEntry0x16();
+EXTERN void InterruptEntry0x17();
+EXTERN void InterruptEntry0x18();
+EXTERN void InterruptEntry0x19();
+EXTERN void InterruptEntry0x1a();
+EXTERN void InterruptEntry0x1b();
+EXTERN void InterruptEntry0x1c();
+EXTERN void InterruptEntry0x1d();
+EXTERN void InterruptEntry0x1e();
+EXTERN void InterruptEntry0x1f();
 
-extern void InterruptEntry0x20();
-extern void InterruptEntry0x21();
-extern void InterruptEntry0x22();
-extern void InterruptEntry0x23();
-extern void InterruptEntry0x24();
-extern void InterruptEntry0x25();
-extern void InterruptEntry0x26();
-extern void InterruptEntry0x27();
-extern void InterruptEntry0x28();
-extern void InterruptEntry0x29();
-extern void InterruptEntry0x2a();
-extern void InterruptEntry0x2b();
-extern void InterruptEntry0x2c();
-extern void InterruptEntry0x2d();
-extern void InterruptEntry0x2e();
-extern void InterruptEntry0x2f();
+EXTERN void InterruptEntry0x20();
+EXTERN void InterruptEntry0x21();
+EXTERN void InterruptEntry0x22();
+EXTERN void InterruptEntry0x23();
+EXTERN void InterruptEntry0x24();
+EXTERN void InterruptEntry0x25();
+EXTERN void InterruptEntry0x26();
+EXTERN void InterruptEntry0x27();
+EXTERN void InterruptEntry0x28();
+EXTERN void InterruptEntry0x29();
+EXTERN void InterruptEntry0x2a();
+EXTERN void InterruptEntry0x2b();
+EXTERN void InterruptEntry0x2c();
+EXTERN void InterruptEntry0x2d();
+EXTERN void InterruptEntry0x2e();
+EXTERN void InterruptEntry0x2f();
 
-extern void SyscallHandler();
+EXTERN void SyscallHandler();
 
 
 PRIVATE void InitInterruptDescriptor()
@@ -166,26 +166,26 @@ PRIVATE void InitInterruptDescriptor()
 /* 
  * 通用的中断处理函数,一般用在异常出现时的处理 
  */
-void IntrruptGeneralHandler(unsigned char interrupt) 
+PUBLIC void IntrruptGeneralHandler(unsigned char interrupt) 
 {
 	// 0x2f是从片8259A上的最后一个irq引脚，保留
 	if (interrupt == 0x27 || interrupt == 0x2f) {	
       	return;		//IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
    	}
 	
-	DebugSetColor(TEXT_RED);
-	DebugLog("! Exception messag start.\n");
-	DebugSetColor(TEXT_GREEN);
-	DebugLog("name: %s \n", interruptNameTable[interrupt]);
+	ConsoleSetColor(TEXT_RED);
+	ConsolePrint("! Exception messag start.\n");
+	ConsoleSetColor(TEXT_GREEN);
+	ConsolePrint("name: %s \n", interruptNameTable[interrupt]);
 
    	if (interrupt == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
       	unsigned int pageFaultVaddr = 0; 
 		pageFaultVaddr = ReadCR2();
 
-		DebugLog("page fault addr is: %x\n", pageFaultVaddr);
+		ConsolePrint("page fault addr is: %x\n", pageFaultVaddr);
    	}
-	DebugSetColor(TEXT_RED);
-	DebugLog("! Exception Messag done.\n");
+	ConsoleSetColor(TEXT_RED);
+	ConsolePrint("! Exception Messag done.\n");
   	// 能进入中断处理程序就表示已经处在关中断情况下,
   	// 不会出现调度进程的情况。故下面的死循环不会再被中断。
    	while(1);
@@ -228,7 +228,7 @@ PRIVATE void InitExpection(void)
 	interruptNameTable[19] = "#XF SIMD Floating-Point Exception";
 }
 
-void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t offset, \
+PUBLIC void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t offset, \
 		unsigned int selector, unsigned int attributes, unsigned char privilege)
 {
 	descriptor->offsetLow   = (unsigned int)offset & 0xffff;
@@ -254,10 +254,36 @@ PUBLIC void InterruptCancelHandler(unsigned char interrupt)
    	interruptHandlerTable[interrupt] = IntrruptGeneralHandler; 
 }
 
+/* 
+ * 注册IRQ中断
+ */
+PUBLIC void IrqRegisterHandler(unsigned char irq, intr_handler_t function) 
+{
+	/* 如果是不正确的irq号就退出 */
+	if (irq < IRQ0_CLOCK || irq > IRQ15_RESERVE) {
+		return;
+	}
+	//把函数写入到中断处理程序表
+   	interruptHandlerTable[IDT_IRQ_START + irq] = function; 
+}
+
+/* 
+ * 取消IRQ中断
+ */
+PUBLIC void IrqCancelHandler(unsigned char irq)
+{
+	/* 如果是不正确的irq号就退出 */
+	if (irq < IRQ0_CLOCK || irq > IRQ15_RESERVE) {
+		return;
+	}
+	//把默认函数写入到中断处理程序表
+   	interruptHandlerTable[IDT_IRQ_START + irq] = IntrruptGeneralHandler; 
+}
+
 /*
  获取中断状态并打开中断
  */
-enum InterruptStatus InterruptEnable(void)
+PUBLIC enum InterruptStatus InterruptEnable()
 {
 	enum InterruptStatus oldStatus;
 	//如果获取的状态是中断已经打开
@@ -278,7 +304,7 @@ enum InterruptStatus InterruptEnable(void)
 /*
  获取中断状态并设置对应的中断状态
  */
-enum InterruptStatus InterruptDisable()
+PUBLIC enum InterruptStatus InterruptDisable()
 {
 	enum InterruptStatus oldStatus;
    	if (InterruptGetStatus() == INTERRUPT_ON) {
@@ -296,39 +322,31 @@ enum InterruptStatus InterruptDisable()
 /* 
  将中断状态设置为status 
  */
-enum InterruptStatus InterruptSetStatus(enum InterruptStatus status) {
+PUBLIC enum InterruptStatus InterruptSetStatus(enum InterruptStatus status) {
    return status & INTERRUPT_ON ? InterruptEnable() : InterruptDisable();
 }
 
 /* 
  通过判断eflags中的IF位，获取当前中断状态 
  */
-enum InterruptStatus InterruptGetStatus() 
+PUBLIC enum InterruptStatus InterruptGetStatus() 
 {
    flags_t eflags = 0; 
    eflags = LoadEflags();
    return (eflags & EFLAGS_IF) ? INTERRUPT_ON : INTERRUPT_OFF;
 }
 
-void InitGateDescriptor()
+PUBLIC void InitGateDescriptor()
 {
-	printk("> init gate descriptor start.\n");
+	PART_START("Gate descriptor");
+
 	InitInterruptDescriptor();
 	InitExpection();
 	InitPic();
 
 	LoadIDTR(IDT_LIMIT, IDT_VADDR);
 	
-/*
-int a = 0;
-	a /= 0;
- */
-	/* 
-	char *v = 0x81000000;
-	*v = 1;
-	*/
-
-	printk("> init gate descriptor done.\n");
+	PART_END();
 }
 
 

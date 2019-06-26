@@ -10,7 +10,7 @@
 [bits 32]
 [section .text]
 
-extern init_arch
+extern InitArch
 extern main
 
 global _start
@@ -40,12 +40,12 @@ _start:
 	mov esp, KERNEL_STACK_TOP
 
 	;初始化平台架构
-	call init_arch					;into arch
+	call InitArch					;into arch
 
 	;初始化平台成功，接下来跳入到内核中去执行
 	call main
 
-stop_run:
+Stop:
 	hlt
-	jmp stop_run
+	jmp Stop
 jmp $	

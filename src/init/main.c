@@ -9,6 +9,8 @@
 #include <book/hal.h>
 #include <hal/hal.h>
 #include <book/debug.h>
+#include <driver/clock.h>
+#include <share/string.h>
 
 /*
  * 功能: 内核的主函数
@@ -18,14 +20,15 @@
  */
 int main()
 {
-	printk("> main start.\n");
+	PART_START("Kernel main");
+
 	//初始化硬件抽象层
-	InitHal();
+	InitHalKernel();
+
+	//初始化时钟驱动
+	ClockInit();
 	
-
-
-
-
-	printk("< main done.\n");
+	
+	PART_END();
 	return 0;
 }

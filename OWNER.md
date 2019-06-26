@@ -1,0 +1,3 @@
+# Owner
+This OS is owned by Book OS X developers.
+Jason Hu, ...

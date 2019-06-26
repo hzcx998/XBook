@@ -15,19 +15,18 @@
 
 #define MAX_ARDS_NR 12 //最大有12个ards结构
 
-
 /*
 ards结构体
 */
-struct ards_s
+struct Ards
 {
-	uint32_t base_low;  //基址低32位
-	uint32_t base_high;
-	uint32_t length_low;  //长度低32位
-	uint32_t length_high;			
-	uint32_t type;  //该结构的类型(1可以被系统使用)
+	unsigned int baseLow;  //基址低32位
+	unsigned int base_high;
+	unsigned int lengthLow;  //长度低32位
+	unsigned int length_high;			
+	unsigned int type;  //该结构的类型(1可以被系统使用)
 };
 
-uint32_t init_ards();
+uint64_t InitArds();
 
 #endif

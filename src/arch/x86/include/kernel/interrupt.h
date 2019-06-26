@@ -9,6 +9,28 @@
 #define _ARCH_INTERRUPT_H
 
 #include <share/stdint.h>
+#include <share/types.h>
+
+/* 中断分配管理 */
+
+/* IRQ */
+#define	IRQ0_CLOCK          0   // 时钟
+#define	IRQ1_KEYBOARD       1   // 键盘
+#define	IRQ2_CONNECT        2   // 连接从片
+#define	IRQ3_SERIAL2        3   // 串口2
+#define	IRQ4_SERIAL1        4   // 串口1
+#define	IRQ5_PARALLEL2      5   // 并口2
+#define	IRQ6_FLOPPY         6   // 软盘
+#define	IRQ5_PARALLEL1      7   // 并口1
+
+#define	IRQ8_RTCLOCK        8   // 实时时钟（real-time clock）
+#define	IRQ9_REDIRECT       9   // 重定向的IRQ2
+#define	IRQ10_RESERVE       10  // 保留
+#define	IRQ11_RESERVE       11  // 保留
+#define	IRQ12_MOUSE         12  // PS/2鼠标
+#define	IRQ13_FPU           13  // FPU异常
+#define	IRQ14_HARDDISK      14  // 硬盘
+#define	IRQ15_RESERVE       15  // 保留
 
 //EFLAGS
 #define	EFLAGS_MBS (1<<1)
@@ -17,7 +39,6 @@
 #define	EFLAGS_IOPL_3 (3<<12)
 #define	EFLAGS_IOPL_1 (1<<12)
 #define	EFLAGS_IOPL_0 (0<<12)
-
 
 /* IF 位是在 eflags寄存器的低9位 */
 #define EFLAGS_IF (EFLAGS_IF_1 << 9)
@@ -33,15 +54,18 @@ enum InterruptStatus {		 // 中断状态
     INTERRUPT_ON		         // 中断打开
 };
 
-enum InterruptStatus InterruptGetStatus(void);
+enum InterruptStatus InterruptGetStatus();
 enum InterruptStatus InterruptSetStatus(enum InterruptStatus status);
-enum InterruptStatus InterruptEnable(void);
-enum InterruptStatus InterruptDisable(void);
+enum InterruptStatus InterruptEnable();
+enum InterruptStatus InterruptDisable();
 
-void InterruptRegisterHandler(unsigned char interrupt, intr_handler_t function);
-void InterruptCancelHandler(unsigned char interrupt);
+PUBLIC void InterruptRegisterHandler(unsigned char interrupt, intr_handler_t function);
+PUBLIC void InterruptCancelHandler(unsigned char interrupt);
 
-void EnableIRQ(unsigned char irq);
-void DisableIRQ(unsigned char irq);
+PUBLIC void IrqRegisterHandler(unsigned char irq, intr_handler_t function);
+PUBLIC void IrqCancelHandler(unsigned char irq);
+
+PUBLIC void EnableIRQ(unsigned char irq);
+PUBLIC void DisableIRQ(unsigned char irq);
 
 #endif	/*_ARCH_INTERRUPT_H*/

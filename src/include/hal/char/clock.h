@@ -12,15 +12,13 @@
 #include <share/types.h>
 #include <book/hal.h>
 
-
-#define PIT_CTRL	0x0043
-//控制端口
-#define PIT_CNT0	0x0040
-//数据端口
-#define TIMER_FREQ     1193180	
+/* 时钟频率 */
 #define TIMER_QUICKEN     5
-#define HZ             (100*TIMER_QUICKEN)	//1000 快速 100 普通0.001
+#define CLOCK_HAL_HZ             (100*TIMER_QUICKEN)	//1000 快速 100 普通0.001
 
-void ClockHalInit();
+//I/O 操作
+#define CLOCK_HAL_IO_REGISTER_INT   1
+#define CLOCK_HAL_IO_ENABLE_INT     2
+#define CLOCK_HAL_IO_DISABLE_INT    3
 
 #endif  //_HAL_CHAR_CLOCK_H

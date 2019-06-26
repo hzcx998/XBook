@@ -26,8 +26,6 @@ global	StoreGDTR
 global	LoadGDTR
 global	StoreIDTR
 global 	LoadIDTR
-global 	EnableIRQ
-global 	DisableIRQ
 global 	LoadEflags
 global 	StoreEflags
 global 	PortRead
