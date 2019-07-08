@@ -10,7 +10,7 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
-#include <hal/hal.h>
+#include <hal/char/display.h>
 
 #define MAX_CONSOLE_BUF_SIZE (80*25)
 

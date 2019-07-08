@@ -15,8 +15,10 @@ all: compile
 compile: 
 	cd boot && make
 	cd kernel && make
+	cd mm && make
 
 #Clean temporary files
 clean:
 	cd boot && make clean
 	cd kernel && make clean
+	cd mm && make clean

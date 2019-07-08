@@ -1,5 +1,12 @@
 # Book-OS-X Finished task.  
   
+
+* buddy memory  
+--2019.7.4--  
+* ram hal  
+--2019.7.3--  
+* cpu hal  
+--2019.6.27--  
 * load kernel with elf format  
 * 32 bits protect mode  
 * multi-platform architecture

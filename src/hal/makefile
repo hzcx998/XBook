@@ -14,9 +14,11 @@ all: compile
 #Compile files
 compile: 
 	cd char && make
+	cd block && make
 	
 
 #Clean temporary files
 clean:
 	cd char && make clean
+	cd block && make clean
 	

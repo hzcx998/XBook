@@ -10,7 +10,7 @@
 
 
 /*系统平台*/
-#define _CONFIG_ARCH_X86_
+#define CONFIG_ARCH_X86
 
 
 

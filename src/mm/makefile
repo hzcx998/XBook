@@ -7,10 +7,9 @@
 
 #The tools name
 CC			= gcc
+NASM		= nasm 
 
 INCLUDE_PATH = ../include/
-
-
 
 #flags
 C_FLAGS	= -c -I $(INCLUDE_PATH) \
@@ -18,15 +17,14 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS = 	bitmap.o \
-		hal.o \
-		debug.o \
-		syscall.o \
+ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
+OBJS = 	zone.o \
+	
 #First read here
 .PHONY: all
 
-all: compile 
+all: compile
 
 #Compile files
 compile: $(OBJS)
@@ -34,8 +32,10 @@ compile: $(OBJS)
 #Clean temporary files
 clean:
 	-rm *.o
-	-rm *.elf
-
+	
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<
-	
+
+%.o: %.asm
+	$(NASM) $(ASM_FLAGS) -o $@ $<
+		

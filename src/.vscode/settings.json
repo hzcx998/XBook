@@ -5,7 +5,18 @@
         "display.h": "c",
         "console.h": "c",
         "hal.h": "c",
-        "arch.h": "c"
+        "arch.h": "c",
+        "stddef.h": "c",
+        "math.h": "c",
+        "string.h": "c",
+        "cpu.h": "c",
+        "page.h": "c",
+        "zone.h": "c",
+        "area.h": "c",
+        "stdint.h": "c",
+        "pflags.h": "c",
+        "bitmap.h": "c",
+        "vga.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -24,7 +24,7 @@
 //内核的页表虚拟地址
 #define PAGE_TABLE_VIR_ADDR     0X80202000
 
-int init_page();
+int InitPage();
 
 /*
 虚拟地址结构体

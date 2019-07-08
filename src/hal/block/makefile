@@ -1,41 +1,37 @@
 #----
-#File: kernel/makefile
+#File: hal/char/makefile
 #Auther: Jason Hu
-#Time: 2019/6/2
+#Time: 2019/6/22
 #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
 #The tools name
 CC			= gcc
 
-INCLUDE_PATH = ../include/
-
-
+#The file path
+INCLUDE_PATH = ../../include/
 
 #flags
-C_FLAGS	= -c -I $(INCLUDE_PATH) \
-	-fno-builtin -nostdlib \
+C_FLAGS	= -c -fno-builtin -nostdlib \
+	-I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS = 	bitmap.o \
-		hal.o \
-		debug.o \
-		syscall.o \
-
+OBJS =  ram.o \
+		
+		
 #First read here
 .PHONY: all
 
-all: compile 
+all: compile
 
 #Compile files
 compile: $(OBJS)
-	
+
 #Clean temporary files
 clean:
 	-rm *.o
-	-rm *.elf
-
+	
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<
 	

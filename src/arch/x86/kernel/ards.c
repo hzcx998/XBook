@@ -8,8 +8,11 @@
 #include <ards.h>
 #include <book/debug.h>
 
+/* 全局变量ards*/
+struct Ards *ards;
 uint64_t InitArds()
 {
+	PART_START("Ards");
 	uint64_t totalSize = 0;
 
 	unsigned int ardsNum =  *((uint64_t *)ARDS_ADDR);	//ards 结构数
@@ -17,8 +20,9 @@ uint64_t InitArds()
 	if (ardsNum > MAX_ARDS_NR) {
 		ardsNum = MAX_ARDS_NR;
 	}
-	struct Ards *ards = (struct Ards *) (ARDS_ADDR+4);	//ards 地址
-	//printk("ards nr %d ards address %x\n",ardsNum, ards);
+	ards = (struct Ards *) (ARDS_ADDR+4);	//ards 地址
+	//printk("\n |- ards nr %d ards address %x\n",ardsNum, ards);
+	printk("\n");
 	int i;
 	for(i = 0; i < ardsNum; i++){
 		//寻找可用最大内存
@@ -27,10 +31,13 @@ uint64_t InitArds()
 			if(ards->baseLow+ards->lengthLow > totalSize){
 				totalSize = ards->baseLow+ards->lengthLow;
 			}
-			//printk("base %x length %x\n",ards->baseLow, ards->lengthLow);
+			
 		}
-		
+		#ifdef CONFIG_ARDS_DEBUG
+		printk(" |- base %x length %x type:%d\n",ards->baseLow, ards->lengthLow, ards->type);
+		#endif
 		ards++;
 	}
+	PART_END();
 	return totalSize;
 }

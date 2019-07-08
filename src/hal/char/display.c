@@ -165,17 +165,7 @@ PRIVATE void DisplayHalCleanScreen()
 	}
 }
 
-PRIVATE void DisplayHalSetColor(unsigned char color)
-{
-	displayPrivate.color = color;
-}
-
-PRIVATE void DisplayHalResetColor()
-{
-	displayPrivate.color = COLOR_DEFAULT;
-}
-
-PRIVATE void DisplayHalRead(unsigned char *buffer, unsigned int count)
+PRIVATE int DisplayHalRead(unsigned char *buffer, unsigned int count)
 {
 	int i = 0;
 	while (i < count)
@@ -184,27 +174,31 @@ PRIVATE void DisplayHalRead(unsigned char *buffer, unsigned int count)
 		buffer[i] = DisplayHalGetChar();
 		i++;
 	}
+	return 0;
 }
 
-PRIVATE void DisplayHalWrite(unsigned char *buffer, unsigned int count)
+PRIVATE int DisplayHalWrite(unsigned char *buffer, unsigned int count)
 {
 	while (count > 0) {
 		DisplayHalChar(*buffer);
 		buffer++;
 		count--;
 	}
+	return 0;
 }
 
-PRIVATE void DisplayHalIoctl(unsigned int type, unsigned int value)
+PRIVATE void DisplayHalIoctl(unsigned int cmd, unsigned int param)
 {
 	//根据类型设置不同的值
-	switch (type)
+	switch (cmd)
 	{
-	case DISPLAY_HAL_IO_COLOR:
-		DisplayHalSetColor(value);
+	case DISPLAY_HAL_IO_SET_COLOR:
+		displayPrivate.color = param;
 		break;
-	case DISPLAY_HAL_IO_CURSOR:
-		displayPrivate.cursor = value;
+	case DISPLAY_HAL_IO_SET_CURSOR:
+
+		displayPrivate.cursor = param;
+		
 		DisplayHalSetCursor(displayPrivate.cursor);
 		break;
 	case DISPLAY_HAL_IO_CLEAR:
@@ -213,9 +207,19 @@ PRIVATE void DisplayHalIoctl(unsigned int type, unsigned int value)
 		break;
 	case DISPLAY_HAL_IO_RDCURSOR:
 
-		displayPrivate.cursorRead = value;
+		displayPrivate.cursorRead = param;
 		break;
-	
+
+	case DISPLAY_HAL_IO_GET_CURSOR:
+		//获取并放入参数地址中
+		*((unsigned int *)param) = DisplayHalGetCursor();
+		break;
+		
+	case DISPLAY_HAL_IO_RESET_COLOR:
+
+		displayPrivate.color = COLOR_DEFAULT;
+
+		break;
 	default:
 		break;
 	}

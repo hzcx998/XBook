@@ -6,11 +6,13 @@
  */
 
 #include <arch.h>
-#include <page.h>
 #include <segment.h>
 #include <gate.h>
+#include <cpu.h>
+#include <zone.h>
 #include <book/debug.h>
 #include <book/hal.h>
+#include <hal/char/cpu.h>
 
 /*
  * 功能: 平台架构初始化入口
@@ -31,15 +33,16 @@ int InitArch()
 	 */
 	PART_START("Arch");
 
+	// 查看cpu信息
+	CpuInit();
 	// 初始化内核段描述符
 	InitSegmentDescriptor();
 	// 初始化内核门描述符
 	InitGateDescriptor();
 	
-	InitPage();
+	InitZone();
 
 	PART_END();
 
 	return 0;
 }
-

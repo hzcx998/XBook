@@ -22,9 +22,23 @@
     #define PART_END() 
 #endif
 
-
 //内核打印函数的指针
 int (*printk)(const char *fmt, ...);
 int (*filterk)(char *buf, unsigned int count);
+
+//断言
+#define ASSERT
+#ifdef ASSERT
+void AssertionFailure(char *exp, char *file, char *baseFile, int line);
+#define assert(exp)  if (exp) ; \
+        else AssertionFailure(#exp, __FILE__, __BASE_FILE__, __LINE__)
+#else
+#define assert(exp)
+#endif
+
+void Spin(char * func_name);
+void Panic(const char *fmt, ...);
+
+
 
 #endif   /*_BOOK_DEBUG_H*/

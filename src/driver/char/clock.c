@@ -17,7 +17,7 @@ PRIVATE void ClockHnadler()
 {
 	ticks++;
 	if ((ticks % HZ) == 0) {
-		printk("%x ", ticks);
+		//printk("%x ", ticks);
 	}
 }
 

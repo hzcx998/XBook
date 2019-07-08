@@ -6,7 +6,7 @@
  */
 
 #include <share/stddef.h>
-#include <hal/hal.h>
+#include <hal/char/clock.h>
 #include <book/arch.h>
 #include <book/debug.h>
 
@@ -25,14 +25,14 @@
 //时钟的频率
 #define TIMER_FREQ     1193180	
 
-PRIVATE void ClockHalIoctl(unsigned int type, unsigned int value)
+PRIVATE void ClockHalIoctl(unsigned int cmd, unsigned int param)
 {
 	//根据类型设置不同的值
-	switch (type)
+	switch (cmd)
 	{
 	case CLOCK_HAL_IO_REGISTER_INT:
 		
-		IrqRegisterHandler(IRQ0_CLOCK, (intr_handler_t )value);
+		IrqRegisterHandler(IRQ0_CLOCK, (intr_handler_t )param);
 		break;
 	case CLOCK_HAL_IO_ENABLE_INT:
 		

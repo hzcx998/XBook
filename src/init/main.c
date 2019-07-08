@@ -7,7 +7,6 @@
 
 #include <book/arch.h>
 #include <book/hal.h>
-#include <hal/hal.h>
 #include <book/debug.h>
 #include <driver/clock.h>
 #include <share/string.h>
@@ -27,7 +26,9 @@ int main()
 
 	//初始化时钟驱动
 	ClockInit();
+
 	
+
 	
 	PART_END();
 	return 0;

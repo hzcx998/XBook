@@ -22,5 +22,7 @@ PUBLIC void BitmapInit(struct Bitmap* btmp);
 PUBLIC bool BitmapScanTest(struct Bitmap* btmp, unsigned int bitIdx);
 PUBLIC int BitmapScan(struct Bitmap* btmp, unsigned int cnt);
 PUBLIC void BitmapSet(struct Bitmap* btmp, unsigned int bitIdx, char value);
+PUBLIC int BitmapChange(struct Bitmap *btmp, unsigned int bitIdx);
+PUBLIC int BitmapTestAndChange(struct Bitmap *btmp, unsigned int bitIdx);
 
 #endif

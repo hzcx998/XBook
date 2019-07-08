@@ -103,3 +103,38 @@ PUBLIC void BitmapSet(struct Bitmap *btmp, unsigned int bitIdx, char value)
    }
 }
 
+/*
+ * BitmapChange - 把一位取反
+ * @btmp: 要检测的位图
+ * @bitIdx: 哪个地址
+ */
+PUBLIC int BitmapChange(struct Bitmap *btmp, unsigned int bitIdx)
+{
+   unsigned int byteIdx = bitIdx / 8;
+   unsigned int bitOdd  = bitIdx % 8;
+   //进行异或
+   btmp->bits[byteIdx] ^= (BITMAP_MASK << bitOdd);
+   //返回该位
+   return (btmp->bits[byteIdx] & (BITMAP_MASK << bitOdd));
+}
+
+/*
+ * BitmapTestAndChange - 测试并改变该位
+ * @btmp: 要检测的位图
+ * @bitIdx: 哪个地址
+ * 
+ * 返回之前的状态
+ */
+PUBLIC int BitmapTestAndChange(struct Bitmap *btmp, unsigned int bitIdx)
+{
+   unsigned int byteIdx = bitIdx / 8;
+   unsigned int bitOdd  = bitIdx % 8;
+
+   //获取该位
+   int ret = btmp->bits[byteIdx] & (BITMAP_MASK << bitOdd);
+
+   //进行异或取反
+   btmp->bits[byteIdx] ^= (BITMAP_MASK << bitOdd);
+   //返回之前的状态
+   return ret;
+}

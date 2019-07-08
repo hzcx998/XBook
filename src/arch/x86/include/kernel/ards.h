@@ -15,6 +15,8 @@
 
 #define MAX_ARDS_NR 12 //最大有12个ards结构
 
+//#define CONFIG_ARDS_DEBUG
+
 /*
 ards结构体
 */

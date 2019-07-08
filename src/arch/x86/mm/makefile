@@ -22,15 +22,9 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS =  arch.o \
-		entry.o \
-		x86.o \
-		ards.o \
-		segment.o \
-		gate.o \
-		interrupt.o \
-		pic.o \
-		cpu.o \
+OBJS =  zone.o \
+		page.o \
+		bootmem.o \
 		
 #First read here
 .PHONY: all

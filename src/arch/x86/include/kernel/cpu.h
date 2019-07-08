@@ -1,16 +1,18 @@
 /*
- * file:		arch/x86/include/kernel/arch.h
+ * file:		arch/x86/include/kernel/cpu.h
  * auther:		Jason Hu
- * time:		2019/6/2
+ * time:		2019/6/27
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
-#ifndef _X86_ARCH_H
-#define _X86_ARCH_H
+#ifndef _ARCH_CPU_H
+#define _ARCH_CPU_H
 
 #include <share/types.h>
 
-PUBLIC int InitArch();
+//#define CONFIG_CPU_DEBUG
+
+
 PUBLIC void CpuInit();
 
-#endif  /*_X86_ARCH_H*/
+#endif	/*_ARCH_CPU_H*/

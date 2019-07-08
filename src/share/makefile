@@ -16,8 +16,9 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS = string.o \
-	vsprintf.o
+OBJS = 	string.o \
+		vsprintf.o \
+		math.o 
 
 #First read here
 .PHONY: all

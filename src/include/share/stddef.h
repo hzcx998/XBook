@@ -12,8 +12,21 @@
 /*
  *这里是typedef类型的
  */
+
+/* 32位操作系统 */
 typedef unsigned int flags_t;
 typedef unsigned int size_t;
+typedef unsigned int register_t;    //寄存器
+typedef unsigned int address_t;    //地址类型的变量
+
+/* 64位操作系统 */
+/*
+typedef unsigned long flags_t;
+typedef unsigned long size_t;
+typedef unsigned long register_t;
+typedef unsigned long address_t;
+ */
+
 
 /*
  *这里是define类型的

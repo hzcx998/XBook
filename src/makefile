@@ -51,6 +51,7 @@ KERNEL_DIR = kernel/
 SHARE_DIR = share/
 HAL_DIR = hal/
 DRIVER_DIR = driver/
+MM_DIR = mm/
 
 #sub dir
 ARCH_BOOT_DIR = $(ARCH_DIR)boot/
@@ -60,17 +61,20 @@ ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
 #arch kernel objs
 ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	$(ARCH_KERNEL_DIR)arch.o \
-	$(ARCH_KERNEL_DIR)page.o \
 	$(ARCH_KERNEL_DIR)x86.o \
 	$(ARCH_KERNEL_DIR)ards.o \
 	$(ARCH_KERNEL_DIR)segment.o \
 	$(ARCH_KERNEL_DIR)gate.o \
 	$(ARCH_KERNEL_DIR)pic.o \
 	$(ARCH_KERNEL_DIR)interrupt.o \
+	$(ARCH_KERNEL_DIR)cpu.o \
 	
 
 #arch objs
-ARCH_OBJS = $(ARCH_KERNEL_OBJS)
+ARCH_OBJS = $(ARCH_KERNEL_OBJS) \
+			$(ARCH_DIR)mm/zone.o \
+			$(ARCH_DIR)mm/page.o \
+			$(ARCH_DIR)mm/bootmem.o \
 
 #init objs
 INIT_OBJS = $(INIT_DIR)main.o \
@@ -80,17 +84,24 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)hal.o \
 				$(KERNEL_DIR)debug.o \
 				$(KERNEL_DIR)syscall.o \
-
+				
 #hal objs
 HAL_OBJS = 	$(HAL_DIR)char/display.o \
-			$(HAL_DIR)char/clock.o
+			$(HAL_DIR)char/clock.o \
+			$(HAL_DIR)char/cpu.o \
+			$(HAL_DIR)block/ram.o \
+
 #share objs
-SHARE_OBJS = $(SHARE_DIR)string.o \
-	$(SHARE_DIR)vsprintf.o
+SHARE_OBJS = 	$(SHARE_DIR)string.o \
+				$(SHARE_DIR)vsprintf.o \
+				$(SHARE_DIR)math.o
 
 #driver objs
 DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
 				$(DRIVER_DIR)char/console.o \
+
+#mm objs
+MM_OBJS = 	$(MM_DIR) \
 
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) $(DRIVER_OBJS)
@@ -119,6 +130,7 @@ compile:
 	cd $(SHARE_DIR) && $(MAKE)
 	cd $(HAL_DIR) && $(MAKE)
 	cd $(DRIVER_DIR) && $(MAKE)
+	
 
 link: $(KERNEL_ELF)
 
@@ -140,7 +152,7 @@ bochsdbg:
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
-	$(QEMU) -m 256 -fda $(FLAPPY_IMG)  \
+	$(QEMU) -m 4096 -fda $(FLAPPY_IMG)  \
 	-boot a
 
 
@@ -152,3 +164,4 @@ clean:
 	cd $(SHARE_DIR) && $(MAKE) clean
 	cd $(HAL_DIR) && $(MAKE) clean
 	cd $(DRIVER_DIR) && $(MAKE) clean
+	

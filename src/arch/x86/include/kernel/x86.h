@@ -34,6 +34,10 @@ uint32_t LoadEflags(void);
 void StoreEflags(uint32_t eflags);
 void PortRead(uint16_t port, void* buf, uint32_t n);
 void PortWrite(uint16_t port, void* buf, uint32_t n);
+void x86CpuUD2();
 void X86Invlpg(uint32_t vaddr);
+void X86Cpuid(unsigned int id_eax, unsigned int *eax, \
+        unsigned int *ebx, unsigned int *ecx, unsigned int *edx);
+
 
 #endif	/*_ARCH_X86_H*/

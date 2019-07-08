@@ -422,12 +422,19 @@ StepPage:
 
     mov edi, PAGE_TBL_PHY_ADDR
     mov ebx, PAGE_DIR_PHY_ADDR
+
+	; 第一个页表
     mov dword [ebx], PAGE_TBL_PHY_ADDR|0x07
     mov dword [ebx+512*4], PAGE_TBL_PHY_ADDR|0x07    
-    mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR|0x07
+	; 第二个页表
+    mov dword [ebx+4], (PAGE_TBL_PHY_ADDR+0X1000)|0x07
+    mov dword [ebx+513*4], (PAGE_TBL_PHY_ADDR+0X1000)|0x07    
+
+	; 页目录自己
+	mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR|0x07
    	
-	;低端4M内存直接对应，可以直接访问到
-   	mov cx, 1024
+	;低端8M内存直接对应，可以直接访问到
+   	mov cx, 1024*2
     mov esi, 0|0x07
     
 .SetKPT:	;kernel page table

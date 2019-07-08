@@ -19,7 +19,7 @@ global 	CpuHlt
 global 	LoadTR
 global	ReadCR2
 global	ReadCR3
-global	ReadCR3
+global	WriteCR3
 global	ReadCR0
 global	WriteCR0
 global	StoreGDTR
@@ -30,8 +30,9 @@ global 	LoadEflags
 global 	StoreEflags
 global 	PortRead
 global 	PortWrite
-global 	CpuUD2
+global 	x86CpuUD2
 global 	X86Invlpg
+global 	X86Cpuid
 
 [section .text]
 [bits 32]
@@ -165,10 +166,27 @@ PortWrite:	;void PortWrite(u16 port, void* buf, uint32_t n);
 	rep	outsw
 	ret
 
-CpuUD2:
+x86CpuUD2:
 	ud2
 	ret
 X86Invlpg:
 	mov eax, [esp + 4]
 	invlpg [eax]
 	ret	
+
+X86Cpuid: 	; void X86Cpuid(unsigned int id_eax, unsigned int *eax, 
+			; 		unsigned int *ebx, unsigned int *ecx, unsigned int *edx);
+	mov eax, [esp + 4] ; eax_id
+	cpuid
+	mov edi, [esp + 8]	;eax
+	mov [edi], eax
+	mov edi, [esp + 12]	;ebx
+	mov [edi], ebx
+	mov edi, [esp + 16]	;ecx
+	mov [edi], ecx
+	mov edi, [esp + 20]	;edx
+	mov [edi], edx
+	ret
+
+
+

@@ -39,8 +39,8 @@ int InitPage()
 	//把页目录表的第1项清空，这样，我们就只能通过高地址访问内核了
 	pdt[0] = 0;
 	//设置物理内存管理方式，以页框为单位
-	phyMemoryTotal = InitArds();
-	InitMemoryPool(phyMemoryTotal);
+	//phyMemoryTotal = InitArds();
+	//InitMemoryPool(phyMemoryTotal);
 	/*
 	void *a = AllocKernelPage(100);
 	void *b = AllocKernelPage(1000);
@@ -53,6 +53,7 @@ int InitPage()
 	FreeKernelPage(c,10000);
 	FreeKernelPage(d,10);
 	*/
+
 	PART_END();
 	return 0;
 }

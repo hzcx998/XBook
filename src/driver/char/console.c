@@ -47,7 +47,9 @@ PUBLIC int ConsolePrint(const char *fmt, ...)
 PUBLIC int ConsoleFliter(char *buf, unsigned int count)
 {
 	//申请一样大的内存来暂时存放
-	unsigned char *tmp = AllocKernelPage(1);
+	//!unsigned char *tmp = AllocKernelPage(1);
+	unsigned char *tmp;
+	
 	//整个读取过来
 	HalRead("display",tmp, count);
 
@@ -62,7 +64,7 @@ PUBLIC int ConsoleFliter(char *buf, unsigned int count)
 		j++;
 	}
 	//释放
-	FreeKernelPage(tmp, 1);
+	//!FreeKernelPage(tmp, 1);
 
 	//在buf的最后添加一个0，表示字符结束
 	buf[count - 1] = '\0';
@@ -81,12 +83,12 @@ PUBLIC void ConsoleRead(const char *buf, unsigned int count)
 
 PUBLIC void ConsoleGotoXY(unsigned short x, unsigned short y)
 {
-	HalIoctl("display",DISPLAY_HAL_IO_CURSOR, y * SCREEN_WIDTH + x);
+	HalIoctl("display",DISPLAY_HAL_IO_SET_CURSOR, y * SCREEN_WIDTH + x);
 }
 
 PUBLIC void ConsoleSetColor(unsigned char color)
 {
-	HalIoctl("display",DISPLAY_HAL_IO_COLOR, color);
+	HalIoctl("display",DISPLAY_HAL_IO_SET_COLOR, color);
 }
 
 PUBLIC void ConsoleReadGotoXY(unsigned short x, unsigned short y)

@@ -10,7 +10,6 @@
 #include <book/list.h>
 #include <share/vsprintf.h>
 #include <share/string.h>
-#include <hal/hal.h>
 
 //创建全局变量 halListHead 来管理所有的hal
 LIST_HEAD(halListHead);
@@ -21,8 +20,8 @@ LIST_HEAD(halListHead);
  */
 HAL_EXTERN(halOfDisplay);
 HAL_EXTERN(halOfClock);
-
-
+HAL_EXTERN(halOfCpu);
+HAL_EXTERN(halOfRam);
 
 
 
@@ -48,6 +47,16 @@ PUBLIC void InitHalEarly()
 	ConsoleInit();
 
    /* ----从此开始调试显示信息之旅---- */
+
+   if (HalCreate(&halOfCpu)) {
+      printk("Register %s name samed!\n", halOfCpu.halName);
+      while(1);
+   }
+   if (HalCreate(&halOfRam)) {
+      printk("Register %s name samed!\n", halOfRam.halName);
+      while(1);
+   }
+
 }
 
 /*
@@ -183,22 +192,24 @@ PUBLIC void HalClose(char *name)
  * @name: 要操作的hal
  * @buffer: 数据存放的缓冲区
  * @count: 写入的字节数
+ * 
+ * 返回值是是否操作成功，如果是0则成功，-1则失败
  */
-PUBLIC void HalWrite(char *name, unsigned char *buffer, unsigned int count)
+PUBLIC int HalWrite(char *name, unsigned char *buffer, unsigned int count)
 {
    struct Hal *hal = HalNameToHal(name);
    //如果没有找到就返回
    if (hal == NULL) {
-      return;
+      return -1;
    }
    //如果没有打开就返回
    if (!hal->isOpened) {
-		return;
+		return -1;
 	}
    if (hal->halOperate->Write == NULL) {
-      return;
+      return -1;
    }
-   hal->halOperate->Write(buffer, count);
+   return hal->halOperate->Write(buffer, count);
 }
 
 /*
@@ -208,22 +219,23 @@ PUBLIC void HalWrite(char *name, unsigned char *buffer, unsigned int count)
  * @count: 读取的字节数
  * 
  * 从hal设备读取数据，可以是一个一个地读，也可以存放到换个缓冲区中
+ * 返回值是是否操作成功，如果是0则成功，-1则失败
  */
-PUBLIC void HalRead(char *name, unsigned char *buffer, unsigned int count)
+PUBLIC int HalRead(char *name, unsigned char *buffer, unsigned int count)
 {
    struct Hal *hal = HalNameToHal(name);
    //如果没有找到就返回
    if (hal == NULL) {
-      return;
+      return -1;
    }
    //如果没有打开就返回
    if (!hal->isOpened) {
-		return;
+		return -1;
 	}
    if (hal->halOperate->Read == NULL) {
-      return;
+      return -1;
    }
-   hal->halOperate->Read(buffer, count);
+   return hal->halOperate->Read(buffer, count);
 }
 
 /*
@@ -234,7 +246,7 @@ PUBLIC void HalRead(char *name, unsigned char *buffer, unsigned int count)
  * 
  * 通过这个函数可以实现一些除开读取和写入的功能
  */
-PUBLIC void HalIoctl(char *name,unsigned int type, unsigned int value)
+PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param)
 {
    struct Hal *hal = HalNameToHal(name);
    //如果没有找到就返回
@@ -248,7 +260,7 @@ PUBLIC void HalIoctl(char *name,unsigned int type, unsigned int value)
    if (hal->halOperate->Ioctl == NULL) {
       return;
    }
-   hal->halOperate->Ioctl(type, value);
+   hal->halOperate->Ioctl(cmd, param);
 }
 
 /*
@@ -259,6 +271,10 @@ PUBLIC int HalDestory(char *name)
    struct Hal *hal = HalNameToHal(name);
    //如果没有找到就返回
    if (hal == NULL) {
+      return -1;
+   }
+   //还在使用中是不允许关闭的，必须关闭后才能摧毁
+   if (hal->isOpened > 0) {
       return -1;
    }
 
