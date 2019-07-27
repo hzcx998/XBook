@@ -62,7 +62,6 @@ ARCH_KERNEL_DIR = $(ARCH_DIR)kernel/
 ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	$(ARCH_KERNEL_DIR)arch.o \
 	$(ARCH_KERNEL_DIR)x86.o \
-	$(ARCH_KERNEL_DIR)ards.o \
 	$(ARCH_KERNEL_DIR)segment.o \
 	$(ARCH_KERNEL_DIR)gate.o \
 	$(ARCH_KERNEL_DIR)pic.o \
@@ -75,6 +74,7 @@ ARCH_OBJS = $(ARCH_KERNEL_OBJS) \
 			$(ARCH_DIR)mm/zone.o \
 			$(ARCH_DIR)mm/page.o \
 			$(ARCH_DIR)mm/bootmem.o \
+			$(ARCH_DIR)mm/ards.o \
 
 #init objs
 INIT_OBJS = $(INIT_DIR)main.o \
@@ -101,10 +101,12 @@ DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
 				$(DRIVER_DIR)char/console.o \
 
 #mm objs
-MM_OBJS = 	$(MM_DIR) \
-
+MM_OBJS = 	$(MM_DIR)slab.o \
+			$(MM_DIR)vmarea.o \
+			$(MM_DIR)mmu.o \
 #objs
-OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) $(DRIVER_OBJS)
+OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
+		$(DRIVER_OBJS) $(MM_OBJS)
 
 
 #----bin and elf----
@@ -130,6 +132,7 @@ compile:
 	cd $(SHARE_DIR) && $(MAKE)
 	cd $(HAL_DIR) && $(MAKE)
 	cd $(DRIVER_DIR) && $(MAKE)
+	cd $(MM_DIR) && $(MAKE)
 	
 
 link: $(KERNEL_ELF)
@@ -152,7 +155,7 @@ bochsdbg:
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
-	$(QEMU) -m 4096 -fda $(FLAPPY_IMG)  \
+	$(QEMU) -m 256 -fda $(FLAPPY_IMG)  \
 	-boot a
 
 
@@ -164,4 +167,5 @@ clean:
 	cd $(SHARE_DIR) && $(MAKE) clean
 	cd $(HAL_DIR) && $(MAKE) clean
 	cd $(DRIVER_DIR) && $(MAKE) clean
+	cd $(MM_DIR) && $(MAKE) clean
 	

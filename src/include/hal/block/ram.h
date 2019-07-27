@@ -10,12 +10,14 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
-#include <book/hal.h>
+#include <share/const.h>
 
+#include <book/hal.h>
 
 //I/O 操作
 #define RAM_HAL_IO_MEMSIZE   1
 
-
+/* 最小物理内存 */
+#define RAM_HAL_BASIC_SIZE (128*MB)
 
 #endif  //_HAL_BLOCK_RAM_H

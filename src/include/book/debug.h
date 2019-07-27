@@ -12,14 +12,18 @@
 #include <share/types.h>
 #include <driver/console.h>
 
-#define DEBUG_KERNEL
+#define DEBUG_PART
 
-#ifdef DEBUG_KERNEL
+#ifdef DEBUG_PART
     #define PART_START(msg) printk("-> "msg" ")
     #define PART_END() printk("<-\n")
+    #define PART_TIP " |- "
+    #define PART_WARRING " ^- "
+    #define PART_ERROR " !- "
 #else
     #define PART_START(msg) 
     #define PART_END() 
+    #define PART_TIP 
 #endif
 
 //内核打印函数的指针

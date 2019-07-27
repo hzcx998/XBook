@@ -13,18 +13,19 @@ CC			= gcc
 ARCH_KERNEL_PATH = ../include/kernel/
 ARCH_MM_PATH = ../include/mm/
 
-INCLUDE_PATH = ../../../include/
+KERNEL_PATH = ../../../include/
 
 #flags
 ASM_FLAGS	= -I $(ARCH_KERNEL_PATH) -f elf
 C_FLAGS	= -c -fno-builtin -nostdlib \
-	-I $(ARCH_KERNEL_PATH) -I $(ARCH_MM_PATH) -I $(INCLUDE_PATH) \
+	-I $(ARCH_KERNEL_PATH) -I $(ARCH_MM_PATH) -I $(KERNEL_PATH)\
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
 OBJS =  zone.o \
 		page.o \
 		bootmem.o \
+		ards.o \
 		
 #First read here
 .PHONY: all

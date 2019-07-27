@@ -8,9 +8,11 @@
 #ifndef _X86_MM_ZONE_H
 #define _X86_MM_ZONE_H
 
-#include <area.h>
+
+#include "area.h"
 #include <share/stddef.h>
 #include <book/bitmap.h>
+
 
 /* 
  * 物理空间的划分
@@ -18,10 +20,10 @@
 
 // 0MB~1MB是体系结构相关的内存分布
 #define ZONE_PHY_ARCH_ADDR          0X000000000
-#define ZONE_ARCH__SIZE             0X000100000     // 1MB
+#define ZONE_ARCH_SIZE             0X000100000     // 1MB
 
 // 1MB~2MB是内核镜像
-#define ZONE_PHY_KERNEL_ADDR        (ZONE_PHY_ARCH_ADDR+ZONE_ARCH__SIZE)
+#define ZONE_PHY_KERNEL_ADDR        (ZONE_PHY_ARCH_ADDR+ZONE_ARCH_SIZE)
 #define ZONE_KERNEL_SIZE               0X000100000     // 1MB
 
 // 2MB~8MB是系统重要信息的存放地址
@@ -36,6 +38,10 @@
 
 // 16M以上是静态映射开始地址
 #define ZONE_PHY_STATIC_ADDR           (ZONE_PHY_DMA_ADDR+ZONE_DMA_SIZE)
+
+
+// 持久态内存映射开始地址
+#define ZONE_PHY_DURABLE_ADDR     0xE0000000
 
 /* 
     我们会把16M以上的物理内存分为3部分，静态，动态，持久态。
@@ -79,26 +85,29 @@
 /* 默认内核动态空间地址 */
 #define ZONE_DYNAMIC_ADDR     (ZONE_STATIC_ADDR+ZONE_STATIC_SIZE)
 
-/* 规划768MB虚拟地址给动态内存 */
-#define ZONE_DYNAMIC_SIZE            0X30000000  // 768MB内存大小 @.@
+/* 规划512MB虚拟地址给动态内存 */
+#define ZONE_DYNAMIC_SIZE            0X3FC00000  // 1020MB内存大小 @.@
 
-/* 默认内核持久态空间地址 */
-#define ZONE_DURABLE_ADDR     (ZONE_DYNAMIC_ADDR+ZONE_DYNAMIC_SIZE)
-
-/* 规划252MB虚拟地址给持久态内存 */
-#define ZONE_DURABLE_SIZE            0X0FC00000  // 252MB内存大小 @.@
+#define ZONE_DYNAMIC_END            (ZONE_DYNAMIC_ADDR + ZONE_DYNAMIC_SIZE)
 
 /* 
 因为在我们的分页机制中，最后一个页目录表项存放的是页目录表自己，
-所以不能使用，因此少了4MB的内存空间
+所以不能使用，因此少了4MB的内存空间，那是一段固定区域
 */
-#define ZONE_DYNAMIC_END     0XFFC00000
+#define ZONE_FIXED_ADDR     0XFFC00000
+
+#define ZONE_FIXED_SIZE     0X400000    // 4MB内存大小
 
 /* 一共有多少个空间 */
 #define MAX_ZONE_NR     3
 
+/* 静态空间是内核自己运行需要的空间 */
 #define ZONE_STATIC_NAME     "static"
+
+/* 静态空间是内核和用户共同拥有的空间 */
 #define ZONE_DYNAMIC_NAME    "dynamic"
+
+/* 持久化空间是某些设备映射的空间 */
 #define ZONE_DURABLE_NAME    "durable"
 
 /* 
@@ -109,11 +118,12 @@
 
 #define ZONE_STATIC_MAX_PAGES      (PAGE_NR_IN_1GB - PAGE_NR_IN_16MB)
 
+#define ZONE_SEPARATE_MAX_PAGES      (PAGE_NR_IN_1GB + ZONE_STATIC_MAX_PAGES)
+
 #define ZONE_BAD_RANGE(zone, page) \
         (!(zone->pageArray <= page && \
         page <= zone->pageArray + zone->pageTotalCount))
 
-//#define CONFIG_ZONE_DEBUG
 
 /* 用于描述内核内存地址空间的结构体 */
 struct Zone 
@@ -154,6 +164,10 @@ PUBLIC INLINE struct Zone *ZoneGetByName(char *name);
 PUBLIC INLINE struct Zone *ZoneGetByPhysicAddress(unsigned int paddr);
 PUBLIC INLINE struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr);
 PUBLIC INLINE struct Zone *ZoneGetByPage(struct Page *page);
+PUBLIC INLINE unsigned int ZoneGetTotalPages(char *name);
+PUBLIC INLINE unsigned int ZoneGetAllUsingPages();
+PUBLIC INLINE unsigned int ZoneGetAllTotalPages();
+PUBLIC INLINE unsigned int ZoneGetInitMemorySize();
 
 /* 页和物理地址的转换 */
 PUBLIC INLINE struct Page *PhysicAddressToPage(unsigned int addr);

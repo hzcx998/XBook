@@ -10,6 +10,8 @@
 #include <book/debug.h>
 #include <driver/clock.h>
 #include <share/string.h>
+#include <book/slab.h>
+#include <book/vmarea.h>
 
 /*
  * 功能: 内核的主函数
@@ -27,8 +29,10 @@ int main()
 	//初始化时钟驱动
 	ClockInit();
 
+	// 初始化slab缓冲区
+	InitSlabCacheManagement();
 	
-
+	InitVirtualMemoryArea();
 	
 	PART_END();
 	return 0;

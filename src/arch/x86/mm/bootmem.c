@@ -45,7 +45,18 @@ PUBLIC void *BootMemAlloc(size_t size)
     return (void *)addr;
 }
 
+/* 
+ * BootMemPosition - 返回当前分配的地址
+ */
 PUBLIC unsigned int BootMemPosition()
 {
     return bootMemAlloctor.currentAddress;
+}
+
+/*
+ * BootMemSize - 获取已经分配了多大的空间
+ */
+PUBLIC unsigned int BootMemSize()
+{
+    return bootMemAlloctor.currentAddress - bootMemAlloctor.startAddress;
 }

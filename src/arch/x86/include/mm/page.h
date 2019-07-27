@@ -9,14 +9,18 @@
 #define _X86_MM_PAGE_H
 
 #include "pflags.h"
+
 #include <book/bitmap.h>
 #include <book/list.h>
+#include <book/slab.h>
 #include <share/stdint.h>
 #include <share/stddef.h>
 #include <share/stddef.h>
 
-//#define CONFIG_PAGE_DEBUG
-
+// 页目录类型
+typedef unsigned int pdir_t;
+// 页表类型
+typedef unsigned int ptbl_t;
 
 //PDT = PAGE DIR TABLE
 //内核的页目录表物理地址
@@ -73,30 +77,59 @@
 #define PAGE_NR_IN_1GB      (0X40000000/PAGE_SIZE)
 #define PAGE_NR_IN_16MB      (0X1000000/PAGE_SIZE)
 
+#define PAGE_MARK_SLAB_CACHE(page, cache, slab) \
+        page->slabCache = cache;\
+        page->slab = slab
+        
+#define PAGE_CLEAR_SLAB_CACHE(page) \
+        page->slabCache = NULL;\
+        page->slab = NULL
+        
+#define PAGE_GET_SLAB(page) page->slab
+#define PAGE_GET_SLAB_CACHE(page) page->slabCache
+
+#define CHECK_PAGE(page) \
+        if (page == NULL) Panic("Page error!\n") 
+
+// 保证大小和页的大小对齐
+#define PAGE_ALIGN(size) ALIGN_WITH(size, PAGE_SIZE)
+
+// 检测pte存在
+#define PAGE_PTE_EXIST(entry) (entry&PAGE_P_1)
+
+// 通过and运算把一个页地址去掉属性部分
+#define PAGE_ADDR_MASK  0xfffff000
 
 /* 物理页结构 */
 struct Page 
 {
     struct List list;
     flags_t flags;
+    address_t virtual;  // 虚拟地址
+    struct SlabCache *slabCache;   // slab cache
+    struct Slab *slab;      // slab
 };
 
 PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAddrEnd);
 
 EXTERN struct Page *memoryPageTable;
 
-PUBLIC struct Page *PagesAlloc(unsigned int pages, unsigned int pf);
-PUBLIC unsigned int GetFreePages(unsigned int gfpMask, unsigned int order);
+PUBLIC struct Page *PagesAlloc(unsigned int pages, unsigned int flags);
+PUBLIC unsigned int GetFreePages(unsigned int flags, unsigned int order);
 
 // 只获取一个页
-#define GetFreePage(gpf) GetFreePages(gpf, 0);
+#define GetFreePage(flags) GetFreePages(flags, 0)
 
 PUBLIC void PagesFree(struct Page *page, unsigned int order);
 PUBLIC void FreePages(unsigned int addr, unsigned int order);
 
 // 只释放一个页
-#define PageFree(gpf) PagesFree(gpf, 0);
-#define FreePage(addr) FreePages(addr, 0);
+#define PageFree(flags) PagesFree(flags, 0)
+#define FreePage(addr) FreePages(addr, 0)
 
+PUBLIC INLINE pdir_t *PageGetPde(address_t vaddr);
+PUBLIC INLINE ptbl_t *PageGetPte(address_t vaddr);
 
+PUBLIC INLINE void PageLinkAddress(address_t virtualAddr, address_t physicAddr, flags_t flags);
+PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr);
 #endif  /*_X86_MM_PAGE_H */

@@ -10,6 +10,7 @@
 #include <gate.h>
 #include <cpu.h>
 #include <zone.h>
+#include <bootmem.h>
 #include <book/debug.h>
 #include <book/hal.h>
 #include <hal/char/cpu.h>
@@ -40,6 +41,9 @@ int InitArch()
 	// 初始化内核门描述符
 	InitGateDescriptor();
 	
+	// 初始化引导内存分配器
+	InitBootMem();
+
 	InitZone();
 
 	PART_END();

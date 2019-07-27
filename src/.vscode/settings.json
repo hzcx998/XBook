@@ -16,7 +16,13 @@
         "stdint.h": "c",
         "pflags.h": "c",
         "bitmap.h": "c",
-        "vga.h": "c"
+        "vga.h": "c",
+        "config.h": "c",
+        "slab.h": "c",
+        "types.h": "c",
+        "list.h": "c",
+        "vmalloc.h": "c",
+        "vmarea.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

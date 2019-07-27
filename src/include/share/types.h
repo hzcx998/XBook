@@ -38,5 +38,10 @@
 #define INLINE inline
 #endif
 
+#ifndef INIT
+#define INIT
+#endif
+
+
 
 #endif  /*_SHARE_TYPES_H*/

@@ -1,6 +1,8 @@
 # Book-OS-X Finished task.  
   
-
+* Slab memory
+* Vmarea memory
+--2019.7.26--
 * buddy memory  
 --2019.7.4--  
 * ram hal  

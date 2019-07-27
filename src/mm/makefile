@@ -19,7 +19,9 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 
 ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
-OBJS = 	zone.o \
+OBJS = 	slab.o \
+		vmarea.o \
+		mmu.o \
 	
 #First read here
 .PHONY: all

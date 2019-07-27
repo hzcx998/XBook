@@ -31,7 +31,6 @@ uint64_t InitArds()
 			if(ards->baseLow+ards->lengthLow > totalSize){
 				totalSize = ards->baseLow+ards->lengthLow;
 			}
-			
 		}
 		#ifdef CONFIG_ARDS_DEBUG
 		printk(" |- base %x length %x type:%d\n",ards->baseLow, ards->lengthLow, ards->type);

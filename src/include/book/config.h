@@ -12,7 +12,8 @@
 /*系统平台*/
 #define CONFIG_ARCH_X86
 
-
+/* 调试配置 */
+//#define CONFI_SLAB_DEBUG
 
 
 #endif   /*_BOOK_CONFIG_H*/

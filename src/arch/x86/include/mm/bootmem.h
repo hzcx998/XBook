@@ -30,5 +30,5 @@ struct BootMem
 PUBLIC void InitBootMem();
 PUBLIC void *BootMemAlloc(size_t size);
 PUBLIC unsigned int BootMemPosition();
-
+PUBLIC unsigned int BootMemSize();
 #endif  /*_X86_MM_BOOTMEM_H*/

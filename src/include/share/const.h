@@ -8,6 +8,11 @@
 #ifndef _SHARE_CONST_H
 #define _SHARE_CONST_H
 
+/* 内存常量的定义 */
+#define KB      1024
+#define MB      (1024*KB)
+#define GB      (1024*MB)
+
 
 
 #endif  /*_SHARE_CONST_H*/

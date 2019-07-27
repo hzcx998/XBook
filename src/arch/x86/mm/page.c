@@ -5,6 +5,7 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
+#include <config.h>
 #include <page.h>
 #include <ards.h>
 #include <zone.h>
@@ -145,6 +146,10 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 			Panic("zone bad range-> zone %s start %x end %x page %x", 
 				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 
+	// 统计空间页的使用数量
+	zone->pageFreeCount -= 1 << low;
+	zone->pageUsingCount += 1 << low;
+	
 	/* 
 	返回找到的最小的那个页
 	如果有order变化就会是新找到的页，
@@ -155,17 +160,17 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 
 /* 
  * GetFreePages - 分配多个页
- * @gfpMask: 分配页的标志
+ * @flags: 分配页的标志
  * @order: 分配2^order个页
  * 
  * 在order对应的area中去分配页，如果没有空闲的就去更大的order中去查找页
  * 注意，这里返回页的物理地址
  */
-PUBLIC unsigned int GetFreePages(unsigned int gfpMask, unsigned int order)
+PUBLIC unsigned int GetFreePages(unsigned int flags, unsigned int order)
 {
 	struct Page *page;
 
-	page = PagesAlloc(gfpMask, order);
+	page = PagesAlloc(flags, order);
 
 	if (page == NULL)
 		return 0;
@@ -173,34 +178,33 @@ PUBLIC unsigned int GetFreePages(unsigned int gfpMask, unsigned int order)
 	struct Zone *zone = NULL;
 
 	// 根据mask选择zone
-	if (gfpMask & GFP_STATIC) {
+	if (flags & ZONE_STATIC) {
 		
 		zone = ZoneGetByName(ZONE_STATIC_NAME);
-	} else if (gfpMask & GFP_DYNAMIC) {
+	} else if (flags & ZONE_DYNAMIC) {
 		
 		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
-	} else if (gfpMask & GFP_DURABLE) {
-		
-		zone = ZoneGetByName(ZONE_DURABLE_NAME);
+	
 	}
 	//printk(" |- GetFreePages - zone:%x name:%s \n",zone, zone->name);
 	if (zone == NULL) {
 		return 0;
 	}
+	
 	//把页结构转换成物理地址后返回
 	return (unsigned int) PageToPhysicAddress(page);
 }
 
 /* 
  * __PagesAlloc - 分配多个页
- * @gfpMask: 分配页的标志
+ * @flags: 分配页的标志
  * @order: 分配2^order个页
  * @zone: 页属于哪个空间
  * 
  * 在order对应的area中去分配页，如果没有空闲的就去更大的order中去查找页
  * 注意，这里返回页指针
  */
-PRIVATE struct Page *__PagesAlloc(unsigned int gfpMask, unsigned int order, struct Zone *zone)
+PRIVATE struct Page *__PagesAlloc(unsigned int flags, unsigned int order, struct Zone *zone)
 {
 	//获取对应的区域
 	struct FreeArea *area = zone->freeArea + order;
@@ -252,13 +256,13 @@ PRIVATE struct Page *__PagesAlloc(unsigned int gfpMask, unsigned int order, stru
 
 /* 
  * PagesAlloc - 分配多个页
- * @gfpMask: 分配页的标志
+ * @flags: 分配页的标志
  * @order: 分配2^order个页
  * 
  * 在order对应的area中去分配页，如果没有空闲的就去更大的order中去查找页
  * 注意，这里返回页指针
  */
-PUBLIC struct Page *PagesAlloc(unsigned int gfpMask, unsigned int order)
+PUBLIC struct Page *PagesAlloc(unsigned int flags, unsigned int order)
 {
 	//超出请求范围
     if (order >= MAX_ORDER) {
@@ -267,15 +271,12 @@ PUBLIC struct Page *PagesAlloc(unsigned int gfpMask, unsigned int order)
 	struct Zone *zone = NULL;
 
 	// 根据mask选择zone
-	if (gfpMask & GFP_STATIC) {
+	if (flags & ZONE_STATIC) {
 		
 		zone = ZoneGetByName(ZONE_STATIC_NAME);
-	} else if (gfpMask & GFP_DYNAMIC) {
+	} else if (flags & ZONE_DYNAMIC) {
 		
 		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
-	} else if (gfpMask & GFP_DURABLE) {
-		
-		zone = ZoneGetByName(ZONE_DURABLE_NAME);
 	}
 	
 	if (zone == NULL) {
@@ -284,12 +285,12 @@ PUBLIC struct Page *PagesAlloc(unsigned int gfpMask, unsigned int order)
 	//printk(" |- PagesAlloc - zone name:%s \n",zone->name);
 	
 	//交给核心函数执行
-	return __PagesAlloc(gfpMask, order, zone);
+	return __PagesAlloc(flags, order, zone);
 }
 
 /* 
  * FreePages - 释放多个页
- * @addr: 页地址
+ * @addr: 物理页地址
  * @order: 释放2^order个页
  * 
  * 在order对应的area中去释放页，释放后查看更高的order是否可以合并
@@ -329,6 +330,11 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 	struct Page *buddy1;
 	//struct Page *buddy2;
 	
+	// 统计空间页的使用数量
+	zone->pageFreeCount += 1 << order;
+	zone->pageUsingCount -= 1 << order;
+	
+
 	while (mask + (1 << (MAX_ORDER - 1))) {
 		//检测取反前是否为0，如果是0，那么取反后为1，就不能释放了
 		if (!BitmapTestAndChange(&area->map, index)) {
@@ -372,6 +378,7 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 	ListAdd(&(zone->pageArray + pageIdx)->list, &area->pageList);
 	//printk("add to:%d addr:%x\n", pageIdx, zone->pageArray + pageIdx);
 
+	
 }
 
 /* 
@@ -394,4 +401,101 @@ PUBLIC void PagesFree(struct Page *page, unsigned int order)
 		return;
 	//交给核心函数执行
 	__PagesFree(page, order, zone);
+}
+
+/**
+ * PageGetPde - 获取pde
+ * @vaddr: 虚拟地址
+ * 
+ * 通过虚拟地址获取它对应的pde
+ */
+PUBLIC INLINE pdir_t *PageGetPde(address_t vaddr)
+{
+	// 获取地址对应的页目录项地址
+	pdir_t *pde = (address_t *)(0xfffff000 + \
+	PDE_IDX(vaddr)*4);
+	return pde;
+}
+
+/**
+ * PageGetPte - 获取pte
+ * @vaddr: 虚拟地址
+ * 
+ * 通过虚拟地址获取它对应的pte
+ */
+PUBLIC INLINE ptbl_t *PageGetPte(address_t vaddr)
+{
+	// 获取页表项地址
+	ptbl_t *pte = (address_t *)(0xffc00000 + \
+	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
+	return pte;
+}
+
+/*
+ * PageLinkAddress - 物理地址和虚拟地址链接起来
+ * @virtualAddr: 虚拟地址
+ * @physicAddr: 物理地址
+ * @flags: 分配页的标志
+ * 
+ * 把虚拟地址和物理地址连接起来，这样就能访问物理地址了
+ */
+PUBLIC INLINE void PageLinkAddress(address_t virtualAddr, address_t physicAddr, flags_t flags)
+{
+	pdir_t *pde = PageGetPde(virtualAddr);
+	ptbl_t *pte = PageGetPte(virtualAddr);
+	
+	if (*pde & PAGE_P_1) {
+		// 页目录项存在
+		//printk(PART_WARRING "page table exist.");
+		// 理论上说页表是不存在的，但是如果出现内存覆盖就有可能
+		if (!(*pte&PAGE_P_1)) {
+			// 页表不存在
+			// 填入对应的地址
+			*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+			//printk(PART_WARRING "page not exist.");
+		} else {
+			printk(PART_WARRING "PageLinkAddress: page already exists\n");
+			*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+		}
+	} else {
+		// 没有页目录项就创建一个
+		address_t pageTableAddr = (address_t)GetFreePage(flags);
+		// 写入页目录项
+		*pde = pageTableAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+		// 写入页表项
+		*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+		//printk(PART_TIP "page table and page not exist.\n");
+	}
+	
+}
+/*
+ * PageUnlinkAddress - 取消虚拟地址对应的物理链接
+ * @virtualAddr: 虚拟地址
+ * 
+ * 取消虚拟地址和物理地址链接。
+ * 在这里我们不删除页表项映射，只删除物理页，这样在以后映射这个地址的时候，
+ * 可以加速运行。但是弊端在于，内存可能会牺牲一些。
+ * 也消耗不了多少，4G内存才4MB。
+ */
+PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr)
+{
+	ptbl_t *pte = PageGetPte(virtualAddr);
+	address_t physicAddr;
+
+	//printk(PART_TIP "virtual %x pde %x pte %x\n", virtualAddr, *pde, *pte);
+
+	// 去掉属性部分获取物理页地址
+	physicAddr = *pte & PAGE_ADDR_MASK;
+
+	// 如果页表项存在物理页
+	if (*pte & PAGE_P_1) {
+		// 清除页表项的存在位，相当于删除物理页
+		*pte &= ~PAGE_P_1;
+
+		//更新tlb，把这个虚拟地址从页高速缓存中移除
+		X86Invlpg(virtualAddr);
+	}
+
+	// 返回物理页地址
+	return physicAddr;
 }
