@@ -1,5 +1,6 @@
 # XBook
-This is the new kernel of Book OS, I hope it is a new start.  
+Xbook是BookOS新内核的代号。
+Book-OS的github地址是： https://github.com/huzichengdevelop/Book-OS
 # Book-OS
 Book is a 32-bit operating system based on x86 platform.  
 Book 是一个基于x86平台的32位操作系统。  
@@ -16,10 +17,6 @@ Enjoy it!
     v0.2 2019/2/21  
     v0.1 2019/1/7  
     
-截屏 ScreenShot:  
-![image](https://github.com/huzichengdevelop/Book-OS/blob/master/screenshoot/start.jpg)  
-![image](https://github.com/huzichengdevelop/Book-OS/blob/master/screenshoot/desktop.jpg)  
-
 操作指令 command in makefile  
 make		-compile, link（编译并且链接）  
 make all 	-compile, link and run os in vm（编译链接写入磁盘并且在虚拟机中运行）  
@@ -37,7 +34,3 @@ make clean	-clean all .o, .bin, .elf file（删除所有产生的临时文件）
 We can use this OS on our computer！  
 We can use IDE to make application on this OS!  
 We can use this OS to compile this OS!  
-
-# 号外！！！Surprise!!!  
-新的内核代号为X，仓库地址是：https://github.com/huzichengdevelop/XBook  
-The new kernel's code is X，github site is：https://github.com/huzichengdevelop/XBook  
