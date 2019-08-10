@@ -89,6 +89,10 @@ SlabInitWithAlloc(struct SlabCache *cache, struct Slab *slab, flags_t flags, uns
 
 	BitmapInit(&slab->map);
 
+	/* 对分配地址进行页对齐，那么对象就也是也对齐的。
+	页对齐只有放在分配对象之前才会有效果 */ 
+	alloc = PAGE_ALIGN(alloc);
+
 	// 设定对象
 	slab->objects = (unsigned char *)alloc;
 	alloc += cache->objectNumber * cache->objectSize;
@@ -212,6 +216,7 @@ PRIVATE INIT void SlabCacheAllInit()
 
 		// 初始化一个cache
 		SlabCacheInit(slabCache, "slab cache", cacheSizePtr->cacheSize, SLAB_CACHE_FLAGS_STATIC, GFP_STATIC);
+		
 		// 分配slab
 		slab = (struct Slab *) alloc;
 		alloc += sizeof(struct Slab);
@@ -225,6 +230,7 @@ PRIVATE INIT void SlabCacheAllInit()
 		printk(PART_TIP "slab %x bits %x len %d objects %x usingCount %d freeCount %d\n", \
 			slab, slab->map.bits, slab->map.btmpBytesLen, slab->objects, slab->usingCount, slab->freeCount);
 		*/
+	
 		// 设定cachePtr
 		cacheSizePtr->cachePtr = slabCache;
 
@@ -720,19 +726,13 @@ PUBLIC int SlabCacheAllShrink()
 /*
  * kmalloc - 分配一个对象
  * @size: 对象的大小
- * @flags: 分配需要的flags
  * 
- * 分配一个size大小的内存，用flags
+ * 在内存池中分配一个size大小的内存
  */
-PUBLIC void *kmalloc(size_t size, unsigned int flags)
+PUBLIC void *kmalloc(size_t size)
 {
 	// 如果越界了就返回空
 	if (size > MAX_SLAB_CACHE_SIZE)
-		return NULL;
-	
-
-	// 判断是否有标志
-	if (!flags) 
 		return NULL;
 
 	// 获取大小描述
@@ -748,7 +748,7 @@ PUBLIC void *kmalloc(size_t size, unsigned int flags)
 		sizeDes++;
 	}
 	//printk(PART_TIP "des %x cache %x size %x\n", sizeDes, sizeDes->cachePtr, sizeDes->cachePtr->objectSize);
-	return SlabAllocObjcet(sizeDes->cachePtr, flags);
+	return SlabAllocObjcet(sizeDes->cachePtr, GFP_STATIC);
 }
 
 /*
@@ -801,8 +801,8 @@ PRIVATE void SlabCacheTest()
 
 	kfree(a);
 	 *//*
-	SlabCreate(&slabCacheTable[10], GFP_STATIC);
-	SlabCreate(&slabCacheTable[10], GFP_STATIC);
+	SlabCreate(&slabCacheTable[10]);
+	SlabCreate(&slabCacheTable[10]);
 
 	struct List *list = slabCacheTable[10].slabsFree.next;
 
@@ -827,13 +827,13 @@ PRIVATE void SlabCacheTest()
 	int table[31];
 	int i; 
 	for (i = 0; i < 30; i++) {
-		table[i] = (int )kmalloc(128*KB, GFP_STATIC);
+		table[i] = (int )kmalloc(4*KB);
+		printk("addr %x\n", table[i]);
 	}
 	for (i = 0; i < 30; i++) {
 		//printk("free %d- ", i);
 		kfree((void *)table[i]);
 	}
-	
 	// 查看队列状况
 	/*struct List *list;
 	printk("list condition\n");
@@ -850,12 +850,12 @@ PRIVATE void SlabCacheTest()
 	
 /*
 	for (i = 0; i < 30; i++) {
-		table[i] = kmalloc(128*KB, GFP_STATIC);
+		table[i] = kmalloc(128*KB);
 	}*/
-
+	/*
 	int shrinkSize = SlabCacheAllShrink();
 	printk(PART_TIP "the size we shrink is %x",shrinkSize);
-
+	 */
 	//Spin("SlabTest");
 	/*
 	i = 17;
@@ -892,7 +892,7 @@ PUBLIC INIT void InitSlabCacheManagement()
 
 	SlabCacheAllInit();
 
-	//SlabCacheTest();
+	// SlabCacheTest();
 	
 
 	PART_END();

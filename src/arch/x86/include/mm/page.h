@@ -9,7 +9,7 @@
 #define _X86_MM_PAGE_H
 
 #include "pflags.h"
-
+#include "../kernel/interrupt.h"
 #include <book/bitmap.h>
 #include <book/list.h>
 #include <book/slab.h>
@@ -18,21 +18,21 @@
 #include <share/stddef.h>
 
 // 页目录类型
-typedef unsigned int pdir_t;
+typedef unsigned int pde_t;
 // 页表类型
-typedef unsigned int ptbl_t;
+typedef unsigned int pte_t;
 
 //PDT = PAGE DIR TABLE
 //内核的页目录表物理地址
 #define PAGE_DIR_PHY_ADDR     0X201000
 //内核的页目录表虚拟地址
-#define PAGE_DIR_VIR_ADDR     0X80201000
+#define PAGE_DIR_VIR_ADDR     0Xc0201000
 
 //PT = PAGE TABLE
 //内核的页表物理地址
 #define PAGE_TABLE_PHY_ADDR     0X202000
 //内核的页表虚拟地址
-#define PAGE_TABLE_VIR_ADDR     0X80202000
+#define PAGE_TABLE_VIR_ADDR     0Xc0202000
 
 // 在loader中初始化了2个页表，满足需要
 #define PAGE_TABLE_PHY_NR     2
@@ -45,11 +45,14 @@ typedef unsigned int ptbl_t;
 #define	 PAGE_US_U  	4	// 0100 U/S user level, cpl3
 
 
+
 #define PAGE_SHIFT 12
 
 #define PAGE_SIZE (1U<<PAGE_SHIFT)  
 
 #define PAGE_MASK (~(PAGE_SIZE-1))  
+
+#define PAGE_INSIDE (PAGE_SIZE-1)  
 
 
 //一个页有多少项
@@ -91,14 +94,27 @@ typedef unsigned int ptbl_t;
 #define CHECK_PAGE(page) \
         if (page == NULL) Panic("Page error!\n") 
 
-// 保证大小和页的大小对齐
-#define PAGE_ALIGN(size) ALIGN_WITH(size, PAGE_SIZE)
+// 保证值和页的大小对齐
+#define PAGE_ALIGN(value) ((value&(PAGE_SIZE-1) ? value + PAGE_SIZE : value) & PAGE_MASK)
 
 // 检测pte存在
 #define PAGE_PTE_EXIST(entry) (entry&PAGE_P_1)
 
 // 通过and运算把一个页地址去掉属性部分
 #define PAGE_ADDR_MASK  0xfffff000
+
+/* 页故障导致的错误码 */
+#define PAGE_ERR_NONE_PRESENT       (0<<0)
+#define PAGE_ERR_PROTECT            (1<<0)
+#define PAGE_ERR_READ               (0<<1)
+#define PAGE_ERR_WRITE              (1<<1)
+#define PAGE_ERR_SUPERVISOR         (0<<2)
+#define PAGE_ERR_USER               (1<<2)
+
+
+
+
+
 
 /* 物理页结构 */
 struct Page 
@@ -127,9 +143,19 @@ PUBLIC void FreePages(unsigned int addr, unsigned int order);
 #define PageFree(flags) PagesFree(flags, 0)
 #define FreePage(addr) FreePages(addr, 0)
 
-PUBLIC INLINE pdir_t *PageGetPde(address_t vaddr);
-PUBLIC INLINE ptbl_t *PageGetPte(address_t vaddr);
+PUBLIC INLINE pde_t *PageGetPde(address_t vaddr);
+PUBLIC INLINE pte_t *PageGetPte(address_t vaddr);
 
-PUBLIC INLINE void PageLinkAddress(address_t virtualAddr, address_t physicAddr, flags_t flags);
+PUBLIC INLINE int PageLinkAddress(address_t virtualAddr, 
+		address_t physicAddr, flags_t flags, unsigned int prot);
 PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr);
+
+PUBLIC INLINE pde_t *GetPageDirTable();
+
+PUBLIC int DoPageFault(struct TrapFrame *frame);
+PUBLIC uint32_t PageAddrV2P(uint32_t vaddr);
+
+PUBLIC INLINE int MapPages(uint32_t start, uint32_t len, 
+		flags_t flags, unsigned int prot);
+PUBLIC INLINE int UnmapPages(unsigned int vaddr, unsigned int len);
 #endif  /*_X86_MM_PAGE_H */

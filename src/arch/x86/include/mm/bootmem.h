@@ -14,7 +14,7 @@
 /*
 静态内存分配器的起始位置为静态内存的起始位置
 */
-#define BOOTMEM_START_ADDR  ZONE_STATIC_ADDR
+#define BOOTMEM_START_ADDR  ZONE_VIR_STATIC_ADDR
 
 /* 
 bootmem是用于初始化内核内存空间以及其数据结构的一个简单

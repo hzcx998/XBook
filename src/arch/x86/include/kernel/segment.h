@@ -8,6 +8,8 @@
 #ifndef _ARCH_SEGMENT_H
 #define _ARCH_SEGMENT_H
 
+
+#include "../mm/page.h"
 #include <share/stdint.h>
 
 /*
@@ -31,11 +33,7 @@
 #define	DA_CCOR			0x9E	/* 存在的可执行可读一致代码段属性值	*/
 /* 系统段描述符类型值说明 */
 #define	DA_LDT			0x82	/* 局部描述符表段类型值			*/
-#define	DA_TaskGate		0x85	/* 任务门类型值				*/
 #define	DA_386TSS		0x89	/* 可用 386 任务状态段类型值		*/
-#define	DA_386CGate		0x8C	/* 386 调用门类型值			*/
-#define	DA_386IGate		0x8E	/* 386 中断门类型值			*/
-#define	DA_386TGate		0x8F	/* 386 陷阱门类型值			*/
 
 /* 选择子类型值说明 */
 /* 其中, SA_ : Selector Attribute */
@@ -71,8 +69,11 @@
 #define KERNEL_TSS_SEL ((INDEX_TSS << 3) + (SA_TIG << 2) + SA_RPL0)
 
 /* GDT 的虚拟地址 */
-#define GDT_VADDR			0x80200000
+#define GDT_VADDR		0xc0200000
 #define GDT_LIMIT		0x000007ff
+
+
+/* 内核栈 */
 
 /*
 段描述符结构

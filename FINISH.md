@@ -1,5 +1,17 @@
 # Book-OS-X Finished task.  
-  
+
+* fork and execv
+* sync lock
+* semaphore and semaphore2
+* atomic operate
+* load ELF binary
+* exit and wait
+* sleep and wakeup
+* block and unblock
+* user process
+* kernel thread
+* VMSpace
+--2019.8.10--
 * Slab memory
 * Vmarea memory
 --2019.7.26--

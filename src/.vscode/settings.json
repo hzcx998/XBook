@@ -22,7 +22,8 @@
         "types.h": "c",
         "list.h": "c",
         "vmalloc.h": "c",
-        "vmarea.h": "c"
+        "vmarea.h": "c",
+        "sync_lock.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

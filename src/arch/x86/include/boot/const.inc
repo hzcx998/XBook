@@ -31,14 +31,22 @@ KERNEL_SEG EQU 0x1000
 KERNEL_PHY_ADDR EQU KERNEL_SEG*16
 
 ;----we assume that file max is 312 kb (0x4e000 byte)----
-;we read kernel.elf from disk sector 10 
+;we read init.bin from disk sector 500 
 FILE_OFF EQU 500
 
 FILE_SEG EQU 0x4200
 
+FILE2_OFF EQU 600
+
+FILE2_SEG EQU 0x5000
+
+FILE3_OFF EQU 700
+
+FILE3_SEG EQU 0x6000
+
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
-KERNEL_START_ADDR EQU 0x80100000
+KERNEL_START_ADDR EQU 0xc0100000
 
 ;loader stack top is 0x90000
 LOADER_STACK_TOP EQU 0x90000
@@ -57,4 +65,13 @@ PAGE_DIR_PHY_ADDR EQU   0x201000
 PAGE_TBL_PHY_ADDR EQU   0x202000
 
 ;显存页表地址
-VRAM_PT_PHY_ADDR    equ 0x203000
+VRAM_PT_PHY_ADDR    EQU 0x203000
+
+PAGE_P_1	EQU  	1	; 0001 exist in memory
+PAGE_P_0	EQU  	0	; 0000 not exist in memory
+PAGE_RW_R  	EQU     0	; 0000 R/W read/execute
+PAGE_RW_W  	EQU     2	; 0010 R/W read/write/execute
+PAGE_US_S  	EQU     0	; 0000 U/S system level, cpl0,1,2
+PAGE_US_U  	EQU     4	; 0100 U/S user level, cpl3
+
+KERNEL_PAGE_ATTR    EQU (PAGE_US_S | PAGE_RW_W | PAGE_P_1)

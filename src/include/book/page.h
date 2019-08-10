@@ -11,8 +11,6 @@
 #include <share/stddef.h>
 #include <book/mmzone.h>
 
-
-
 /* 描述物理页的结构 */
 struct Page {
     flags_t flags;  //页的标志

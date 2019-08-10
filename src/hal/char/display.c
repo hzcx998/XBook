@@ -19,7 +19,7 @@
  * 但这个是要在以后慢慢总结才行的。
  */
 
-#define DISPLAY_VRAM 0x800b8000
+#define DISPLAY_VRAM 0xc00b8000
 
 #define	CRTC_ADDR_REG	0x3D4	/* CRT Controller Registers - Addr Register */
 #define	CRTC_DATA_REG	0x3D5	/* CRT Controller Registers - Data Register */

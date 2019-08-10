@@ -11,6 +11,7 @@
 
 #include "area.h"
 #include <share/stddef.h>
+#include <share/const.h>
 #include <book/bitmap.h>
 
 
@@ -32,16 +33,12 @@
 
 // 8MB~16MB是设备DMA的地址
 #define ZONE_PHY_DMA_ADDR           (ZONE_PHY_MATERIAL_ADDR+ZONE_MATERIAL_SIZE)
-#define ZONE_DMA_SIZE               0X000800000   // 10MB
+#define ZONE_DMA_SIZE               0X000800000   // 8MB
 
 // ---- 以上是必须的基本内存使用情况 ----
 
 // 16M以上是静态映射开始地址
 #define ZONE_PHY_STATIC_ADDR           (ZONE_PHY_DMA_ADDR+ZONE_DMA_SIZE)
-
-
-// 持久态内存映射开始地址
-#define ZONE_PHY_DURABLE_ADDR     0xE0000000
 
 /* 
     我们会把16M以上的物理内存分为3部分，静态，动态，持久态。
@@ -73,42 +70,41 @@
  * 内核空间的划分，以下都是虚拟地址
  */
 
-// 该地址是2GB虚拟地址的偏移
-#define ZONE_VIR_ADDR_OFFSET        0X80000000
-
-/* 默认内核静态空间地址时在DMA之后*/
-#define ZONE_STATIC_ADDR            (ZONE_VIR_ADDR_OFFSET + ZONE_PHY_STATIC_ADDR)
-
-/* 规划1GB虚拟地址给静态内存 */
-#define ZONE_STATIC_SIZE            (0X40000000-ZONE_PHY_STATIC_ADDR)  // 1GB内存大小 @.@
-
-/* 默认内核动态空间地址 */
-#define ZONE_DYNAMIC_ADDR     (ZONE_STATIC_ADDR+ZONE_STATIC_SIZE)
-
-/* 规划512MB虚拟地址给动态内存 */
-#define ZONE_DYNAMIC_SIZE            0X3FC00000  // 1020MB内存大小 @.@
-
-#define ZONE_DYNAMIC_END            (ZONE_DYNAMIC_ADDR + ZONE_DYNAMIC_SIZE)
+// 该地址是3GB虚拟地址的偏移
+#define ZONE_VIR_ADDR_OFFSET        0Xc0000000
 
 /* 
 因为在我们的分页机制中，最后一个页目录表项存放的是页目录表自己，
-所以不能使用，因此少了4MB的内存空间，那是一段固定区域
+所以不能使用，因此少了4MB的内存空间。
+我把它称作黑洞（black hole）区域，就是不能访问，访问就系统死机
 */
-#define ZONE_FIXED_ADDR     0XFFC00000
+#define ZONE_VIR_BLACK_HOLE_SIZE     (4*MB)    // 4MB内存大小
 
-#define ZONE_FIXED_SIZE     0X400000    // 4MB内存大小
+/* 内核固定内存的虚拟地址 */
+#define ZONE_VIR_BLACK_HOLE_ADDR     (0XFFFFFFFF-ZONE_VIR_BLACK_HOLE_SIZE)
+
+/* 内核动态内存最大128MB */
+#define ZONE_VIR_DYNAMIC_SIZE           (128*MB)
+/* 动态内存的虚拟地址 */
+#define ZONE_VIR_DYNAMIC_ADDR           (ZONE_VIR_BLACK_HOLE_ADDR - ZONE_VIR_DYNAMIC_SIZE)
+
+#define ZONE_VIR_DYNAMIC_END           (ZONE_VIR_DYNAMIC_ADDR + ZONE_VIR_DYNAMIC_SIZE)
+
+/* 默认内核静态空间地址时在DMA之后*/
+#define ZONE_VIR_STATIC_ADDR            (ZONE_VIR_ADDR_OFFSET + ZONE_PHY_STATIC_ADDR)
+
+/* 规划1GB虚拟地址给静态内存 */
+#define ZONE_VIR_STATIC_SIZE            (ZONE_VIR_DYNAMIC_ADDR-ZONE_VIR_STATIC_ADDR)
 
 /* 一共有多少个空间 */
-#define MAX_ZONE_NR     3
+#define MAX_ZONE_NR     2
+
 
 /* 静态空间是内核自己运行需要的空间 */
-#define ZONE_STATIC_NAME     "static"
+#define ZONE_TYPE_STATIC     0
 
 /* 静态空间是内核和用户共同拥有的空间 */
-#define ZONE_DYNAMIC_NAME    "dynamic"
-
-/* 持久化空间是某些设备映射的空间 */
-#define ZONE_DURABLE_NAME    "durable"
+#define ZONE_TYPE_DYNAMIC    1
 
 /* 
 静态空间最大的页数 
@@ -116,14 +112,13 @@
 然后在于512对齐
 */
 
-#define ZONE_STATIC_MAX_PAGES      (PAGE_NR_IN_1GB - PAGE_NR_IN_16MB)
+#define ZONE_STATIC_MAX_PAGES      (ZONE_VIR_STATIC_SIZE / PAGE_SIZE)
 
-#define ZONE_SEPARATE_MAX_PAGES      (PAGE_NR_IN_1GB + ZONE_STATIC_MAX_PAGES)
+#define ZONE_SEPARATE_MAX_PAGES      (PAGE_NR_IN_1GB - ZONE_VIR_BLACK_HOLE_SIZE / PAGE_SIZE)
 
 #define ZONE_BAD_RANGE(zone, page) \
         (!(zone->pageArray <= page && \
         page <= zone->pageArray + zone->pageTotalCount))
-
 
 /* 用于描述内核内存地址空间的结构体 */
 struct Zone 
@@ -137,7 +132,6 @@ struct Zone
     size_t physicLength;        //物理空间的大小
 
     flags_t flags;  //空间的状态标志
-    char *name;     //空间的名字
 
     //与页相关的部分
     /* 页的数组,避免和页表混淆，这里用array*/
@@ -158,13 +152,12 @@ PUBLIC void InitZone();
 
 EXTERN struct Zone zoneOfMemory;
 
-
 /* 获取空间的方法 */
-PUBLIC INLINE struct Zone *ZoneGetByName(char *name);
+PUBLIC INLINE struct Zone *ZoneGetByType(int type);
 PUBLIC INLINE struct Zone *ZoneGetByPhysicAddress(unsigned int paddr);
 PUBLIC INLINE struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr);
 PUBLIC INLINE struct Zone *ZoneGetByPage(struct Page *page);
-PUBLIC INLINE unsigned int ZoneGetTotalPages(char *name);
+PUBLIC INLINE unsigned int ZoneGetTotalPages(int type);
 PUBLIC INLINE unsigned int ZoneGetAllUsingPages();
 PUBLIC INLINE unsigned int ZoneGetAllTotalPages();
 PUBLIC INLINE unsigned int ZoneGetInitMemorySize();

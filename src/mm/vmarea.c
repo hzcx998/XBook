@@ -15,10 +15,10 @@
 #include <book/mmu.h>
 
 /* 管理虚拟区域的链表头，用来寻找其他区域 */
-struct VirtualMemoryArea *vmaList;
+struct VMArea *vmaList;
 
 /**
- * VirtualMemoryAreaMapPages - 虚拟内存区域映射页
+ * VMAreaMapPages - 虚拟内存区域映射页
  * @vaddr: 虚拟地址
  * @paddr: 物理地址
  * @size: 获取空间的大小
@@ -27,7 +27,7 @@ struct VirtualMemoryArea *vmaList;
  * 把虚拟地址和物理页进行映射，如果带有物理地址，那么就不需要重新分配新的物理地址
  * 如果没有携带物理地址（paddr==0），那么就说明需要分配新的物理地址
  */
-PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, size_t size, unsigned int flags)
+PRIVATE INLINE int VMAreaMapPages(address_t vaddr, address_t paddr, size_t size, unsigned int flags)
 {
 	int ret;
 	address_t end = vaddr + size;
@@ -56,11 +56,13 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
 		}
 		//printk(PART_TIP "LINK: %x with %x\n", addr, physicAddr);
 
-		// 不是自带物理页则说明需要用我们分配的页，不然和虚拟地址一样
+		/* 不是自带物理页则说明需要用我们分配的页，不然和虚拟地址一样
+		页的保护设置成系统，可写
+		*/
 		if (!withPhysic)
-			PageLinkAddress(vaddr, physicAddr, flags);
+			PageLinkAddress(vaddr, physicAddr, flags, PAGE_US_S | PAGE_RW_W);
 		else 
-			PageLinkAddress(vaddr, paddr, flags);
+			PageLinkAddress(vaddr, paddr, flags, PAGE_US_S | PAGE_RW_W);
 
 		// 地址递增
 		vaddr += PAGE_SIZE;
@@ -79,7 +81,7 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
 	return ret;
 }
 /**
- * VirtualMemoryAreaUnmapPages - 取消虚拟内存区域映射页
+ * VMAreaUnmapPages - 取消虚拟内存区域映射页
  * @vaddr: 虚拟地址
  * @paddr: 物理地址
  * @size: 空间的大小
@@ -87,7 +89,7 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
  * 取消虚拟地址和物理页映射，如果带有物理地址，那么就不释放分配的物理地址
  * 没有携带，那么说明之前是通过分配的物理地址，就需要释放
  */
-PRIVATE INLINE int VirtualMemoryAreaUnmapPages(address_t vaddr, address_t paddr, size_t size)
+PRIVATE INLINE int VMAreaUnmapPages(address_t vaddr, address_t paddr, size_t size)
 {
 	address_t end = vaddr + size;
 	address_t physicAddr;
@@ -97,7 +99,7 @@ PRIVATE INLINE int VirtualMemoryAreaUnmapPages(address_t vaddr, address_t paddr,
 	if (paddr)
 		withPhysic = 1;
 
-	//printk(PART_TIP "VirtualMemoryAreaUnmapPages: start\n");
+	//printk(PART_TIP "VMAreaUnmapPages: start\n");
 	
 	//printk(PART_TIP "addr %x size %x end %x\n", addr, size, end);
 	do {
@@ -114,22 +116,22 @@ PRIVATE INLINE int VirtualMemoryAreaUnmapPages(address_t vaddr, address_t paddr,
 		}
 		vaddr += PAGE_SIZE;
 	} while (vaddr && vaddr < end);
-	//printk(PART_TIP "VirtualMemoryAreaUnmapPages: end\n");
+	//printk(PART_TIP "VMAreaUnmapPages: end\n");
 	return 0;
 }
 
 /**
- * VirtualMemoryGetArea - 获取一个虚拟内存空间
+ * GetVMArea - 获取一个虚拟内存空间
  * @size: 要分配的大小
  * @flags: 分配虚拟空间的flags
  */
-PRIVATE struct VirtualMemoryArea *VirtualMemoryGetArea(size_t size, unsigned int flags)
+PRIVATE struct VMArea *GetVMArea(size_t size, unsigned int flags)
 {
 	address_t addr, next;
-	struct VirtualMemoryArea **p, *tmp, *area; 
+	struct VMArea **p, *tmp, *area; 
 
-	// 为VirtualMemoryArea分配一块空间
-	area = kmalloc(sizeof(struct VirtualMemoryArea), GFP_KERNEL);
+	// 为VMArea分配一块空间
+	area = kmalloc(sizeof(struct VMArea));
 	// 失败则返回
 	if (!area)
 		return NULL;
@@ -144,7 +146,7 @@ PRIVATE struct VirtualMemoryArea *VirtualMemoryGetArea(size_t size, unsigned int
 		return NULL;
 	}
 
-	addr = ZONE_DYNAMIC_ADDR;
+	addr = ZONE_VIR_DYNAMIC_ADDR;
 	// 开始查找一个合适的区域
 	for (p = &vmaList; (tmp = *p); p = &tmp->next) {
 		// 保证没有达到可寻址范围的末端。这两行我没看明白，直接搬过来(*^_^*)
@@ -163,7 +165,7 @@ PRIVATE struct VirtualMemoryArea *VirtualMemoryGetArea(size_t size, unsigned int
 			addr = next;
 
 		// 如果超过了空间最大的地方就出错
-		if (addr > ZONE_DYNAMIC_END - size) 
+		if (addr > ZONE_VIR_DYNAMIC_END - size) 
 			goto ToError;
 	}
 
@@ -193,24 +195,24 @@ ToError:
  */
 PUBLIC void *__vmalloc(size_t size, unsigned int flags)
 {
-	struct VirtualMemoryArea *area;
+	struct VMArea *area;
 	void *addr;
 
 	// 对传入的大小进行页对齐
 	size = PAGE_ALIGN(size);
 
 	// 对size进行判断，为0或者大于最大页数量就返回
-	if (!size || (size >> PAGE_SHIFT) >  ZoneGetTotalPages(ZONE_DYNAMIC_NAME))
+	if (!size || (size >> PAGE_SHIFT) >  ZoneGetTotalPages(ZONE_TYPE_DYNAMIC))
 		return NULL;
 	
 	// 获取虚拟内存区域
-	area = VirtualMemoryGetArea(size, VMA_ALLOC);
+	area = GetVMArea(size, VMA_ALLOC);
 	if (!area)
 		return NULL; 
 	addr = area->addr;
 	//printk(PART_TIP "GET area addr %x size %x\n", area->addr, area->size);
 	// 把虚拟地址和页关联起来，不是直接映射
-	if (VirtualMemoryAreaMapPages((address_t )addr, 0, area->size, flags)) {
+	if (VMAreaMapPages((address_t )addr, 0, area->size, flags)) {
 		// 如果关联出错，就释放虚拟地址区域并返回
 		kfree(area);
 		return NULL;
@@ -228,7 +230,7 @@ PUBLIC void *__vmalloc(size_t size, unsigned int flags)
  */
 PUBLIC void vfree(void *addr)
 {
-	struct VirtualMemoryArea **p, *tmp;
+	struct VMArea **p, *tmp;
 	if (!addr) 
 		return;
 
@@ -246,7 +248,7 @@ PUBLIC void vfree(void *addr)
 			*p = tmp->next;
 
 			// 取消虚拟地址和物理页的映射
-			VirtualMemoryAreaUnmapPages((address_t)tmp->addr, 0, tmp->size);
+			VMAreaUnmapPages((address_t)tmp->addr, 0, tmp->size);
 
 			// 释放area占用的内存
 			kfree(tmp);
@@ -266,24 +268,24 @@ PUBLIC void vfree(void *addr)
  */
 PUBLIC void *vmap(address_t paddr, size_t size)
 {
-	struct VirtualMemoryArea *area;
+	struct VMArea *area;
 	
 	// 进行页对齐
 	size = PAGE_ALIGN(size);
 
 	// 对addr和size的范围进行判断
-	if (!size || !paddr || (paddr + size) > ZONE_FIXED_ADDR)
+	if (!size || !paddr || (paddr + size) > ZONE_VIR_BLACK_HOLE_ADDR)
 		return NULL;
 
 	// 获取虚拟内存区域
-	area = VirtualMemoryGetArea(size, VMA_MAP);
+	area = GetVMArea(size, VMA_MAP);
 	if (!area)
 		return NULL;
 	
 	// 保存虚拟地址
 	void *vaddr = area->addr;
 	// 对地址进行映射	
-	if (VirtualMemoryAreaMapPages((address_t )vaddr, paddr, size, GFP_DYNAMIC)) {
+	if (VMAreaMapPages((address_t )vaddr, paddr, size, GFP_DYNAMIC)) {
 		kfree(area);
 		return NULL;
 	}
@@ -299,7 +301,7 @@ PUBLIC void *vmap(address_t paddr, size_t size)
  */
 PUBLIC void vunmap(void *addr)
 {
-	struct VirtualMemoryArea **p, *tmp;
+	struct VMArea **p, *tmp;
 	if (!addr) 
 		return;
 
@@ -317,7 +319,7 @@ PUBLIC void vunmap(void *addr)
 			*p = tmp->next;
 
 			// 取消虚拟地址和物理页的映射
-			VirtualMemoryAreaUnmapPages((address_t)tmp->addr,(address_t)tmp->addr, tmp->size);
+			VMAreaUnmapPages((address_t)tmp->addr,(address_t)tmp->addr, tmp->size);
 
 			// 释放area占用的内存
 			kfree(tmp);
@@ -328,9 +330,8 @@ PUBLIC void vunmap(void *addr)
 	printk(PART_TIP "umap address not exist in vma(%x)!", (address_t)addr);
 }
 
-
 /** 
- * ioremap - 把地址重新映射
+ * iomap - 把地址重新映射
  * @addr: 要求映射的虚拟地址
  * @size: 映射区域大小
  * 
@@ -339,22 +340,22 @@ PUBLIC void vunmap(void *addr)
  * 进行设备访问。例如显存，通过这样映射之后，就可以通过
  * 虚拟地址来访问那些物理地址了。这里是1对1的关系
  */
-PUBLIC int ioremap(address_t addr, size_t size)
+PUBLIC int iomap(address_t addr, size_t size)
 {
 	// 对addr和size的范围进行判断
-	if (!size || !addr || (addr + size) > ZONE_FIXED_ADDR)
+	if (!size || !addr || (addr + size) > ZONE_VIR_BLACK_HOLE_ADDR)
 		return -1;
 	// 对地址进行映射	
-	if (VirtualMemoryAreaMapPages(addr, addr, size, GFP_DYNAMIC)) {
+	if (VMAreaMapPages(addr, addr, size, GFP_DYNAMIC)) {
 		return -1;
 	}
 	return 0;
 }
 
 /**
- * VirtualMemoryAreaTest - 虚拟地址区域测试
+ * VMAreaTest - 虚拟地址区域测试
  */
-PRIVATE void VirtualMemoryAreaTest()
+PRIVATE void VMAreaTest()
 {
 	// ----
 	printk(PART_TIP "----virtual memory area test----\n");
@@ -383,39 +384,39 @@ PRIVATE void VirtualMemoryAreaTest()
 	memset(mapAddr, 0, 4*MB);
 	vunmap(mapAddr);
 	printk("unmap\n");
-	if (ioremap(0xe0000000, 4*MB))
-		printk(PART_WARRING "ioremap failed\n");
+	if (iomap(0xe0000000, 4*MB))
+		printk(PART_WARRING "iomap failed\n");
 
-	memset(0xe0000000, 0, 4*MB);
+	memset((void *)0xe0000000, 0, 4*MB);
 }
 /**
- * VirtualMemoryAreaListInit - 初始化虚拟空间管理的单向链表
+ * VMAreaListInit - 初始化虚拟空间管理的单向链表
  */
-PRIVATE void VirtualMemoryAreaListInit()
+PRIVATE void VMAreaListInit()
 {
 	// ----初始化vmaList----
 	// 为vmaList分配内存
-	vmaList = kmalloc(sizeof(struct VirtualMemoryArea), GFP_KERNEL);
+	vmaList = kmalloc(sizeof(struct VMArea));
 	if (!vmaList)
 		Panic("alloc memory for vmaList failed!\n"); 
 
 	// 初始化信息
 	vmaList->next = NULL;
 	vmaList->flags = 0;
-	vmaList->addr = (void *)ZONE_DYNAMIC_ADDR;
+	vmaList->addr = (void *)ZONE_VIR_DYNAMIC_ADDR;
 	vmaList->size = 0;
 	vmaList->pages = 0;
 } 
 
 /**
- * InitVirtualMemoryArea - 初始化虚拟内存区域
+ * InitVMArea - 初始化虚拟内存区域
  */
-PUBLIC INIT void InitVirtualMemoryArea()
+PUBLIC INIT void InitVMArea()
 {
 	PART_START("Virtual memory area");
 
-	VirtualMemoryAreaListInit();
-	//VirtualMemoryAreaTest();
+	VMAreaListInit();
+	//VMAreaTest();
 	
 	MmuMemoryInfo();
     //Spin("InitZone");

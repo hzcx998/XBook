@@ -23,6 +23,7 @@
  */
 int InitArch()
 {	
+	
 	// 初始化硬件抽象层的环境
 	InitHalEnvironment();
 	
@@ -36,16 +37,22 @@ int InitArch()
 
 	// 查看cpu信息
 	CpuInit();
+	
 	// 初始化内核段描述符
 	InitSegmentDescriptor();
 	// 初始化内核门描述符
 	InitGateDescriptor();
 	
+	// 初始化任务状态段
+	InitTss();
+	
 	// 初始化引导内存分配器
 	InitBootMem();
-
+	
+	// 初始化空间和分页内存管理
 	InitZone();
-
+	//while(1);
+	
 	PART_END();
 
 	return 0;

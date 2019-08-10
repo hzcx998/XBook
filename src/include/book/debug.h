@@ -31,13 +31,13 @@ int (*printk)(const char *fmt, ...);
 int (*filterk)(char *buf, unsigned int count);
 
 //断言
-#define ASSERT
-#ifdef ASSERT
+#define CONFIG_ASSERT
+#ifdef CONFIG_ASSERT
 void AssertionFailure(char *exp, char *file, char *baseFile, int line);
-#define assert(exp)  if (exp) ; \
+#define ASSERT(exp)  if (exp) ; \
         else AssertionFailure(#exp, __FILE__, __BASE_FILE__, __LINE__)
 #else
-#define assert(exp)
+#define ASSERT(exp)
 #endif
 
 void Spin(char * func_name);

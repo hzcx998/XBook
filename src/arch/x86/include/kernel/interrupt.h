@@ -43,6 +43,32 @@
 /* IF 位是在 eflags寄存器的低9位 */
 #define EFLAGS_IF (EFLAGS_IF_1 << 9)
 
+struct TrapFrame {
+    uint32_t vec_no;	 // kernel.S 宏VECTOR中push %1压入的中断号
+    uint32_t edi;
+    uint32_t esi;
+    uint32_t ebp;
+    uint32_t espDummy;	 // 虽然pushad把esp也压入,但esp是不断变化的,所以会被popad忽略
+    uint32_t ebx;
+    uint32_t edx;
+    uint32_t ecx;
+    uint32_t eax;
+    uint32_t gs;
+    uint32_t fs;
+    uint32_t es;
+    uint32_t ds;
+
+    uint32_t errorCode;		 // errorCode会被压入在eip之后
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+
+    /* 以下由cpu从低特权级进入高特权级时压入 */
+    uint32_t esp;
+    uint32_t ss;
+};
+
+
 //中断处理函数的类型
 typedef void* intr_handler_t;
 
@@ -67,5 +93,9 @@ PUBLIC void IrqCancelHandler(unsigned char irq);
 
 PUBLIC void EnableIRQ(unsigned char irq);
 PUBLIC void DisableIRQ(unsigned char irq);
+
+PUBLIC void InterruptExit();
+
+EXTERN void SwitchToUser(struct TrapFrame *frame);
 
 #endif	/*_ARCH_INTERRUPT_H*/

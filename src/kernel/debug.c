@@ -9,6 +9,7 @@
 #include <book/debug.h>
 #include <driver/console.h>
 #include <share/vsprintf.h>
+#include <book/arch.h>
 
 //停机并输出大量信息
 void Panic(const char *fmt, ...)
@@ -23,7 +24,7 @@ void Panic(const char *fmt, ...)
     ConsoleSetColor(MAKE_COLOR(TEXT_GREEN,TEXT_BLACK));
 	
 	printk("\n> Panic: %s", buf);
-	
+	DisableInterrupt();
 	while(1);
 
 }

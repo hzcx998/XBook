@@ -7,6 +7,7 @@
 
 #include <x86.h>
 #include <segment.h>
+#include <cpu.h>
 #include <book/debug.h>
 
 /* 
@@ -24,12 +25,14 @@ PUBLIC void InitSegmentDescriptor()
 	for (i = 0; i <= GDT_LIMIT/8; i++) {
 		SetSegmentDescriptor(gdt + i, 0, 0, 0);
 	}
-	
-	SetSegmentDescriptor(gdt + 1, 0xffffffff,   0x00000000, DA_CR | DA_DPL0 | DA_32 | DA_G);
-	SetSegmentDescriptor(gdt + 2, 0xffffffff,   0x00000000, DA_DRW | DA_DPL0 | DA_32 | DA_G);
-	//SetSegmentDescriptor(gdt + 3, sizeof(tss), (uint32_t )&tss, DA_386TSS);
-	SetSegmentDescriptor(gdt + 4, 0xffffffff, 0x00000000, DA_CR | DA_DPL3 | DA_32 | DA_G);
-	SetSegmentDescriptor(gdt + 5, 0xffffffff, 0x00000000, DA_DRW | DA_DPL3 | DA_32 | DA_G);
+	// 内核代码段和数据段
+	SetSegmentDescriptor(gdt + INDEX_KERNEL_C, 0xffffffff,   0x00000000, DA_CR | DA_DPL0 | DA_32 | DA_G);
+	SetSegmentDescriptor(gdt + INDEX_KERNEL_RW, 0xffffffff,   0x00000000, DA_DRW | DA_DPL0 | DA_32 | DA_G);
+	// tss 段
+	SetSegmentDescriptor(gdt + INDEX_TSS, sizeof(tss) - 1, (uint32_t )&tss, DA_386TSS);
+	// 用户代码段和数据段
+	SetSegmentDescriptor(gdt + INDEX_USER_C, 0xffffffff, 0x00000000, DA_CR | DA_DPL3 | DA_32 | DA_G);
+	SetSegmentDescriptor(gdt + INDEX_USER_RW, 0xffffffff, 0x00000000, DA_DRW | DA_DPL3 | DA_32 | DA_G);
 
 	LoadGDTR(GDT_LIMIT, GDT_VADDR);
 

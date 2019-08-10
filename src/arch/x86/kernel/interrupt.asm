@@ -64,7 +64,7 @@ INTERRUPT_ENTRY 0x2f,NO_ERROR_CODE	;保留
 
 ;系统调用中断
 [bits 32]
-
+[section .text]
 ;导入系统调用表
 extern syscallTable	
 
@@ -80,26 +80,35 @@ SyscallHandler:
    	push gs
    	pushad			    ; PUSHAD指令压入32位寄存器，其入栈顺序是:
 				    	; EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI 
-				 
+    
+    mov dx,ss
+	mov ds, dx
+	mov es, dx
+    
    	push 0x80			; 此位置压入0x80也是为了保持统一的栈格式
-
+    
 	;2 为系统调用子功能传入参数
-   	push edx			    ; 系统调用中第3个参数
+    push edi                ; 系统调用中第4个参数
+    push esi                ; 系统调用中第3个参数
   	push ecx			    ; 系统调用中第2个参数
    	push ebx			    ; 系统调用中第1个参数
 
 	;3 调用子功能处理函数
    	call [syscallTable + eax*4]	    ; 编译器会在栈中根据C函数声明匹配正确数量的参数
-   	add esp, 12			    ; 跨过上面的三个参数
+   	add esp, 16			    ; 跨过上面的4个参数
 
+    
 	;4 将call调用后的返回值存入待当前内核栈中eax的位置
    mov [esp + 8*4], eax	
    jmp InterruptExit		    ; InterruptExit返回,恢复上下文
 
+; 跳转到用户态执行的开关
+global SwitchToUser
 
-
-[section .text]
 global InterruptExit
+
+SwitchToUser:
+    mov esp, [esp + 4]  ; process stack
 InterruptExit:
 ; 以下是恢复上下文环境
    add esp, 4			   ; 跳过中断号
@@ -110,7 +119,6 @@ InterruptExit:
    pop ds
    add esp, 4			   ; 跳过error_code
    iretd
-
 
 ;----
 ; 

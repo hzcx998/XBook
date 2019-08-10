@@ -6,6 +6,22 @@
  */
 
 #include <book/syscall.h>
+#include <driver/console.h>
+#include <book/task.h>
+#include <book/vmspace.h>
+#include <driver/clock.h>
 
- 
-syscall_t syscallTable[MAX_SYSCALL_NR];
+
+/* 系统调用表 */ 
+syscall_t syscallTable[MAX_SYSCALL_NR] = {
+    SysLog,
+    SysMmap,
+    SysMunmap,
+    SysFork,
+    SysGetPid, 
+    SysExecv, 
+    SysSleep,
+    SysMSleep,
+    SysExit,
+    SysWait,
+};

@@ -8,8 +8,23 @@
 #ifndef _BOOK_SYSCALL_H
 #define _BOOK_SYSCALL_H
 
-#define MAX_SYSCALL_NR 10
 
 typedef void* syscall_t;
 
-#endif   /*_BOOK_HAL_H*/
+enum {
+    SYS_LOG = 0,
+    SYS_MMAP,
+    SYS_MUNMAP,
+    SYS_FORK,
+    SYS_GETPID, 
+    SYS_EXECV,
+    SYS_SLEEP,
+    SYS_MSLEEP,
+    SYS_EXIT,
+    SYS_WAIT,
+    MAX_SYSCALL_NR,
+};
+
+
+
+#endif   /*_BOOK_SYSCALL_H*/

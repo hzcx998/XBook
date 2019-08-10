@@ -19,6 +19,7 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 
 OBJS =  clock.o \
 		console.o \
+		timer.o \
 
 #First read here
 .PHONY: all

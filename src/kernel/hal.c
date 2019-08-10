@@ -45,13 +45,14 @@ PUBLIC void InitHalEarly()
    }
    // 初始化控制台，基于硬件抽象层
 	ConsoleInit();
-
+   
    /* ----从此开始调试显示信息之旅---- */
 
    if (HalCreate(&halOfCpu)) {
       printk("Register %s name samed!\n", halOfCpu.halName);
       while(1);
    }
+   
    if (HalCreate(&halOfRam)) {
       printk("Register %s name samed!\n", halOfRam.halName);
       while(1);

@@ -16,6 +16,8 @@
 #include <share/string.h>
 #include <book/debug.h>
 #include <share/math.h>
+#include <book/vmspace.h>
+#include <book/task.h>
 
 /*
  * InitPageEnvironment - 初始化分页机制相关的环境
@@ -60,7 +62,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	for (i = 0; i < pageDirEntryNumber; i++) {
 		//填写页目录表项
 		//把页表地址和属性放进去
-		pdt[512 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
+		pdt[768 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
 		
 		for (j = 0; j < PAGE_ENTRY_NR; j++) {
 			//填写页页表项
@@ -78,7 +80,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	//有剩余的我们才填写
 	if (pageTableEntryNumber != 0) {
 		// i 和 pageTablePhyAddress 的值在上面的循环中已经设置
-		pdt[512 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
+		pdt[768 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
 		
 		// 填写剩余的页表项数量
 		for (j = 0; j < pageTableEntryNumber; j++) {
@@ -93,8 +95,16 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	#ifdef CONFIG_PAGE_DEBUG
 	printk(" |- maped to phyAddrEnd:%x to pageTablePhyAddress:%x\n", phyAddrStart, pageTablePhyAddress);
 	#endif
-	//需要注意，我们要保留0~4MB的虚拟地址，因为当我们发生0地址访问时需要用到这个
+
+	/* 在开启分页模式之后，我们的内核就运行在高端内存，
+	那么，现在我们不能通过低端内存访问内核，所以，我们在loader
+	中初始化的0~8MB低端内存的映射要取消掉才行。
+	我们把用户内存空间的页目录项都清空 */ 
 	
+	for (i = 0; i < 768; i++) {
+		pdt[i] = 0;
+	}
+
 	/* ----映射完毕---- */
 	PART_END();
 	return 0;
@@ -119,8 +129,8 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 	while(high > low) {
 		
 		if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone %s start %x end %x page %x", 
-				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone start %x end %x page %x", 
+				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 		
 		//改变area为更小的order
 		area--;
@@ -143,8 +153,8 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 	}
 	
 	if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone %s start %x end %x page %x", 
-				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone start %x end %x page %x", 
+				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 
 	// 统计空间页的使用数量
 	zone->pageFreeCount -= 1 << low;
@@ -180,10 +190,10 @@ PUBLIC unsigned int GetFreePages(unsigned int flags, unsigned int order)
 	// 根据mask选择zone
 	if (flags & ZONE_STATIC) {
 		
-		zone = ZoneGetByName(ZONE_STATIC_NAME);
+		zone = ZoneGetByType(ZONE_TYPE_STATIC);
 	} else if (flags & ZONE_DYNAMIC) {
 		
-		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
+		zone = ZoneGetByType(ZONE_TYPE_DYNAMIC);
 	
 	}
 	//printk(" |- GetFreePages - zone:%x name:%s \n",zone, zone->name);
@@ -227,8 +237,8 @@ PRIVATE struct Page *__PagesAlloc(unsigned int flags, unsigned int order, struct
 			page = ListFirstOwner(&area->pageList, struct Page, list);
 			
 			if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone %s start %x end %x page %x", 
-				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone start %x end %x page %x", 
+				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 			
 			//从链表中删除
 			ListDel(&page->list);
@@ -273,10 +283,10 @@ PUBLIC struct Page *PagesAlloc(unsigned int flags, unsigned int order)
 	// 根据mask选择zone
 	if (flags & ZONE_STATIC) {
 		
-		zone = ZoneGetByName(ZONE_STATIC_NAME);
+		zone = ZoneGetByType(ZONE_TYPE_STATIC);
 	} else if (flags & ZONE_DYNAMIC) {
 		
-		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
+		zone = ZoneGetByType(ZONE_TYPE_DYNAMIC);
 	}
 	
 	if (zone == NULL) {
@@ -344,8 +354,8 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 		buddy1 = zone->pageArray + (pageIdx ^ -mask);
 		//buddy2 = zone->pageArray + pageIdx;
 		if (ZONE_BAD_RANGE(zone, buddy1))
-			Panic("zone bad range-> zone %s start %x end %x page %x", 
-				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy1);
+			Panic("zone bad range-> zone start %x end %x page %x", 
+				zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy1);
 		
 		//NOTE:检查buddy的值是否符合范围
 
@@ -391,7 +401,7 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 PUBLIC void PagesFree(struct Page *page, unsigned int order)
 {
 	//超出请求范围
-    if (order >= MAX_ORDER) {
+    if (order >= MAX_ORDER || page == NULL) {
 		return;
 	}
 	
@@ -404,15 +414,41 @@ PUBLIC void PagesFree(struct Page *page, unsigned int order)
 }
 
 /**
+ * GetPagesOrder - 获取页的order
+ * @pages: 需要去获取order的页数
+ * 
+ * 成功返回order，失败返回-1
+ */
+PRIVATE int GetPagesOrder(uint32_t pages)
+{
+	
+	/* 如果传入的页数不为正，或者页数超过最大可分配页数，就失败 */
+	if (pages <= 0 || pages > MAX_ORDER_PAGE_NR)
+		return -1;
+
+	int i;
+	for (i = 0; i < MAX_ORDER; i++) {
+		/* 找到一个order的总页数大于我们需求的页数 */
+		if (pow(2, i) >= pages) {
+			return i;
+		}
+	}
+
+	/* 理论上不会到这里 */
+	return -1;
+}
+
+
+/**
  * PageGetPde - 获取pde
  * @vaddr: 虚拟地址
  * 
  * 通过虚拟地址获取它对应的pde
  */
-PUBLIC INLINE pdir_t *PageGetPde(address_t vaddr)
+PUBLIC INLINE pde_t *PageGetPde(address_t vaddr)
 {
 	// 获取地址对应的页目录项地址
-	pdir_t *pde = (address_t *)(0xfffff000 + \
+	pde_t *pde = (address_t *)(0xfffff000 + \
 	PDE_IDX(vaddr)*4);
 	return pde;
 }
@@ -423,12 +459,26 @@ PUBLIC INLINE pdir_t *PageGetPde(address_t vaddr)
  * 
  * 通过虚拟地址获取它对应的pte
  */
-PUBLIC INLINE ptbl_t *PageGetPte(address_t vaddr)
+PUBLIC INLINE pte_t *PageGetPte(address_t vaddr)
 {
 	// 获取页表项地址
-	ptbl_t *pte = (address_t *)(0xffc00000 + \
+	pte_t *pte = (address_t *)(0xffc00000 + \
 	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
 	return pte;
+}
+
+/**
+ * PageAddrV2P - 通过页机制把虚拟地址转换成物理地址
+ * @vaddr: 虚拟地址
+ */
+PUBLIC uint32_t PageAddrV2P(uint32_t vaddr)
+{
+	pte_t* pte = PageGetPte(vaddr);
+	/* 
+	(*pte)的值是页表所在的物理页框地址,
+	去掉其低12位的页表项属性+虚拟地址vaddr的低12位
+	*/
+	return ((*pte & 0xfffff000) + (vaddr & 0x00000fff));
 }
 
 /*
@@ -436,38 +486,123 @@ PUBLIC INLINE ptbl_t *PageGetPte(address_t vaddr)
  * @virtualAddr: 虚拟地址
  * @physicAddr: 物理地址
  * @flags: 分配页的标志
+ * @prot: 页的保护
  * 
  * 把虚拟地址和物理地址连接起来，这样就能访问物理地址了
  */
-PUBLIC INLINE void PageLinkAddress(address_t virtualAddr, address_t physicAddr, flags_t flags)
+PUBLIC INLINE int PageLinkAddress(address_t virtualAddr, 
+		address_t physicAddr, flags_t flags, unsigned int prot)
 {
-	pdir_t *pde = PageGetPde(virtualAddr);
-	ptbl_t *pte = PageGetPte(virtualAddr);
+	pde_t *pde = PageGetPde(virtualAddr);
+	
+	struct Page *page;
+	
+	//printk(PART_TIP "page vir %x pde %x\n", virtualAddr, pde);
 	
 	if (*pde & PAGE_P_1) {
 		// 页目录项存在
-		//printk(PART_WARRING "page table exist.");
+		//printk(PART_WARRING "page dir entry exist %x.\n", *pde);
+	
+		pte_t *pte = PageGetPte(virtualAddr);
+		
+		//printk(PART_TIP "page pte %x\n", pte);
+
 		// 理论上说页表是不存在的，但是如果出现内存覆盖就有可能
-		if (!(*pte&PAGE_P_1)) {
+		if (!(*pte & PAGE_P_1)) {
 			// 页表不存在
 			// 填入对应的地址
-			*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
-			//printk(PART_WARRING "page not exist.");
+			*pte = physicAddr | prot | PAGE_P_1;
+			//printk(PART_WARRING "page not exist.\n");
 		} else {
-			printk(PART_WARRING "PageLinkAddress: page already exists\n");
-			*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+			printk(PART_WARRING "PageLinkAddress: page %x already exists\n", *pte & PAGE_MASK);
+			
+			//printk(PART_TIP "PageLinkAddress: page attr %x\n", *pte & PAGE_INSIDE);
+			
+			// 修改页属性
+			//*pte |= prot;
+			// 直接映射，实际上还应该把之前的释放掉
+			/*
+			uint32_t paddr = *pte & PAGE_MASK;
+			printk(PART_TIP "PageLinkAddress: paddr %x\n", paddr);
+			
+			FreePage(paddr);
+			*/
+			*pte = physicAddr | prot | PAGE_P_1;
+			return 0;
+			
 		}
 	} else {
-		// 没有页目录项就创建一个
-		address_t pageTableAddr = (address_t)GetFreePage(flags);
+		//printk(PART_WARRING "page dir entry not exist.\n");
+	
+		/* 没有页目录项就创建一个，这里的页表用静态内存，
+		这样就可以直接获取到它的虚拟地址*/ 
+		address_t pageTableAddr = (address_t)GetFreePage(GFP_STATIC);
+		if (!pageTableAddr)
+			return -1;
+		//printk(PART_TIP "page table paddr %x\n", pageTableAddr);
+	
 		// 写入页目录项
-		*pde = pageTableAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+		*pde = pageTableAddr | prot | PAGE_P_1;
+		
+		pte_t *pte = PageGetPte(virtualAddr);
 		// 写入页表项
-		*pte = physicAddr | PAGE_US_S | PAGE_RW_W | PAGE_P_1;
+		*pte = physicAddr | prot | PAGE_P_1;
 		//printk(PART_TIP "page table and page not exist.\n");
 	}
+	// 把物理地址转换成页
+	page = PhysicAddressToPage(physicAddr);
+	// 填写虚拟地址
+	page->virtual = virtualAddr;
 	
+	// printk(PART_TIP "link page %x phy %x vir %x\n", page, physicAddr, virtualAddr);
+	return 0;
 }
+
+
+/*
+ * MapPages - 把页进行映射
+ * @start: 起始虚拟地址
+ * @len: 要映射多大的空间
+ * @flags: 分配页的标志
+ * @prot: 页的保护
+ * 
+ * 成功返回0，失败返回-1
+ * 最大只接受2MB的内存映射
+ */
+PUBLIC INLINE int MapPages(uint32_t start, uint32_t len, 
+		flags_t flags, unsigned int prot)
+{
+    // 长度和页对齐
+    len = PAGE_ALIGN(len);
+
+	/* 判断长度是否大于单个order的最大值2MB */
+	if (len > MAX_ORDER_MEM_SIZE) {
+		len = MAX_ORDER_MEM_SIZE;
+	}
+
+	/* 获取页对应的order */
+	int order = GetPagesOrder(len/PAGE_SIZE);
+	if (order == -1)
+		return -1;
+	/* 分配物理页 */
+	uint32_t paddr = GetFreePages(flags, order);
+
+	if (!paddr)
+		return -1;
+
+    uint32_t end = start + len;
+
+	while (start < end)
+	{
+		// 对单个页进行链接
+		PageLinkAddress(start, paddr, flags, prot);
+		start += PAGE_SIZE;
+        paddr += PAGE_SIZE;
+	}
+	return 0;
+}
+
+
 /*
  * PageUnlinkAddress - 取消虚拟地址对应的物理链接
  * @virtualAddr: 虚拟地址
@@ -479,7 +614,7 @@ PUBLIC INLINE void PageLinkAddress(address_t virtualAddr, address_t physicAddr, 
  */
 PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr)
 {
-	ptbl_t *pte = PageGetPte(virtualAddr);
+	pte_t *pte = PageGetPte(virtualAddr);
 	address_t physicAddr;
 
 	//printk(PART_TIP "virtual %x pde %x pte %x\n", virtualAddr, *pde, *pte);
@@ -490,12 +625,273 @@ PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr)
 	// 如果页表项存在物理页
 	if (*pte & PAGE_P_1) {
 		// 清除页表项的存在位，相当于删除物理页
-		*pte &= ~PAGE_P_1;
-
+		//*pte &= ~PAGE_P_1;
+		*pte = 0;
+		
 		//更新tlb，把这个虚拟地址从页高速缓存中移除
 		X86Invlpg(virtualAddr);
+
+		// 把物理地址转换成页
+		struct Page *page = PhysicAddressToPage(VirtualToPhysic(virtualAddr));
+		// 如果页存在，那么就把虚拟地址取消
+		if (page) {
+			page->virtual = 0;
+			
+		}
+			
 	}
 
 	// 返回物理页地址
 	return physicAddr;
+}
+
+/**
+ * UnmapPages - 取消页映射
+ * @vaddr: 虚拟地址
+ * @len: 内存长度
+ */
+PUBLIC INLINE int UnmapPages(unsigned int vaddr, unsigned int len)
+{
+	if (!len)
+		return -1;
+	
+	len = PAGE_ALIGN(len);
+	
+	/* 判断长度是否大于单个order的最大值2MB */
+	if (len > MAX_ORDER_MEM_SIZE) {
+		len = MAX_ORDER_MEM_SIZE;
+	}
+	
+	unsigned int end = vaddr + len;
+	unsigned int paddr, firstPhyAddr = 0;
+	while (vaddr < end)
+	{
+		paddr = PageUnlinkAddress(vaddr);
+		// 保存首地址
+		if (!firstPhyAddr)
+			firstPhyAddr = paddr;
+
+		vaddr += PAGE_SIZE;
+	}
+	/* 获取页对应的order */
+	int order = GetPagesOrder(len/PAGE_SIZE);
+	if (order == -1)
+		return -1;
+	
+	// 释放物理页
+	FreePages(firstPhyAddr, order);
+	return 0;
+}
+
+PUBLIC INLINE pde_t *GetPageDirTable()
+{
+    return (pde_t *)PAGE_DIR_VIR_ADDR;
+}
+
+PRIVATE uint32_t ExpandStack(struct VMSpace* space, uint32_t addr)
+{
+	// 地址和页对其
+    addr &= PAGE_MASK;
+
+	//addr -= PAGE_SIZE;
+    
+	// 修改为新的空间开始
+	space->start = addr;
+    return 0;
+}
+
+/**
+ * MakePteWrite - 让pte有写属性
+ * @addr: 要设置的虚拟地址
+ */
+PRIVATE int MakePteWrite(unsigned int addr)
+{
+	if (addr > USER_VMS_SIZE)
+		return -1;
+
+	pde_t *pde = PageGetPde(addr);
+	pte_t *pte = PageGetPte(addr);
+	
+	/* 虚拟地址的pde和pte都要存在才能去设置属性 */
+	if (!(*pde & PAGE_P_1))
+		return -1;
+
+	if (!(*pte & PAGE_P_1))
+		return -1;
+	
+	/* 标记写属性 */
+	*pte |= PAGE_RW_W;
+	return 0;
+}
+
+/**
+ * DoVMAreaFault - 内核中的vmarea映射故障
+ * @addr: 虚拟地址
+ * 
+ */
+PRIVATE int DoVMAreaFault(uint32_t addr)
+{
+	Panic(PART_ERROR "# segment fault!\n");
+	return 0;
+}
+
+/**
+ * DoHandleNoPage - 处理没有物理页
+ * @addr: 虚拟地址
+ * 
+ * 执行完后虚拟地址就可以访问了
+ */
+PRIVATE int DoHandleNoPage(uint32_t addr)
+{
+	// 分配一个物理页
+	address_t paddr = GetFreePage(GFP_DYNAMIC);
+	if (!paddr) {
+		return -1;
+	}
+
+	/* 因为要做页映射，所以地址必须的页对齐 */
+	addr &= PAGE_MASK;
+	// 页链接，从动态内存中分配一个页并且页保护是 用户，可写
+	if (PageLinkAddress(addr, paddr, GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W)) {
+		printk(PART_TIP "PageLinkAddress: vaddr %x paddr %x failed!\n", addr, paddr);
+		return -1;	
+	}
+	//printk(PART_TIP "alloc and map pages\n");
+	return 0;
+}
+
+/**
+ * DoProtectionFault - 执行页保护异常
+ * @space: 所在空间
+ * @addr: 页地址
+ * @write: 写标志
+ */
+PRIVATE int DoProtectionFault(struct VMSpace* space, address_t addr, uint32_t write)
+{
+    //printk(PART_TIP "handle protection fault, addr: %x\n", addr);
+
+	/* 没有写标志，说明该段内存不支持内存写入，就直接返回吧 */
+	if (write) {
+		//printk(PART_TIP "have write protection\n");
+		
+		/* 只有设置写属性正确才能返回 */
+		int ret = MakePteWrite(addr);
+		if (ret)
+			return -1;
+		
+		/* 虽然写入的写标志，但是还是会出现缺页故障，在此则处理一下缺页 */
+		if (DoHandleNoPage(addr))
+			return -1; 
+
+		return 0;
+	} else {
+		//printk(PART_TIP "no write protection\n");
+		
+	}
+	Panic(PART_ERROR "# protection fault!\n");
+	return -1;
+}
+
+/**
+ * DoPageFault - 页故障处理
+ * @frame: 中断栈框
+ * 
+ * 错误码的内容 
+ * bit 0: 0 no page found, 1 protection fault
+ * bit 1: 0 read, 1 write
+ * bit 2: 0 kernel, 1 user
+ */
+PUBLIC int DoPageFault(struct TrapFrame *frame)
+{
+	struct Task *current = CurrentTask();
+	// printk(PART_TIP "task %s is in page fault\n", current->name);
+	
+    address_t addr = 0xffffffff;
+	// 获取发生故障的地址
+	addr = ReadCR2();
+
+    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+
+	//Panic("DoPageFault");
+
+	// 在虚拟空间中查找这个地址
+    struct VMSpace* space = FindVMSpace(current->mm, addr);
+	
+	/* 没有找到空间或者是越界 */
+    if (space == NULL || space->start > addr) {
+		
+        // 栈向下扩展的标志
+		uint32 expandStack = 0;
+
+		//printk(PART_TIP "no space or neet expand stack\n");
+		// 如果是用户空间的页故障
+        if (frame->errorCode & PAGE_ERR_USER) {
+			//printk(PART_TIP "is user level page fault\n");
+			
+			// 如果是栈空间，是向下越界，并且栈的大小不能超过8MB
+            if (space != NULL && 
+				(space->flags & VMS_STACK) && 
+				(space->end - space->start) < MAX_VMS_STACK_SIZE && 
+				(addr + 32 >= frame->esp)) {
+				//printk(PART_TIP "have space and space is VMS_STACK\n");
+		
+				/* 
+				如果是esp指针小于当前栈空间的起始位置+32，就说明我们需要扩展栈
+				来保证我们运行正常
+				*/
+				//printk(PART_TIP "expand stack\n");
+				ExpandStack(space, addr);
+				expandStack = 1;
+			
+            } else {
+				//printk(PART_TIP "no space or not VMS_STACK\n");
+		
+				// 是段故障
+                Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
+            }
+        }
+		/*如果没有栈扩展， 也不是用户空间里面的内存，
+		可能是内核中的某个地方没有做虚拟地址链接导致
+		如：vmalloc
+		 */ 
+        if (!expandStack) {
+			//printk(PART_TIP "no space and not expand stack\n");
+		
+			// Panic(PART_ERROR "# segment fault, addr: %x!\n", addr);
+			
+			// 如果没有找到这个地址就不是VMSpace中引起的错误
+
+			/* 内核中引起的页故障 */
+			if (!(frame->errorCode & PAGE_ERR_USER)) {
+				DoVMAreaFault(addr);
+			}
+            return -1;
+        }
+    }
+
+	// 找到这个地址所在的空间
+    if (space != NULL && space->start <= addr) {
+		//printk(PART_TIP "found space and addr is right\n");
+		
+		/* 如果是保护故障 */
+		if (frame->errorCode & PAGE_ERR_PROTECT) {
+			//printk(PART_TIP "it is protection\n");
+
+			//printk(PART_TIP "cs %x eip %x esp %x\n", frame->cs, frame->eip, frame->esp);
+			//Panic("DoProtectionFault");
+			/* 执行保护故障操作 */
+			return DoProtectionFault(space, addr, (uint32_t)(frame->errorCode & PAGE_ERR_WRITE));
+		}
+
+		/* 没有映射物理页，
+		通常是mmap之后访问内存导致
+		扩展栈页之后也可能到达这儿
+		 */
+		//printk(PART_TIP "handle no page, addr: %x\n", addr);
+
+		if (DoHandleNoPage(addr))
+			return -1; 
+        
+    }
+    return 0;
 }

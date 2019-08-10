@@ -29,7 +29,9 @@ HDB_IMG		= $(IMG_DIR)d.img
 #----flags----
 #out a map file: -Map kernel.map
 #i386 link flags
-LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80100000
+
+#link kernel to virtual addr 0xc0100000(3G + 1M)
+LDFLAGS		= -m elf_i386 -e _start -Ttext 0xc0100000
 
 #system disk
 LOADER_OFF = 2		
@@ -52,6 +54,8 @@ SHARE_DIR = share/
 HAL_DIR = hal/
 DRIVER_DIR = driver/
 MM_DIR = mm/
+FS_DIR = fs/
+USER_DIR = user/
 
 #sub dir
 ARCH_BOOT_DIR = $(ARCH_DIR)boot/
@@ -84,7 +88,14 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)hal.o \
 				$(KERNEL_DIR)debug.o \
 				$(KERNEL_DIR)syscall.o \
-				
+				$(KERNEL_DIR)task.o \
+				$(KERNEL_DIR)schedule.o \
+				$(KERNEL_DIR)switch.o \
+				$(KERNEL_DIR)sync_lock.o \
+				$(KERNEL_DIR)sleep_wakeup.o \
+				$(KERNEL_DIR)atomic.o \
+				$(KERNEL_DIR)exit_wait.o \
+
 #hal objs
 HAL_OBJS = 	$(HAL_DIR)char/display.o \
 			$(HAL_DIR)char/clock.o \
@@ -99,14 +110,36 @@ SHARE_OBJS = 	$(SHARE_DIR)string.o \
 #driver objs
 DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
 				$(DRIVER_DIR)char/console.o \
+				$(DRIVER_DIR)char/timer.o \
 
 #mm objs
 MM_OBJS = 	$(MM_DIR)slab.o \
 			$(MM_DIR)vmarea.o \
 			$(MM_DIR)mmu.o \
+			$(MM_DIR)vmspace.o \
+			$(MM_DIR)fork.o \
+			$(MM_DIR)exec.o \
+
+#fs objs
+FS_OBJS = 	$(FS_DIR)vfs.o \
+			
+#user objs
+USER_OBJS = $(USER_DIR)lib/log.o \
+			$(USER_DIR)lib/fork.o \
+			$(USER_DIR)lib/mmap.o \
+			$(USER_DIR)lib/munmap.o \
+			$(USER_DIR)lib/getpid.o \
+			$(USER_DIR)lib/printf.o \
+			$(USER_DIR)lib/execv.o \
+			$(USER_DIR)lib/sleep.o \
+			$(USER_DIR)lib/msleep.o \
+			$(USER_DIR)lib/exit.o \
+			$(USER_DIR)lib/_wait.o \
+
+			
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
-		$(DRIVER_OBJS) $(MM_OBJS)
+		$(DRIVER_OBJS) $(MM_OBJS) $(FS_OBJS) $(USER_OBJS)
 
 
 #----bin and elf----
@@ -114,15 +147,15 @@ OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
 BOOT_BIN =  $(ARCH_BOOT_DIR)boot.bin
 LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
 
-#kernel temp file
+#kernel temp file	
 KERNEL_ELF =  $(KERNEL_DIR)kernel.elf
 
 #----cmd----	
-.PHONY: default
+.PHONY: all
 
-default: compile link disk
+all: compile link disk
 
-all: compile link disk qemu
+run: compile link disk qemu
 
 #compile file
 compile:
@@ -133,6 +166,8 @@ compile:
 	cd $(HAL_DIR) && $(MAKE)
 	cd $(DRIVER_DIR) && $(MAKE)
 	cd $(MM_DIR) && $(MAKE)
+	cd $(FS_DIR) && $(MAKE)
+	cd $(USER_DIR) && $(MAKE)
 	
 
 link: $(KERNEL_ELF)
@@ -155,7 +190,7 @@ bochsdbg:
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
-	$(QEMU) -m 256 -fda $(FLAPPY_IMG)  \
+	$(QEMU) -m 2456 -fda $(FLAPPY_IMG)  \
 	-boot a
 
 
@@ -168,4 +203,6 @@ clean:
 	cd $(HAL_DIR) && $(MAKE) clean
 	cd $(DRIVER_DIR) && $(MAKE) clean
 	cd $(MM_DIR) && $(MAKE) clean
+	cd $(FS_DIR) && $(MAKE) clean
+	cd $(USER_DIR) && $(MAKE) clean
 	

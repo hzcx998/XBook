@@ -27,7 +27,7 @@ PUBLIC void MmuMemoryInfo()
 
 	// 从ram获取内存信息
 	unsigned int totalMemory;
-	HalIoctl("ram", RAM_HAL_IO_MEMSIZE, &totalMemory);
+	HalIoctl("ram", RAM_HAL_IO_MEMSIZE, (unsigned int)&totalMemory);
 
 	// 空闲页大小 - 空间初始化占用的大小 = 剩余大小
 	unsigned int freeMemory = freePages * PAGE_SIZE - ZoneGetInitMemorySize();

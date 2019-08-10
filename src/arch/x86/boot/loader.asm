@@ -6,6 +6,7 @@
 ;----
 
 %include "const.inc"
+%include "config.inc"
 
 org 0x90000
 [bits 16]
@@ -37,9 +38,20 @@ Entry:
 	mov byte [es:160+11],0x07
 
 	call LoadeKernel
+	call LoadeFile
+	call LoadeFile2
+	call LoadeFile3
 	call KillMotor	;我们不再使用软盘，所以这里关闭软盘驱动
 	call CheckMemory
 
+	%ifdef CONFIG_VESA_CHECK
+
+	%endif
+
+	%ifdef CONFIG_VESA
+
+	%endif
+	
 	mov ax, 0
 	mov es, ax 
 	;mov dword [es:0x500], 0
@@ -195,6 +207,9 @@ LoadeKernel:
 	mov cx, BLOCK_SIZE
 	call LoadeBlock
 
+
+
+
 	ret
 
 ;在这个地方把file加载到一个内存
@@ -206,7 +221,7 @@ LoadeFile:
 	;写入参数
 	mov ax, FILE_SEG
 	mov si, FILE_OFF
-	mov cx, BLOCK_SIZE
+	mov cx, 100
 	;调用读取一整个块的扇区数据函数，其实也就是循环读取128个扇区，只是
 	;把它做成函数，方便调用
 	call LoadeBlock
@@ -216,12 +231,61 @@ LoadeFile:
 	;的空间，由于ax会给es，所以这个地方用改变段的位置，所以就是0x1000,
 	;扇区的位置是保留在si中的，上一次调用后，si递增了128，所以这里我们不对
 	;si操作
-	add ax, 0x1000
-	mov cx, BLOCK_SIZE
-	call LoadeBlock
+	;add ax, 0x1000
+	;mov cx, BLOCK_SIZE
+	;call LoadeBlock
 	
 	ret
 
+;在这个地方把file加载到一个内存
+LoadeFile2:
+	;loade file
+	;first block 128 sectors
+	;把内核文件加载到段为FILE_SEG（0x4200）的地方，也就是物理内存
+	;为0x42000的地方，一次性加载BLOCK_SIZE（128）个扇区
+	;写入参数
+	mov ax, FILE2_SEG
+	mov si, FILE2_OFF
+	mov cx, 100
+	;调用读取一整个块的扇区数据函数，其实也就是循环读取128个扇区，只是
+	;把它做成函数，方便调用
+	call LoadeBlock
+	
+	;second block 128 sectors
+	;当读取完128个扇区后，我们的缓冲区位置要改变，也就是增加128*512=0x10000
+	;的空间，由于ax会给es，所以这个地方用改变段的位置，所以就是0x1000,
+	;扇区的位置是保留在si中的，上一次调用后，si递增了128，所以这里我们不对
+	;si操作
+	;add ax, 0x1000
+	;mov cx, BLOCK_SIZE
+	;call LoadeBlock
+	
+	ret
+
+;在这个地方把file加载到一个内存
+LoadeFile3:
+	;loade file
+	;first block 128 sectors
+	;把内核文件加载到段为FILE_SEG（0x4200）的地方，也就是物理内存
+	;为0x42000的地方，一次性加载BLOCK_SIZE（128）个扇区
+	;写入参数
+	mov ax, FILE3_SEG
+	mov si, FILE3_OFF
+	mov cx, 100
+	;调用读取一整个块的扇区数据函数，其实也就是循环读取128个扇区，只是
+	;把它做成函数，方便调用
+	call LoadeBlock
+	
+	;second block 128 sectors
+	;当读取完128个扇区后，我们的缓冲区位置要改变，也就是增加128*512=0x10000
+	;的空间，由于ax会给es，所以这个地方用改变段的位置，所以就是0x1000,
+	;扇区的位置是保留在si中的，上一次调用后，si递增了128，所以这里我们不对
+	;si操作
+	;add ax, 0x1000
+	;mov cx, BLOCK_SIZE
+	;call LoadeBlock
+	
+	ret
 ;Global Descriptor Table,GDT
 ;gdt[0] always null
 ;1个gdt描述符的内容是8字节，可以根据那个描述得结构来分析这个结构体里面的内容
@@ -326,18 +390,17 @@ Flush:
 	mov byte [0xb8000+160*2+11], 0X07
 	mov byte [0xb8000+160*2+12], 'T'
 	mov byte [0xb8000+160*2+13], 0X07
-	
 	call StepPage
 
-	mov byte [0x800b8000+160*3+0], 'P'
-	mov byte [0x800b8000+160*3+1], 0X07
-	mov byte [0x800b8000+160*3+2], 'A'
-	mov byte [0x800b8000+160*3+3], 0X07
-	mov byte [0x800b8000+160*3+4], 'G'
-	mov byte [0x800b8000+160*3+5], 0X07
-	mov byte [0x800b8000+160*3+6], 'E'
-	mov byte [0x800b8000+160*3+7], 0X07
-
+	mov byte [0xc00b8000+160*3+0], 'P'
+	mov byte [0xc00b8000+160*3+1], 0X07
+	mov byte [0xc00b8000+160*3+2], 'A'
+	mov byte [0xc00b8000+160*3+3], 0X07
+	mov byte [0xc00b8000+160*3+4], 'G'
+	mov byte [0xc00b8000+160*3+5], 0X07
+	mov byte [0xc00b8000+160*3+6], 'E'
+	mov byte [0xc00b8000+160*3+7], 0X07
+	
 	;从elf内核文件中读取内核的代码段和数据段到1M的位置
 	call ReadKernel
 
@@ -424,18 +487,18 @@ StepPage:
     mov ebx, PAGE_DIR_PHY_ADDR
 
 	; 第一个页表
-    mov dword [ebx], PAGE_TBL_PHY_ADDR|0x07
-    mov dword [ebx+512*4], PAGE_TBL_PHY_ADDR|0x07    
+    mov dword [ebx], PAGE_TBL_PHY_ADDR | KERNEL_PAGE_ATTR 
+    mov dword [ebx+768*4], PAGE_TBL_PHY_ADDR | KERNEL_PAGE_ATTR    
 	; 第二个页表
-    mov dword [ebx+4], (PAGE_TBL_PHY_ADDR+0X1000)|0x07
-    mov dword [ebx+513*4], (PAGE_TBL_PHY_ADDR+0X1000)|0x07    
+    mov dword [ebx+4], (PAGE_TBL_PHY_ADDR+0X1000) | KERNEL_PAGE_ATTR
+    mov dword [ebx+(768 + 1)*4], (PAGE_TBL_PHY_ADDR+0X1000) | KERNEL_PAGE_ATTR    
 
 	; 页目录自己
-	mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR|0x07
+	mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR | KERNEL_PAGE_ATTR
    	
 	;低端8M内存直接对应，可以直接访问到
    	mov cx, 1024*2
-    mov esi, 0|0x07
+    mov esi, 0 | KERNEL_PAGE_ATTR
     
 .SetKPT:	;kernel page table
     mov [edi], esi

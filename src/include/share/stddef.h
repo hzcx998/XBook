@@ -27,7 +27,6 @@ typedef unsigned long register_t;
 typedef unsigned long address_t;
  */
 
-
 /*
  *这里是define类型的
  */

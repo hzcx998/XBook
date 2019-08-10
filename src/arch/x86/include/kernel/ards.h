@@ -11,7 +11,7 @@
 #include <share/types.h>
 #include <share/stdint.h>
 
-#define ARDS_ADDR 0x80001000 //ARDS结构从哪儿开始储存
+#define ARDS_ADDR 0xc0001000 //ARDS结构从哪儿开始储存
 
 #define MAX_ARDS_NR 12 //最大有12个ards结构
 

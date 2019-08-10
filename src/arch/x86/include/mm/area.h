@@ -8,6 +8,7 @@
 #ifndef _X86_MM_AREA_H
 #define _X86_MM_AREA_H
 
+#include "page.h"
 #include <book/list.h>
 #include <book/bitmap.h>
 #include <share/stdint.h>
@@ -25,6 +26,9 @@
 */
 /* 最大的order的页的数量 */
 #define MAX_ORDER_PAGE_NR 512
+
+/* 最大的order的页的数量 */
+#define MAX_ORDER_MEM_SIZE (MAX_ORDER_PAGE_NR*PAGE_SIZE)
 
 /* 空闲区域结构 */
 struct FreeArea {

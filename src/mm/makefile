@@ -22,7 +22,10 @@ ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 OBJS = 	slab.o \
 		vmarea.o \
 		mmu.o \
-	
+		vmspace.o \
+		fork.o \
+		exec.o \
+
 #First read here
 .PHONY: all
 

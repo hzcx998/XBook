@@ -27,4 +27,6 @@ PUBLIC void ConsoleGotoXY(unsigned short x, unsigned short y);
 PUBLIC void ConsoleSetColor(unsigned char color);
 PUBLIC void ConsoleReadGotoXY(unsigned short x, unsigned short y);
 
+PUBLIC int SysLog(char *buf);
+
 #endif   /*_DRIVER_CONSOLE_H*/

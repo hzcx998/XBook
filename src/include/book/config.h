@@ -15,5 +15,10 @@
 /* 调试配置 */
 //#define CONFI_SLAB_DEBUG
 
+/* 配置多元信号量（Multivariate semaphore） */
+#define CONFIG_SEMAPHORE_M 
+
+/* 配置二元信号量（Binary semaphore） */
+//#define CONFIG_SEMAPHORE_B 
 
 #endif   /*_BOOK_CONFIG_H*/

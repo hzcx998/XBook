@@ -12,6 +12,12 @@
 #include <share/string.h>
 #include <book/slab.h>
 #include <book/vmarea.h>
+#include <user/conio.h>
+#include <book/task.h>
+#include <user/stdlib.h>
+#include <user/mman.h>
+#include <book/vfs.h>
+#include <book/atomic.h>
 
 /*
  * 功能: 内核的主函数
@@ -25,15 +31,36 @@ int main()
 
 	//初始化硬件抽象层
 	InitHalKernel();
-
-	//初始化时钟驱动
-	ClockInit();
-
+	
 	// 初始化slab缓冲区
 	InitSlabCacheManagement();
 	
-	InitVirtualMemoryArea();
+	// 初始化虚拟内存区域
+	InitVMArea();
 	
+	InitVFS();
+	
+	//log("Hello, Xbook!\n");
+	// 初始化多任务
+	InitTasks();
+	
+	// 在初始化多任务之后才初始化任务的虚拟空间
+	InitVMSpace();
+	
+	//
+	//初始化时钟驱动
+	InitClock();
+	
+	/* main thread 就是idle线程 */
+	while (1) {
+		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
+		知道再次被阻塞 */
+		TaskBlock(TASK_BLOCKED);
+		/* 打开中断 */
+		EnableInterrupt();
+		/* 执行cpu停机 */
+		CpuHlt();
+	};
 	PART_END();
 	return 0;
 }

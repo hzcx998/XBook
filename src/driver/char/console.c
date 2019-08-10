@@ -11,6 +11,8 @@
 #include <share/vsprintf.h>
 #include <hal/char/display.h>
 #include <book/arch.h>
+#include <share/string.h>
+#include <book/slab.h>
 
 PUBLIC void ConsoleInit()
 {
@@ -47,8 +49,7 @@ PUBLIC int ConsolePrint(const char *fmt, ...)
 PUBLIC int ConsoleFliter(char *buf, unsigned int count)
 {
 	//申请一样大的内存来暂时存放
-	//!unsigned char *tmp = AllocKernelPage(1);
-	unsigned char *tmp;
+	unsigned char *tmp = kmalloc(PAGE_SIZE);
 	
 	//整个读取过来
 	HalRead("display",tmp, count);
@@ -64,7 +65,7 @@ PUBLIC int ConsoleFliter(char *buf, unsigned int count)
 		j++;
 	}
 	//释放
-	//!FreeKernelPage(tmp, 1);
+	kfree(tmp);
 
 	//在buf的最后添加一个0，表示字符结束
 	buf[count - 1] = '\0';
@@ -94,4 +95,10 @@ PUBLIC void ConsoleSetColor(unsigned char color)
 PUBLIC void ConsoleReadGotoXY(unsigned short x, unsigned short y)
 {
 	HalIoctl("display",DISPLAY_HAL_IO_RDCURSOR, y * SCREEN_WIDTH + x);
+}
+
+PUBLIC int SysLog(char *buf)
+{
+	ConsoleWrite((const char *)buf, strlen(buf));
+	return 0;
 }

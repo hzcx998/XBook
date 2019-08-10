@@ -14,6 +14,10 @@
 
 #define HZ  CLOCK_HAL_HZ
 
-PUBLIC void ClockInit();
+/* 1 ticks 对应的毫秒数 */
+#define MILLISECOND_PER_TICKS (1000/ HZ)
+
+PUBLIC void InitClock();
+PUBLIC void SysMSleep(uint32_t msecond);
 
 #endif  //_DRIVER_CHAR_CLOCK_H

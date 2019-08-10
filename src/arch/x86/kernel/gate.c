@@ -13,6 +13,7 @@
 #include <share/types.h>
 #include <share/stddef.h>
 #include <book/debug.h>
+#include <book/task.h>
 
 /* 
  * Global Descriptor Table
@@ -104,81 +105,130 @@ PRIVATE void InitInterruptDescriptor()
 	/*
 	 异常的中断入口
 	 */
-	SetGateDescriptor(&idt[0x00], InterruptEntry0x00, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x01], InterruptEntry0x01, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x02], InterruptEntry0x02, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x03], InterruptEntry0x03, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x04], InterruptEntry0x04, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x05], InterruptEntry0x05, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x06], InterruptEntry0x06, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x07], InterruptEntry0x07, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x08], InterruptEntry0x08, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x09], InterruptEntry0x09, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0a], InterruptEntry0x0a, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0b], InterruptEntry0x0b, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0c], InterruptEntry0x0c, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0d], InterruptEntry0x0d, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0e], InterruptEntry0x0e, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x0f], InterruptEntry0x0f, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x10], InterruptEntry0x10, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x11], InterruptEntry0x11, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x12], InterruptEntry0x12, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x13], InterruptEntry0x13, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x14], InterruptEntry0x14, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x15], InterruptEntry0x15, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x16], InterruptEntry0x16, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x17], InterruptEntry0x17, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x18], InterruptEntry0x18, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x19], InterruptEntry0x19, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1a], InterruptEntry0x1a, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1b], InterruptEntry0x1b, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1c], InterruptEntry0x1c, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1d], InterruptEntry0x1d, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1e], InterruptEntry0x1e, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x1f], InterruptEntry0x1f, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
+	SetGateDescriptor(&idt[0x00], InterruptEntry0x00, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x01], InterruptEntry0x01, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x02], InterruptEntry0x02, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x03], InterruptEntry0x03, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x04], InterruptEntry0x04, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x05], InterruptEntry0x05, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x06], InterruptEntry0x06, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x07], InterruptEntry0x07, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x08], InterruptEntry0x08, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x09], InterruptEntry0x09, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0a], InterruptEntry0x0a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0b], InterruptEntry0x0b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0c], InterruptEntry0x0c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0d], InterruptEntry0x0d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0e], InterruptEntry0x0e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0f], InterruptEntry0x0f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x10], InterruptEntry0x10, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x11], InterruptEntry0x11, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x12], InterruptEntry0x12, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x13], InterruptEntry0x13, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x14], InterruptEntry0x14, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x15], InterruptEntry0x15, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x16], InterruptEntry0x16, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x17], InterruptEntry0x17, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x18], InterruptEntry0x18, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x19], InterruptEntry0x19, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1a], InterruptEntry0x1a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1b], InterruptEntry0x1b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1c], InterruptEntry0x1c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1d], InterruptEntry0x1d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1e], InterruptEntry0x1e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1f], InterruptEntry0x1f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
 	
 	/*
 	 IRQ的中断入口
 	 */
-	SetGateDescriptor(&idt[0x20], InterruptEntry0x20, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x21], InterruptEntry0x21, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x22], InterruptEntry0x22, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x23], InterruptEntry0x23, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x24], InterruptEntry0x24, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x25], InterruptEntry0x25, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x26], InterruptEntry0x26, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x27], InterruptEntry0x27, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x28], InterruptEntry0x28, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x29], InterruptEntry0x29, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2a], InterruptEntry0x2a, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2b], InterruptEntry0x2b, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2c], InterruptEntry0x2c, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2d], InterruptEntry0x2d, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2e], InterruptEntry0x2e, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
-	SetGateDescriptor(&idt[0x2f], InterruptEntry0x2f, KERNEL_CODE_SEL, DA_386IGate, DA_DPL0); 
+	SetGateDescriptor(&idt[0x20], InterruptEntry0x20, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x21], InterruptEntry0x21, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x22], InterruptEntry0x22, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x23], InterruptEntry0x23, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x24], InterruptEntry0x24, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x25], InterruptEntry0x25, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x26], InterruptEntry0x26, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x27], InterruptEntry0x27, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x28], InterruptEntry0x28, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x29], InterruptEntry0x29, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2a], InterruptEntry0x2a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2b], InterruptEntry0x2b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2c], InterruptEntry0x2c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2d], InterruptEntry0x2d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2e], InterruptEntry0x2e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x2f], InterruptEntry0x2f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
 	
 	/*
 	 系统调用的中断入口
 	 */
-	SetGateDescriptor(&idt[SYSCALL_INTERRUPT_NR], SyscallHandler, KERNEL_CODE_SEL, DA_386IGate, DA_DPL3); 
+	SetGateDescriptor(&idt[SYSCALL_INTERRUPT_NR], SyscallHandler, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL3);
+	 
+	LoadIDTR(IDT_LIMIT, IDT_VADDR);
+
 }
 
 /* 
  * 通用的中断处理函数,一般用在异常出现时的处理 
  */
-PUBLIC void IntrruptGeneralHandler(unsigned char interrupt) 
+PUBLIC void IntrruptGeneralHandler(uint32_t esp) 
 {
+		// 中断栈
+	struct TrapFrame *frame = (struct TrapFrame *)((uint32_t )esp);
+
+	struct Task *task = CurrentTask();
+
 	// 0x2f是从片8259A上的最后一个irq引脚，保留
-	if (interrupt == 0x27 || interrupt == 0x2f) {	
+	if (frame->vec_no == 0x27 || frame->vec_no == 0x2f) {	
       	return;		//IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
    	}
 	
 	ConsoleSetColor(TEXT_RED);
 	ConsolePrint("! Exception messag start.\n");
 	ConsoleSetColor(TEXT_GREEN);
-	ConsolePrint("name: %s \n", interruptNameTable[interrupt]);
+	ConsolePrint("name: %s \n", interruptNameTable[frame->vec_no]);
 
-   	if (interrupt == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
+	ConsolePrint("frame:\n");
+	
+	ConsolePrint("vec: %x\n", 
+			frame->vec_no);
+	
+	ConsolePrint("edi: %x esi: %x ebp: %x esp: %x\n", 
+			frame->edi, frame->esi, frame->ebp, frame->esp);
+	ConsolePrint("ebx: %x edx: %x ecx: %x eax: %x\n", 
+			frame->ebx, frame->edx, frame->ecx, frame->eax);
+	ConsolePrint("gs: %x fs: %x es: %x ds: %x\n", 
+			frame->gs, frame->fs, frame->es, frame->ds);
+	ConsolePrint("err: %x eip: %x cs: %x eflags: %x\n", 
+			frame->errorCode, frame->eip, frame->cs, frame->eflags);
+	ConsolePrint("esp: %x ss: %x\n", 
+			frame->esp, frame->ss);
+	
+	if(frame->errorCode != 0xFFFFFFFF){
+		ConsolePrint("Error code:%x\n", frame->errorCode);
+		
+		if(frame->errorCode&1){
+			ConsolePrint("    External Event: NMI,hard interruption,ect.\n");
+		}else{
+			ConsolePrint("    Not External Event: inside.\n");
+		}
+		if(frame->errorCode&(1<<1)){
+			ConsolePrint("    IDT: selector in idt.\n");
+		}else{
+			ConsolePrint("    IDT: selector in gdt or ldt.\n");
+		}
+		if(frame->errorCode&(1<<2)){
+			ConsolePrint("    TI: selector in ldt.\n");
+		}else{
+			ConsolePrint("    TI: selector in gdt.\n");
+		}
+		ConsolePrint("    Selector: idx %d\n", (frame->errorCode&0xfff8)>>3);
+	}
+	ConsolePrint("    task %s %x kstack %x.\n", task->name, task, task->kstack);
+	ConsolePrint("    pgdir %x cr3 %x\n", task->pgdir, PageAddrV2P((uint32_t)task->pgdir));
+	
+
+	
+   	if (frame->vec_no == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
       	unsigned int pageFaultVaddr = 0; 
 		pageFaultVaddr = ReadCR2();
 
@@ -233,8 +283,8 @@ PUBLIC void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t 
 {
 	descriptor->offsetLow   = (unsigned int)offset & 0xffff;
 	descriptor->selector    = selector;
-	descriptor->datacount   = (attributes >> 8) & 0xff;
 	descriptor->attributes	= attributes | (privilege << 5);
+	descriptor->datacount   = 0;
 	descriptor->offsetHigh  = ((unsigned int)offset >> 16) & 0xffff;
 
 }

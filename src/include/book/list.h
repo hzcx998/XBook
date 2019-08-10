@@ -220,37 +220,37 @@ PRIVATE INLINE int ListEmpty(const struct List *head)
 
 /*
  * ListFirstOwner - 获取链表中的第一个宿主
- * @ptr： 节点的指针
+ * @head： 链表头
  * @type： 宿主结构体的类型
  * @member: 节点在宿主结构体中的名字 
  * 
  * 注：链表不能为空
  */
-#define ListFirstOwner(ptr, type, member) \
-      ListOwner((ptr)->next, type, member)
+#define ListFirstOwner(head, type, member) \
+      ListOwner((head)->next, type, member)
 
 
 /*
  * ListLastOwner - 获取链表中的最后一个宿主
- * @ptr： 节点的指针
+ * @head:  链表头
  * @type： 宿主结构体的类型
  * @member: 节点在宿主结构体中的名字 
  * 
  * 注：链表不能为空
  */
-#define ListLastOwner(ptr, type, member) \
-      ListOwner((ptr)->prev, type, member)
+#define ListLastOwner(head, type, member) \
+      ListOwner((head)->prev, type, member)
 
 /*
  * ListFirstOwnerOrNull - 获取链表中的第一个宿主
- * @ptr： 节点的指针
+ * @head： 链表头
  * @type： 宿主结构体的类型
  * @member: 节点在宿主结构体中的名字 
  * 
  * 注：如果链表是空就返回NULL
  */
-#define ListFirstOwnerOrNull(ptr, type, member) ({ \
-      struct List *__head = (ptr); \
+#define ListFirstOwnerOrNull(head, type, member) ({ \
+      struct List *__head = (head); \
       struct List *__pos = (__head->next); \
       __pos != __head ? ListOwner(__pos, type, member) : NULL; \
 })
@@ -282,7 +282,43 @@ PRIVATE INLINE int ListEmpty(const struct List *head)
  */
 #define ListForEach(pos, head) \
       for (pos = (head)->next; pos != (head); pos = pos->next)
-      
+
+/*
+ * ListFind - 从前往后遍历查找链表节点
+ * @list: 要查找的节点指针
+ * @head: 链表头
+ * 
+ * 找到返回1，否则返回0 
+ */
+PRIVATE INLINE int ListFind(struct List *list, struct List *head)
+{
+   struct List *__list;
+   ListForEach(__list, head) {
+      // 找到一样的
+      if (__list == list) {
+         return 1;
+      }
+   }
+   return 0;
+}
+
+/*
+ * ListLength - 获取链表长度
+ * @head: 链表头
+ */
+PRIVATE INLINE int ListLength(struct List *head)
+{
+   struct List *list;
+   int n = 0;
+   ListForEach(list, head) {
+      // 找到一样的
+      if (list == head)
+         break;
+      n++;
+   }
+   return n;
+}
+
 /*
  * ListForEachPrev - 从后往前遍历每一个链表节点
  * @pos： 节点指针
