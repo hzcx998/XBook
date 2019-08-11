@@ -10,7 +10,7 @@
 
 #include <share/stdint.h>
 
-int mmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags);
+void *mmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags);
 int munmap(uint32_t addr, uint32_t len);
 
 #endif  /* _USER_LIB_STDLIB_H */

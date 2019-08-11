@@ -135,7 +135,9 @@ USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/msleep.o \
 			$(USER_DIR)lib/exit.o \
 			$(USER_DIR)lib/_wait.o \
-
+			$(USER_DIR)lib/_brk.o \
+			$(USER_DIR)lib/brk.o \
+			$(USER_DIR)lib/malloc.o \
 			
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \

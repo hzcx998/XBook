@@ -24,4 +24,5 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysMSleep,
     SysExit,
     SysWait,
+    SysBrk,
 };

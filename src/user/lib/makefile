@@ -33,7 +33,10 @@ OBJS =  log.o \
 		msleep.o \
 		exit.o \
 		_wait.o \
-		
+		_brk.o \
+		brk.o \
+		malloc.o \
+
 #First read here
 .PHONY: all
 

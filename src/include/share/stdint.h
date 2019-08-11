@@ -8,6 +8,7 @@
 #ifndef _SHARE_STDINT_H
 #define _SHARE_STDINT_H
 
+/* integer */
 typedef unsigned long   uint64_t;
 typedef signed long     int64_t;
 typedef unsigned int    uint32_t;
@@ -34,6 +35,11 @@ typedef unsigned short  u16;
 typedef signed short    s16;
 typedef unsigned char   u8;
 typedef signed char     s8;
+
+/* pointer */
+typedef int *           intptr_t;
+typedef unsigned int *  uintptr_t;
+
 
 #define UINT32_MAX 0xffffffff
 #define UINT16_MAX 0xffff

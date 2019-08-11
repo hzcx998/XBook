@@ -1,5 +1,9 @@
-# Book-OS-X Finished task.  
+# Book-OS-X*(XBook) Finished task.  
 
+* realloc and calloc
+* malloc and free
+* brk and sbrk
+--2019.8.11--
 * fork and execv
 * sync lock
 * semaphore and semaphore2
@@ -10,7 +14,7 @@
 * block and unblock
 * user process
 * kernel thread
-* VMSpace
+* VMSpace memory
 --2019.8.10--
 * Slab memory
 * Vmarea memory

@@ -22,6 +22,7 @@ enum {
     SYS_MSLEEP,
     SYS_EXIT,
     SYS_WAIT,
+    SYS_BRK,
     MAX_SYSCALL_NR,
 };
 

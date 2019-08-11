@@ -141,7 +141,7 @@ PRIVATE int CpuHalRead(unsigned char *buffer, unsigned int count)
 {
 	if (cpuPrivate.steerType == STEERING_TYPE_STRING) {
 		//我们以短的字符为标准
-		unsigned int size = MIN(strlen(cpuPrivate.steerString), count);
+		unsigned int size = min(strlen(cpuPrivate.steerString), count);
 
 		//把数据复制过去
 		memcpy(buffer, cpuPrivate.steerString, size);

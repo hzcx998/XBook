@@ -15,3 +15,4 @@ SYS_SLEEP       EQU 6
 SYS_MSLEEP      EQU 7
 SYS_EXIT        EQU 8
 SYS_WAIT        EQU 9
+SYS_BRK         EQU 10

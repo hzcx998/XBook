@@ -114,7 +114,7 @@ PUBLIC int InsertVMSpace(struct MemoryManager *mm, struct VMSpace* space)
     }
 
     /* 合并prev和space */
-    //MergeVMSpace(prev, space, p);
+    MergeVMSpace(prev, space, p);
     return 0;
 }
 
@@ -183,6 +183,27 @@ PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, address_t addr,
     return NULL;
 }
 
+/**
+ * FindVMSpaceIntersection - 查找相交的空间
+ * @mm: 内存管理器
+ * @startAddr: 开始地址
+ * @endAddr: 结束地址
+ * 
+ * 查找在这个区域内是否有与他相交的空间，有就返回空间，没有就返回NULL
+ */
+PUBLIC struct VMSpace *FindVMSpaceIntersection(struct MemoryManager *mm, 
+        address_t startAddr, address_t endAddr)
+{
+    /* 查找一个与当前地址最近的空间 */
+    struct VMSpace *space = FindVMSpace(mm, startAddr);
+    
+    /* 如果这个空间的开始地址比我的结束地址都大，就说明不相交 */
+    if (space && space->start >= endAddr)
+        space = NULL;
+    
+    return space;
+}
+
 /** 
  * DoMmap - 映射地址
  * @addr: 地址
@@ -240,7 +261,6 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
             printk(PART_ERROR "DoMmap: GetUnmappedVMSpace failed!\n");
             return -1;
         }
-        
     }
     
     /* 从slab中分配一块内存来当做VMSpace结构 */
@@ -262,7 +282,7 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
         return -1;
     }
 
-    // printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
+    printk(PART_TIP "DoMmap: %x\n", addr);
     // PART_END();
     return addr;
 }
@@ -291,7 +311,7 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
         printk(PART_ERROR "DoMunmap: len is zero!\n");
         return -1;
     }
-        
+    
     /* 找到addr < space->end 的空间 */
     struct VMSpace* prev = NULL;
     struct VMSpace* space = FindVMSpacePrev(mm, addr, prev);
@@ -303,8 +323,9 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
         
     /* 保证地址是在空间范围内 */
     if (addr < space->start || addr+len > space->end) {
-        printk(PART_ERROR "DoMunmap: addr out of space!\n");
-        return -1;
+        //printk(PART_ERROR "DoMunmap: addr out of space!\n");
+        //printk(PART_ERROR "DoMunmap: space start %x end %x\n", space->start, space->end);
+        return -2;
     }
         
     /* 分配一个新的空间，有可能要unmap的空间会分成2个空间，例如：
@@ -346,10 +367,10 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
  * @prot: 页保护
  * @flags: 空间的标志
  */
-PUBLIC int SysMmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags)
+PUBLIC void *SysMmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags)
 {
     struct Task *current = CurrentTask();
-    return DoMmap(current->mm, addr, len, prot, flags);
+    return (void *)DoMmap(current->mm, addr, len, prot, flags);
 }
 
 /**
@@ -371,6 +392,7 @@ PUBLIC int SysMunmap(uint32_t addr, uint32_t len)
 PUBLIC void InitMemoryManager(struct MemoryManager *mm)
 {
     mm->spaceMap = NULL;
+    mm->totalPages = 0;
 }
 
 /** 
@@ -387,6 +409,8 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
 
     /* 1.释放内存映射 */
     space = mm->spaceMap;
+
+    unsigned int paddr;
     /* 循环把每一个vmspace从空间中释放 */
     while (space != NULL) {
         /*  1.有释放栈的标志，并且space是栈，才释放空间（栈）
@@ -397,7 +421,10 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
 
             /* 对空间中的每一个页进行释放 */
             while (space->start < space->end) {
-                PageUnlinkAddress(space->start);
+                /* 取消链接，并尝试释放物理页 */
+                paddr = PageUnlinkAddress(space->start);
+                if (!paddr)
+                    FreePage(paddr);
                 space->start += PAGE_SIZE;
             }
         }
@@ -414,6 +441,158 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
     }
     /* 释放完后把空间映射置空 */
     mm->spaceMap = NULL;
+}
+
+ 
+/**
+ * SysBrk - 设置堆的空间
+ * @addr: 地址
+ * @len: 长度 
+ * 
+ */
+PRIVATE unsigned int DoBrk(struct MemoryManager *mm, unsigned int addr, unsigned int len)
+{
+    struct VMSpace *space;
+    unsigned int flags, ret;
+
+    /* 页对齐后检查长度，如果为0就返回 */
+    len = PAGE_ALIGN(len);
+    if (!len) 
+        return addr;
+
+    //printk(PART_TIP "DoBrk: addr %x len %x\n", addr, len);
+
+    /* 先清除旧的空间，再进行新的映射 */
+    ret = DoMunmap(mm, addr, len);
+    /* 如果返回值是-1，就说明取消映射失败 */
+    if (ret == -1)
+        return ret;
+    // printk(PART_TIP "DoBrk: DoMunmap sucess!\n");
+
+    /* 在清楚旧空间后检测，已经再空间的大小和当前len相加是否大于堆的阈值 */
+
+    /* 检测映射空间的数量是否超过最大数量 */
+
+    flags = VMS_HEAP;
+
+    /* 查看是否可以和原来的空间进行合并 */
+    if (addr) {
+        /* 查找一个比自己小的空间 */
+        space = FindVMSpace(mm, addr - 1);
+        /* 如果空间的结束和当前地址一样，并且flags也是一样的，就说明他们可以合并 */
+        if (space && space->end == addr && space->flags == flags) {
+            space->end = addr + len;
+            /*printk(PART_TIP "DoBrk: space can merge. The space [%x-%x], me [%x-%x]\n", 
+                space->start, space->end, addr, addr + len
+            ); */
+            goto ToEnd;
+        }
+    }
+
+    /* 创建一个space，用来映射新的地址 */
+    space = kmalloc(sizeof(struct VMSpace));
+    if (space == NULL)
+        return -1;
+    
+    space->start = addr;
+    space->end = addr + len;
+    space->flags = flags;
+    /* 堆是可以执行的 */
+    space->pageProt = PROT_READ | PROT_WRITE | PROT_EXEC;
+    space->mm = mm;
+    space->next = NULL;
+    
+    if (InsertVMSpace(mm, space)) {
+        printk(PART_TIP "DoBrk: insert space failed! space [%x-%x]\n", 
+            space->start, space->end
+        );
+    }
+    /*printk(PART_TIP "DoBrk: insert space sucess! space [%x-%x]\n", 
+        space->start, space->end
+    ); */
+ToEnd:
+    //mm->totalPages += len >> PAGE_SHIFT;
+
+    return addr;
+}
+
+/**
+ * SysBrk - 设置堆的断点值
+ * @brk: 断点值
+ * 
+ * 返回扩展的前一个地址
+ * 如果brk为0，就返回到期brk
+ * 如果大于mm->brk，就向后扩展
+ * 小于就向前缩小
+ */
+PUBLIC unsigned int SysBrk(unsigned int brk)
+{
+    unsigned int ret;
+    unsigned int oldBrk, newBrk;
+    struct MemoryManager *mm = CurrentTask()->mm;
+    /*
+    printk(PART_TIP "SysBrk: mm brk %x start %x brk %x\n", 
+        mm->brk, mm->brkStart, brk
+    ); */
+    /* 如果断点比开始位置都小就退出 */
+    if (brk < mm->brkStart) {
+        //printk(PART_TIP "SysBrk: brk is zero!\n");
+        goto ToEnd;
+    }
+        
+    /* 使断点值和页对齐 */
+    newBrk = PAGE_ALIGN(brk);
+    oldBrk = PAGE_ALIGN(mm->brk);
+
+    /* 如果新旧断点相同就退出 */
+    if (newBrk == oldBrk) {
+        //printk(PART_TIP "SysBrk: both in a page!\n");
+        goto SetBrk; 
+    }
+        
+    /* 如果brk小于当前mm的brk，就说明是收缩内存 */
+    if (brk <= mm->brk) {
+        //printk(PART_TIP "SysBrk: shrink mm.\n");
+        
+        /* 收缩地址就取消映射，如果成功就去设置新的断点值 */
+        if (!DoMunmap(mm, newBrk, oldBrk - newBrk)) 
+            goto SetBrk;
+        printk(PART_ERROR "SysBrk: DoMunmap failed!\n");
+        goto ToEnd;
+    }
+    
+    /* 检查是否超过堆的空间限制 */
+    if (brk > mm->brkStart + MAX_VMS_HEAP_SIZE)
+        goto ToEnd;
+
+    /* 检查是否和已经存在的空间发生重叠 */
+    if (FindVMSpaceIntersection(mm, oldBrk, newBrk + PAGE_SIZE)) {
+        printk(PART_ERROR "SysBrk: space intersection!\n");
+        goto ToEnd;
+    }
+        
+    /* 检查是否有足够的内存可以进行扩展堆 */
+
+    /* 堆新的断点进行空间映射 */
+    if (DoBrk(mm, oldBrk, newBrk - oldBrk) != oldBrk) {
+        printk(PART_ERROR "SysBrk: DoBrk failed! addr %x len %x\n",
+            oldBrk, newBrk - oldBrk
+        );
+        goto ToEnd;
+    }
+        
+SetBrk:
+    /*printk(PART_ERROR "SysBrk: set new brk %x old is %x\n",
+        brk, mm->brk
+    ); */
+
+    mm->brk = brk;
+        
+ToEnd:
+    /* 获取mm中的brk值 */    
+    ret = mm->brk;
+    //printk(PART_TIP "ret brk is %x\n", ret);
+    return ret;
 }
 
 /**

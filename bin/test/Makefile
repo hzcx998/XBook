@@ -52,6 +52,9 @@ LD_OBJS = 	$(USER_DIR)lib/log.o\
 			$(USER_DIR)lib/msleep.o\
 			$(USER_DIR)lib/exit.o\
 			$(USER_DIR)lib/_wait.o\
+			$(USER_DIR)lib/_brk.o\
+			$(USER_DIR)lib/brk.o\
+			$(USER_DIR)lib/malloc.o\
 			$(SHARE_DIR)vsprintf.o\
 			$(SHARE_DIR)string.o\
 			
