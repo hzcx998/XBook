@@ -77,7 +77,9 @@ PUBLIC int MergeVMSpace(struct VMSpace* prev, struct VMSpace* space, struct VMSp
             kfree(next);
         }
     }
+    return 0;
 }
+
 /**
  * InsertVMSpace - 把空间插入链表
  * @mm: 内存管理器

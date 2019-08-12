@@ -59,61 +59,10 @@ PRIVATE void ZonePrint()
     }
 }
 
-/*
- * ZoneGetByType - 通过获取一个空间
- * @name: 空间的名字
- */
-PUBLIC struct Zone *ZoneGetByType(int type)
-{
-    if (type < 0 || type >= MAX_ZONE_NR) {
-        return NULL;
-    }
-    return &zoneTable[type];    
-}
-
-/*
- * ZoneGetTotalPages - 通过获取一个空间的页的数量
- * @name: 空间的名字
- */
-PUBLIC INLINE unsigned int ZoneGetTotalPages(int type)
-{
-    if (type < 0 || type >= MAX_ZONE_NR) {
-        return 0;
-    }
-    return zoneTable[type].pageTotalCount;
-}
-
-
-/*
- * ZoneGetAllTotalPages - 获取所有空间的总页数量
- */
-PUBLIC INLINE unsigned int ZoneGetAllTotalPages()
-{
-    int i;
-    unsigned int pages = 0;
-    for (i = 0; i < MAX_ZONE_NR; i++) {
-        pages += zoneTable[i].pageTotalCount;
-    }
-    return pages;
-}
-
-/*
- * ZoneGetAllUsingPages - 获取所有空间的使用页数量
- */
-PUBLIC INLINE unsigned int ZoneGetAllUsingPages()
-{
-    int i;
-    unsigned int pages = 0;
-    for (i = 0; i < MAX_ZONE_NR; i++) {
-        pages += zoneTable[i].pageUsingCount;
-    }
-    return pages;
-}
-
 /* 
  * ZoneGetInitMemorySize - 获取空间初始化的时候的大小
  */
-PUBLIC INLINE unsigned int ZoneGetInitMemorySize()
+PUBLIC unsigned int ZoneGetInitMemorySize()
 {
     return ZONE_PHY_STATIC_ADDR + BootMemSize();
 }
@@ -352,52 +301,6 @@ PUBLIC struct Zone *ZoneGetByPage(struct Page *page)
     return zone;
 }
 
-
-/*
- * ZoneGetByVirtualAddress - 通过虚拟地址得到zone空间
- * @vaddr: 虚拟地址
- * 
- * 返回虚拟地址对应的zone
- */
-PUBLIC struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr)
-{
-    struct Zone *zone = NULL;
-
-    /* 如果是在黑洞中就返回空 */
-    if (vaddr >= ZONE_VIR_BLACK_HOLE_ADDR) {
-        return zone;
-    }
-
-    zone = &zoneTable[ZONE_TYPE_STATIC];
-
-    /* 如果不是static，就一定时dynamic */
-    if (!(zone->virtualStart <= vaddr && vaddr < zone->virtualEnd))
-        zone = &zoneTable[ZONE_TYPE_DYNAMIC];
-    
-    return zone;
-}
-
-
-/*
- * ZoneGetByPhysicAddress - 把物理地址转换成空间
- * @paddr: 需要转换的地址
- * 
- * 如果获取失败则返回NULL
- */
-PUBLIC struct Zone *ZoneGetByPhysicAddress(unsigned int paddr)
-{
-    struct Zone *zone = NULL;
-    int i;
-    // 循环查询zone
-    for (i = 0; i < MAX_ZONE_NR; i++) {
-        zone = &zoneTable[i];
-        // 找到后跳出
-        if (zone->physicStart <= paddr && paddr < zone->physicEnd) {
-            break;
-        }
-    }
-    return zone;
-}
 /* 
  * PhysicAddressToPage - 把物理地址转换成页结构
  * @addr: 要转换的地址

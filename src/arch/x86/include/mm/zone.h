@@ -151,23 +151,117 @@ struct Zone
 PUBLIC void InitZone();
 
 EXTERN struct Zone zoneOfMemory;
+EXTERN struct Zone zoneTable[MAX_ZONE_NR];
 
-/* 获取空间的方法 */
-PUBLIC INLINE struct Zone *ZoneGetByType(int type);
-PUBLIC INLINE struct Zone *ZoneGetByPhysicAddress(unsigned int paddr);
-PUBLIC INLINE struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr);
-PUBLIC INLINE struct Zone *ZoneGetByPage(struct Page *page);
-PUBLIC INLINE unsigned int ZoneGetTotalPages(int type);
-PUBLIC INLINE unsigned int ZoneGetAllUsingPages();
-PUBLIC INLINE unsigned int ZoneGetAllTotalPages();
-PUBLIC INLINE unsigned int ZoneGetInitMemorySize();
-
+/* zone get*/
+PUBLIC struct Zone *ZoneGetByPage(struct Page *page);
+PUBLIC unsigned int ZoneGetInitMemorySize();
 /* 页和物理地址的转换 */
-PUBLIC INLINE struct Page *PhysicAddressToPage(unsigned int addr);
-PUBLIC INLINE address_t PageToPhysicAddress(struct Page *page);
+PUBLIC struct Page *PhysicAddressToPage(unsigned int addr);
+PUBLIC address_t PageToPhysicAddress(struct Page *page);
 
 /* 物理地址和虚拟地址的转换 */
-PUBLIC INLINE address_t PhysicToVirtual(unsigned int paddr);
-PUBLIC INLINE address_t VirtualToPhysic(unsigned int vaddr);
+PUBLIC address_t PhysicToVirtual(unsigned int paddr);
+PUBLIC address_t VirtualToPhysic(unsigned int vaddr);
+
+/*
+ * ZoneGetByType - 通过获取一个空间
+ * @type: 空间的type
+ */
+PRIVATE INLINE struct Zone *ZoneGetByType(int type)
+{
+    if (type < 0 || type >= MAX_ZONE_NR) {
+        return NULL;
+    }
+    return &zoneTable[type];    
+}
+
+/*
+ * ZoneGetTotalPages - 通过获取一个空间的页的数量
+ * @name: 空间的名字
+ */
+PRIVATE INLINE unsigned int ZoneGetTotalPages(int type)
+{
+    if (type < 0 || type >= MAX_ZONE_NR) {
+        return 0;
+    }
+    return zoneTable[type].pageTotalCount;
+}
+
+
+/*
+ * ZoneGetAllTotalPages - 获取所有空间的总页数量
+ */
+PRIVATE INLINE unsigned int ZoneGetAllTotalPages()
+{
+    int i;
+    unsigned int pages = 0;
+    for (i = 0; i < MAX_ZONE_NR; i++) {
+        pages += zoneTable[i].pageTotalCount;
+    }
+    return pages;
+}
+
+/*
+ * ZoneGetAllUsingPages - 获取所有空间的使用页数量
+ */
+PRIVATE INLINE unsigned int ZoneGetAllUsingPages()
+{
+    int i;
+    unsigned int pages = 0;
+    for (i = 0; i < MAX_ZONE_NR; i++) {
+        pages += zoneTable[i].pageUsingCount;
+    }
+    return pages;
+}
+
+
+
+
+/*
+ * ZoneGetByVirtualAddress - 通过虚拟地址得到zone空间
+ * @vaddr: 虚拟地址
+ * 
+ * 返回虚拟地址对应的zone
+ */
+PRIVATE INLINE struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr)
+{
+    struct Zone *zone = NULL;
+
+    /* 如果是在黑洞中就返回空 */
+    if (vaddr >= ZONE_VIR_BLACK_HOLE_ADDR) {
+        return zone;
+    }
+
+    zone = &zoneTable[ZONE_TYPE_STATIC];
+
+    /* 如果不是static，就一定时dynamic */
+    if (!(zone->virtualStart <= vaddr && vaddr < zone->virtualEnd))
+        zone = &zoneTable[ZONE_TYPE_DYNAMIC];
+    
+    return zone;
+}
+
+
+/*
+ * ZoneGetByPhysicAddress - 把物理地址转换成空间
+ * @paddr: 需要转换的地址
+ * 
+ * 如果获取失败则返回NULL
+ */
+PRIVATE INLINE struct Zone *ZoneGetByPhysicAddress(unsigned int paddr)
+{
+    struct Zone *zone = NULL;
+    int i;
+    // 循环查询zone
+    for (i = 0; i < MAX_ZONE_NR; i++) {
+        zone = &zoneTable[i];
+        // 找到后跳出
+        if (zone->physicStart <= paddr && paddr < zone->physicEnd) {
+            break;
+        }
+    }
+    return zone;
+}
 
 #endif   /*_X86_MM_ZONE_H */

@@ -53,11 +53,11 @@ PUBLIC void InitHalKernel();
 PUBLIC int HalCreate(struct Hal *hal);
 PUBLIC int HalDestory(char *name);
 
-PUBLIC INLINE void HalOpen(char *name);
-PUBLIC INLINE int HalRead(char *name,unsigned char *buffer, unsigned int count);
-PUBLIC INLINE int HalWrite(char *name,unsigned char *buffer, unsigned int count);
-PUBLIC INLINE void HalClose(char *name);
-PUBLIC INLINE void HalIoctl(char *name,unsigned int cmd, unsigned int param);
+PUBLIC void HalOpen(char *name);
+PUBLIC int HalRead(char *name,unsigned char *buffer, unsigned int count);
+PUBLIC int HalWrite(char *name,unsigned char *buffer, unsigned int count);
+PUBLIC void HalClose(char *name);
+PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param);
 
 /* 为一个hal结构赋值 */
 #define HAL_INIT(op, name) {&(op), name, }

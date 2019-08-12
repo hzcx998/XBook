@@ -143,19 +143,50 @@ PUBLIC void FreePages(unsigned int addr, unsigned int order);
 #define PageFree(flags) PagesFree(flags, 0)
 #define FreePage(addr) FreePages(addr, 0)
 
-PUBLIC INLINE pde_t *PageGetPde(address_t vaddr);
-PUBLIC INLINE pte_t *PageGetPte(address_t vaddr);
-
-PUBLIC INLINE int PageLinkAddress(address_t virtualAddr, 
+PUBLIC int PageLinkAddress(address_t virtualAddr, 
 		address_t physicAddr, flags_t flags, unsigned int prot);
-PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr);
-
-PUBLIC INLINE pde_t *GetPageDirTable();
+PUBLIC address_t PageUnlinkAddress(address_t virtualAddr);
 
 PUBLIC int DoPageFault(struct TrapFrame *frame);
 PUBLIC uint32_t PageAddrV2P(uint32_t vaddr);
 
-PUBLIC INLINE int MapPages(uint32_t start, uint32_t len, 
+PUBLIC int MapPages(uint32_t start, uint32_t len, 
 		flags_t flags, unsigned int prot);
-PUBLIC INLINE int UnmapPages(unsigned int vaddr, unsigned int len);
+PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
+
+
+PRIVATE INLINE pde_t *GetPageDirTable()
+{
+    return (pde_t *)PAGE_DIR_VIR_ADDR;
+}
+
+/**
+ * PageGetPde - 获取pde
+ * @vaddr: 虚拟地址
+ * 
+ * 通过虚拟地址获取它对应的pde
+ */
+PRIVATE INLINE pde_t *PageGetPde(address_t vaddr)
+{
+	// 获取地址对应的页目录项地址
+	pde_t *pde = (address_t *)(0xfffff000 + \
+	PDE_IDX(vaddr)*4);
+	return pde;
+}
+
+/**
+ * PageGetPte - 获取pte
+ * @vaddr: 虚拟地址
+ * 
+ * 通过虚拟地址获取它对应的pte
+ */
+PRIVATE INLINE pte_t *PageGetPte(address_t vaddr)
+{
+	// 获取页表项地址
+	pte_t *pte = (address_t *)(0xffc00000 + \
+	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
+	return pte;
+}
+
+
 #endif  /*_X86_MM_PAGE_H */

@@ -440,34 +440,6 @@ PRIVATE int GetPagesOrder(uint32_t pages)
 
 
 /**
- * PageGetPde - 获取pde
- * @vaddr: 虚拟地址
- * 
- * 通过虚拟地址获取它对应的pde
- */
-PUBLIC INLINE pde_t *PageGetPde(address_t vaddr)
-{
-	// 获取地址对应的页目录项地址
-	pde_t *pde = (address_t *)(0xfffff000 + \
-	PDE_IDX(vaddr)*4);
-	return pde;
-}
-
-/**
- * PageGetPte - 获取pte
- * @vaddr: 虚拟地址
- * 
- * 通过虚拟地址获取它对应的pte
- */
-PUBLIC INLINE pte_t *PageGetPte(address_t vaddr)
-{
-	// 获取页表项地址
-	pte_t *pte = (address_t *)(0xffc00000 + \
-	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
-	return pte;
-}
-
-/**
  * PageAddrV2P - 通过页机制把虚拟地址转换成物理地址
  * @vaddr: 虚拟地址
  */
@@ -490,7 +462,7 @@ PUBLIC uint32_t PageAddrV2P(uint32_t vaddr)
  * 
  * 把虚拟地址和物理地址连接起来，这样就能访问物理地址了
  */
-PUBLIC INLINE int PageLinkAddress(address_t virtualAddr, 
+PUBLIC int PageLinkAddress(address_t virtualAddr, 
 		address_t physicAddr, flags_t flags, unsigned int prot)
 {
 	pde_t *pde = PageGetPde(virtualAddr);
@@ -569,7 +541,7 @@ PUBLIC INLINE int PageLinkAddress(address_t virtualAddr,
  * 成功返回0，失败返回-1
  * 最大只接受2MB的内存映射
  */
-PUBLIC INLINE int MapPages(uint32_t start, uint32_t len, 
+PUBLIC int MapPages(uint32_t start, uint32_t len, 
 		flags_t flags, unsigned int prot)
 {
     // 长度和页对齐
@@ -612,7 +584,7 @@ PUBLIC INLINE int MapPages(uint32_t start, uint32_t len,
  * 可以加速运行。但是弊端在于，内存可能会牺牲一些。
  * 也消耗不了多少，4G内存才4MB。
  */
-PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr)
+PUBLIC address_t PageUnlinkAddress(address_t virtualAddr)
 {
 	pte_t *pte = PageGetPte(virtualAddr);
 	address_t physicAddr;
@@ -650,7 +622,7 @@ PUBLIC INLINE address_t PageUnlinkAddress(address_t virtualAddr)
  * @vaddr: 虚拟地址
  * @len: 内存长度
  */
-PUBLIC INLINE int UnmapPages(unsigned int vaddr, unsigned int len)
+PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len)
 {
 	if (!len)
 		return -1;
@@ -683,10 +655,6 @@ PUBLIC INLINE int UnmapPages(unsigned int vaddr, unsigned int len)
 	return 0;
 }
 
-PUBLIC INLINE pde_t *GetPageDirTable()
-{
-    return (pde_t *)PAGE_DIR_VIR_ADDR;
-}
 
 PRIVATE uint32_t ExpandStack(struct VMSpace* space, uint32_t addr)
 {
