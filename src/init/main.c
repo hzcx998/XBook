@@ -18,6 +18,8 @@
 #include <user/mman.h>
 #include <book/vfs.h>
 #include <book/atomic.h>
+#include <driver/keyboard.h>
+#include <book/interrupt.h>
 
 /*
  * 功能: 内核的主函数
@@ -28,29 +30,43 @@
 int main()
 {
 	PART_START("Kernel main");
-
+	
 	//初始化硬件抽象层
 	InitHalKernel();
-	
+
 	// 初始化slab缓冲区
 	InitSlabCacheManagement();
-	
+
 	// 初始化虚拟内存区域
-	InitVMArea();
+	InitVirtualMemoryArea();
+
+	/* 初始化IRQ描述结构 */
+	InitIrqDescription();
+
+    /* 初始化软中断机制 */
+    InitSoftirq();
 	
-	InitVFS();
-	
-	//log("Hello, Xbook!\n");
 	// 初始化多任务
 	InitTasks();
 	
-	// 在初始化多任务之后才初始化任务的虚拟空间
-	InitVMSpace();
+	// 初始化多任务后，初始化工作队列
+	InitWorkQueue();
 	
-	//
+	// 打开中断标志
+	InterruptEnable();
+	
 	//初始化时钟驱动
 	InitClock();
+
+	// 初始化键盘驱动
+	InitKeyboardDriver();
+
+	/* 初始化虚拟文件系统 */
+	InitVFS();
 	
+	/* 加载init进程 */
+	TaskExecuteFirstProcess("init", "init");
+
 	/* main thread 就是idle线程 */
 	while (1) {
 		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，

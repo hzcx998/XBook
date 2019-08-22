@@ -66,5 +66,4 @@ enum segment_type {
 
 #define ELF32_PHDR_DATA (ELF32_PF_W | ELF32_PF_R) /* 数据段 */
 
-
 #endif   /* _BOOK_ELF32_H */

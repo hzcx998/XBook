@@ -114,7 +114,7 @@ struct CacheSizeDescription {
  */
 PUBLIC INIT void InitSlabCacheManagement();
 
-PUBLIC void *kmalloc(size_t size);
+PUBLIC void *kmalloc(size_t size, unsigned int flags);
 PUBLIC void kfree(void *objcet);
 
 PUBLIC int SlabCacheAllShrink();

@@ -72,7 +72,6 @@ SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
      */
 
     /* 为进程分配内存 */
-    //MapPages(vaddrFirstPage, occupyPages * PAGE_SIZE, GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W);
     uint32_t pageIdx = 0;
     uint32_t vaddrPage = vaddrFirstPage;
     
@@ -114,7 +113,7 @@ SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
     // while (1);
     
     /* 映射虚拟空间 */  
-    int32 ret = SysMmap(vaddrFirstPage, occupyPages*PAGE_SIZE, 
+    int32 ret = (int32)SysMmap(vaddrFirstPage, occupyPages*PAGE_SIZE, 
             PROT_READ | PROT_WRITE | PROT_EXEC, MAP_FIXED);
     if (ret < 0) {
         printk(PART_ERROR "SegmentLoad: SysMmap failed!\n");
@@ -169,7 +168,7 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
                     progHeader.p_memsz, progHeader.p_vaddr)) {
                 return -1;
             }
-            //printk(PART_TIP "seg flags %x\n", progHeader.p_flags);
+            //printk(PART_TIP "seg load success\n");
             
             /* 如果内存占用大于文件占用，就要把内存中多余的部分置0 */
             if (progHeader.p_memsz > progHeader.p_filesz) {
@@ -179,7 +178,7 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
                     progHeader.p_memsz, progHeader.p_filesz);
                 */
             }
-
+            
             /* 设置段的起始和结束 */
             if (progHeader.p_flags == ELF32_PHDR_CODE) {
                 mm->codeStart = progHeader.p_vaddr;
@@ -197,12 +196,24 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
     return 0;
 }
 
+PRIVATE int InitUserHeap(struct Task *current)
+{
+    /* brk默认在数据的后面 */
+    current->mm->brkStart = current->mm->dataEnd;
+    
+    /* 页对齐 */
+    current->mm->brkStart = PAGE_ALIGN(current->mm->brkStart);
+    current->mm->brk = current->mm->brkStart;
+
+    return 0;
+}
+
 PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame, 
         char **argv, int argc)
 {
     /* 设置栈空间 */
     struct VMSpace *space = (struct VMSpace *)\
-            kmalloc(sizeof(struct VMSpace));
+            kmalloc(sizeof(struct VMSpace), GFP_KERNEL);
     if (!space) {
         printk(PART_ERROR "SysExecv: kmalloc for stack space failed!\n");
         return -1; 
@@ -224,14 +235,15 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
         goto ToFreeSpace; 
     }
     //printk(PART_TIP "stack alloc paddr %x\n", paddr);
-
+    
     // 进行地址链接
     if(PageLinkAddress(space->start, paddr, 
-            GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W)) {
+            GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W) == -1) {
         // 链接失败
         // 需要释放物理页
         goto ToFreePage;
     }
+
     //paddr = VirtualToPhysic(space->start);
     //printk(PART_TIP "stack to paddr %x\n", paddr);
 
@@ -239,17 +251,16 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
     if (InsertVMSpace(task->mm, space)) {
         // 需要取消链接
         printk(PART_ERROR "SysExecv: InsertVMSpace for stack space failed!\n");
-        goto ToFreeSpace;
+        goto ToUnlinkAddr;
     }
 
     task->mm->stackStart = space->start;
-    
 
     /* 新进程的栈为栈顶 */
     frame->esp = (uint32_t)USER_STACK_TOP - 4;
 
     task->mm->argEnd = frame->esp;
-    
+
     int i;
     /* 构建参数，用栈的方式传递参数，不用寄存器保存参数，再传递给main */
     if (argc != 0) {
@@ -297,16 +308,10 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
             strcpy(p, argv[i]);
             /* 指向下一个字符串 */
             p += (strlen(p) + 1);
-            
-            /* 字符串后面添加'/0' */
-            *p = '/0';
-            
         }
     } else {
         /* 把参数设置为空 */
 
-        task->mm->argEnd = frame->esp;
-        
         // 预留argv
         frame->esp -= argc * sizeof(char**);
         // 预留argc
@@ -314,7 +319,6 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
 
         task->mm->argStart = frame->esp;
         
-    
         /* 在下面把参数写入到栈中，可以直接在main函数中使用 */
         
         uint32_t top = frame->esp;
@@ -329,7 +333,6 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
     }
 
     return 0;
-    
 ToUnlinkAddr:
     // 取消页链接
     PageUnlinkAddress(space->start);
@@ -435,32 +438,6 @@ PRIVATE int MakeArguments(char *buf, char **argv)
 	return argc;
 }
 
-PRIVATE int InitUserHeap(struct Task *current)
-{
-    /* brk默认在数据的后面 */
-    current->mm->brkStart = current->mm->dataEnd;
-    
-    /* 页对齐 */
-    current->mm->brkStart = PAGE_ALIGN(current->mm->brkStart);
-    current->mm->brk = current->mm->brkStart;
-
-    /* 为堆初始化一个空间 */
-    /*struct VMSpace *space = kmalloc(sizeof(struct VMSpace));
-    if (space == NULL) 
-        return -1;
-    
-    space->start = current->mm->brk;
-    space->end = space->start + PAGE_SIZE;
-    space->flags = VMS_HEAP;
-    space->pageProt = PROT_EXEC | PROT_READ | PROT_WRITE;
-    space->mm = current->mm;
-    space->next = NULL;
-
-    if (InsertVMSpace(current->mm, space))
-        return -1;
-     */
-    return 0;
-}
 
 /**
  * SysExecv - 用新的镜像替换原来的镜像
@@ -473,7 +450,7 @@ PRIVATE int InitUserHeap(struct Task *current)
 PUBLIC int SysExecv(const char *path, const char *argv[])
 {
     
-    // printk(PART_TIP "execv: path %s\n", path);
+    //printk(PART_TIP "execv: path %s\n", path);
     int ret = 0;
     /* 1.读取文件 */
     /* 打开文件 */
@@ -531,7 +508,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         printk("argc %d \n", argc);
     }*/
     /* 分配空间来保存参数 */
-    char *argBuf = (char *)kmalloc(PAGE_SIZE);
+    char *argBuf = (char *)kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (argBuf == NULL) {
         printk(PART_ERROR "SysExecv: kmalloc for arg buf failed!\n");
         
@@ -550,8 +527,9 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     char name[MAX_TASK_NAMELEN];
     memset(name, 0, MAX_TASK_NAMELEN);
     strcpy(name, path);
-
-    MemoryManagerRelease(current->mm, VMS_STACK | VMS_RESOURCE);
+    
+    /* 只释放占用的其它资源*/
+    MemoryManagerRelease(current->mm, 0);
     
     /* 6.加载程序段 */
     if (LoadElfBinary(current->mm, &elfHeader, fd)) {
@@ -571,7 +549,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         ret = -1;
         goto ToEnd;
     }
-    
+
     if(InitUserHeap(current)){
         ret = -1;
         goto ToEnd;
@@ -595,17 +573,19 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     memset(current->name, 0, MAX_TASK_NAMELEN);
     /* 这里复制前面备份好的名字 */
     strcpy(current->name, name);
-
+    
     /*
     printk(PART_TIP "VMspace->\n");
     printk(PART_TIP "code start:%x end:%x data start:%x end:%x\n", 
         current->mm->codeStart, current->mm->codeEnd, current->mm->dataStart, current->mm->dataEnd
     );
-    printk(PART_TIP "stack start and end:%x\n", 
-        current->mm->stackStart);
+    
+    printk(PART_TIP "brk start and end:%x\n", current->mm->brkStart);
+    printk(PART_TIP "stack start and end:%x\n", current->mm->stackStart);
     printk(PART_TIP "arg start:%x end:%x\n", current->mm->argStart, current->mm->argEnd);
     */
-    
+
+    //printk(PART_TIP "exec int the end!\n");
     /* 10.命运裁决，是返回还是运行 */
 ToEnd:
     SysClose(fd);

@@ -390,17 +390,18 @@ Flush:
 	mov byte [0xb8000+160*2+11], 0X07
 	mov byte [0xb8000+160*2+12], 'T'
 	mov byte [0xb8000+160*2+13], 0X07
+	
 	call StepPage
 
-	mov byte [0xc00b8000+160*3+0], 'P'
-	mov byte [0xc00b8000+160*3+1], 0X07
-	mov byte [0xc00b8000+160*3+2], 'A'
-	mov byte [0xc00b8000+160*3+3], 0X07
-	mov byte [0xc00b8000+160*3+4], 'G'
-	mov byte [0xc00b8000+160*3+5], 0X07
-	mov byte [0xc00b8000+160*3+6], 'E'
-	mov byte [0xc00b8000+160*3+7], 0X07
-	
+	mov byte [0x800b8000+160*3+0], 'P'
+	mov byte [0x800b8000+160*3+1], 0X07
+	mov byte [0x800b8000+160*3+2], 'A'
+	mov byte [0x800b8000+160*3+3], 0X07
+	mov byte [0x800b8000+160*3+4], 'G'
+	mov byte [0x800b8000+160*3+5], 0X07
+	mov byte [0x800b8000+160*3+6], 'E'
+	mov byte [0x800b8000+160*3+7], 0X07
+
 	;从elf内核文件中读取内核的代码段和数据段到1M的位置
 	call ReadKernel
 
@@ -488,10 +489,10 @@ StepPage:
 
 	; 第一个页表
     mov dword [ebx], PAGE_TBL_PHY_ADDR | KERNEL_PAGE_ATTR 
-    mov dword [ebx+768*4], PAGE_TBL_PHY_ADDR | KERNEL_PAGE_ATTR    
+    mov dword [ebx+512*4], PAGE_TBL_PHY_ADDR | KERNEL_PAGE_ATTR    
 	; 第二个页表
     mov dword [ebx+4], (PAGE_TBL_PHY_ADDR+0X1000) | KERNEL_PAGE_ATTR
-    mov dword [ebx+(768 + 1)*4], (PAGE_TBL_PHY_ADDR+0X1000) | KERNEL_PAGE_ATTR    
+    mov dword [ebx+513*4], (PAGE_TBL_PHY_ADDR+0X1000) | KERNEL_PAGE_ATTR    
 
 	; 页目录自己
 	mov dword [ebx+1023*4], PAGE_DIR_PHY_ADDR | KERNEL_PAGE_ATTR

@@ -20,6 +20,7 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 OBJS =  display.o \
 		clock.o \
 		cpu.o \
+		keyboard.o \
 		
 #First read here
 .PHONY: all

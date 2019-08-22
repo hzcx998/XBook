@@ -45,7 +45,11 @@ typedef int pid_t;
 
 #define MAX_TASK_NAMELEN 32
 
-#define TASK_DEFAULT_PRIO 10
+#define TASK_DEFAULT_PRIO 5
+
+/* 工作者线程特权级 */
+#define TASK_WORKER_PRIO 3
+
 
 #define MAX_STACK_ARGC 16
 typedef struct Task {
@@ -70,6 +74,7 @@ EXTERN struct List taskReadyList;
 EXTERN struct List taskGlobalList;
 
 PUBLIC void InitTasks();
+PUBLIC void PrintTask();
 
 PUBLIC Task_t *CurrentTask();
 
@@ -77,6 +82,7 @@ PUBLIC void TaskBlock(enum TaskStatus state);
 PUBLIC void TaskUnblock(struct Task *thread);
 
 PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void *arg);
+PUBLIC void ThreadExit(struct Task *thread);
 PUBLIC struct Task *TaskExecute(void *fileName, char *name);
 
 PUBLIC pid_t ForkPid();

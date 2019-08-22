@@ -12,25 +12,32 @@
 #include <share/const.h>
 #include <book/list.h>
 #include <book/arch.h>
-#include <user/unistd.h>
 
-#define USER_VMS_SIZE        ZONE_VIR_ADDR_OFFSET
-#define USER_STACK_TOP      USER_VMS_SIZE
+#define USER_VM_SIZE        ZONE_VIR_ADDR_OFFSET
+#define USER_STACK_TOP      USER_VM_SIZE
 
-/* 放到2~3G之间 */
-#define VMS_UNMAPPED_BASE   ((USER_VMS_SIZE/3)*2)
+#define VMS_UNMAPPED_BASE    (USER_VM_SIZE/2)
 
-#define VMS_STACK           0x01      /* 空间是栈类型 */
+/* protect flags */
+#define PROT_NONE        0x0       /* page can not be accessed */
+#define PROT_READ        0x1       /* page can be read */
+#define PROT_WRITE       0x2       /* page can be written */
+#define PROT_EXEC        0x4       /* page can be executed */
+
+/* map flags */
+#define MAP_FIXED        0x10      /* Interpret addr exactly */
+
+#define VMS_STACK        0x01      /* 空间是栈类型 */
 #define VMS_HEAP            0x02      /* 空间是堆类型 */
 
 /* 在释放内存管理器时，如果需要释放内存资源，就要打上这个标志 */
 #define VMS_RESOURCE        0x80   
 
-/* 最大可扩展的栈的大小 */
+/* 最大可扩展的内核栈的大小 */
 #define MAX_VMS_STACK_SIZE    0x00800000
 
-/* 最大可扩展的堆的大小,默认1GB */
-#define MAX_VMS_HEAP_SIZE    0x40000000
+/* 最大可扩展的堆的大小,默认512MB */
+#define MAX_VMS_HEAP_SIZE    0x20000000
 
 /**
  * VMSpace - 虚拟空间结构
@@ -46,7 +53,6 @@ struct VMSpace {
 
 struct MemoryManager {
     struct VMSpace *spaceMap;   // 管理所有的空间 
-    unsigned int totalPages;    // 总共占用了多少个页
 
     // 空间中的各种地址
     address_t      codeStart, codeEnd;
@@ -71,6 +77,6 @@ PUBLIC void RemoveVMSpace(struct MemoryManager *mm, struct VMSpace *space,
 
 PUBLIC void *SysMmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags);
 PUBLIC int SysMunmap(uint32_t addr, uint32_t len);
-PUBLIC unsigned int SysBrk(unsigned int brk);
 
+PUBLIC unsigned int SysBrk(unsigned int brk);
 #endif   /* _BOOK_VMSPACE_H */

@@ -39,7 +39,7 @@ PRIVATE int CopyPageTable(struct Task *childTask, struct Task *parentTask)
 {
     
     /* 开始内存的复制 */
-    void *buf = kmalloc(PAGE_SIZE);
+    void *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!buf) {
         printk(PART_ERROR "CopyPageTable: kmalloc buf for data transform failed!\n");
         return -1;
@@ -103,7 +103,7 @@ PRIVATE int CopyVMSpace(struct Task *childTask, struct Task *parentTask)
     while (p != NULL) {
         /* 分配一个空间 */
         struct VMSpace *space = (struct VMSpace *)kmalloc(
-                sizeof(struct VMSpace));
+                sizeof(struct VMSpace), GFP_KERNEL);
         if (space == NULL) {
             printk(PART_ERROR "CopyVMSpace: kmalloc for space failed!\n");
             return -1;
@@ -268,7 +268,7 @@ PUBLIC pid_t SysFork()
     /* 把当前任务当做父进程 */
     struct Task *parentTask = CurrentTask();
     /* 为子进程分配空间 */
-    struct Task *childTask = kmalloc(PAGE_SIZE);
+    struct Task *childTask = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (childTask == NULL) {
         printk(PART_ERROR "SysFork: kmalloc for child task failed!\n");
         return -1;

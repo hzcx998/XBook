@@ -29,9 +29,7 @@ HDB_IMG		= $(IMG_DIR)d.img
 #----flags----
 #out a map file: -Map kernel.map
 #i386 link flags
-
-#link kernel to virtual addr 0xc0100000(3G + 1M)
-LDFLAGS		= -m elf_i386 -e _start -Ttext 0xc0100000
+LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80100000
 
 #system disk
 LOADER_OFF = 2		
@@ -95,12 +93,17 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)sleep_wakeup.o \
 				$(KERNEL_DIR)atomic.o \
 				$(KERNEL_DIR)exit_wait.o \
-
+				$(KERNEL_DIR)interrupt.o \
+				$(KERNEL_DIR)softirq.o \
+				$(KERNEL_DIR)workqueue.o \
+				$(KERNEL_DIR)ioqueue.o \
+	
 #hal objs
 HAL_OBJS = 	$(HAL_DIR)char/display.o \
 			$(HAL_DIR)char/clock.o \
 			$(HAL_DIR)char/cpu.o \
 			$(HAL_DIR)block/ram.o \
+			$(HAL_DIR)char/keyboard.o \
 
 #share objs
 SHARE_OBJS = 	$(SHARE_DIR)string.o \
@@ -111,6 +114,8 @@ SHARE_OBJS = 	$(SHARE_DIR)string.o \
 DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
 				$(DRIVER_DIR)char/console.o \
 				$(DRIVER_DIR)char/timer.o \
+				$(DRIVER_DIR)char/keyboard.o \
+				$(DRIVER_DIR)char/mouse.o \
 
 #mm objs
 MM_OBJS = 	$(MM_DIR)slab.o \
@@ -138,7 +143,7 @@ USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/_brk.o \
 			$(USER_DIR)lib/brk.o \
 			$(USER_DIR)lib/malloc.o \
-			
+
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
 		$(DRIVER_OBJS) $(MM_OBJS) $(FS_OBJS) $(USER_OBJS)

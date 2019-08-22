@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 		i++;
 	}
 	printf("I will do some test and exit\n");	
-	while(1);
+	// return 0;
 	
 	if (brk(0)) {
 		printf("brk failed!\n");

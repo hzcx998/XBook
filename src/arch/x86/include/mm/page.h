@@ -26,13 +26,13 @@ typedef unsigned int pte_t;
 //内核的页目录表物理地址
 #define PAGE_DIR_PHY_ADDR     0X201000
 //内核的页目录表虚拟地址
-#define PAGE_DIR_VIR_ADDR     0Xc0201000
+#define PAGE_DIR_VIR_ADDR     0X80201000
 
 //PT = PAGE TABLE
 //内核的页表物理地址
 #define PAGE_TABLE_PHY_ADDR     0X202000
 //内核的页表虚拟地址
-#define PAGE_TABLE_VIR_ADDR     0Xc0202000
+#define PAGE_TABLE_VIR_ADDR     0X80202000
 
 // 在loader中初始化了2个页表，满足需要
 #define PAGE_TABLE_PHY_NR     2
@@ -154,11 +154,11 @@ PUBLIC int MapPages(uint32_t start, uint32_t len,
 		flags_t flags, unsigned int prot);
 PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
 
-
 PRIVATE INLINE pde_t *GetPageDirTable()
 {
     return (pde_t *)PAGE_DIR_VIR_ADDR;
 }
+
 
 /**
  * PageGetPde - 获取pde
@@ -187,6 +187,4 @@ PRIVATE INLINE pte_t *PageGetPte(address_t vaddr)
 	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
 	return pte;
 }
-
-
 #endif  /*_X86_MM_PAGE_H */

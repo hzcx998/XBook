@@ -15,17 +15,17 @@
 #include <book/hal.h>
 #include <share/math.h>
 
-struct Zone zoneOfMemory;
-
 /* 空间数组 */
 struct Zone zoneTable[MAX_ZONE_NR];
 
 /* 
  * ZoneSetInfo - 设置空间的基础信息
  */
-PRIVATE void ZoneSetInfo(unsigned int idx, address_t vstart, size_t vsize,
+PRIVATE void ZoneSetInfo(unsigned int idx, char *name, address_t vstart, size_t vsize,
         address_t pstart, size_t psize, unsigned int totalPages)
 {
+    zoneTable[idx].name = name;
+
     zoneTable[idx].virtualStart = vstart;
     zoneTable[idx].virtualLength = vsize;
     zoneTable[idx].virtualEnd = vstart + vsize;
@@ -37,6 +37,7 @@ PRIVATE void ZoneSetInfo(unsigned int idx, address_t vstart, size_t vsize,
     zoneTable[idx].pageTotalCount = totalPages;
     zoneTable[idx].pageFreeCount = totalPages;
     zoneTable[idx].pageUsingCount = 0;
+    
 }
 /* 
  *打印空间的信息 
@@ -46,8 +47,8 @@ PRIVATE void ZonePrint()
     int i;
     for (i = 0; i < MAX_ZONE_NR; i++) {
         #ifdef CONFIG_ZONE_DEBUG
-        printk(" |- zone range type:%d vstart:%x vlength:%x vend:%x\n -- pstart:%x plength:%x pend:%x \n",
-            i,
+        printk(" |- zone range name:%s vstart:%x vlength:%x vend:%x\n -- pstart:%x plength:%x pend:%x \n",
+            zoneTable[i].name,
             zoneTable[i].virtualStart,
             zoneTable[i].virtualLength,
             zoneTable[i].virtualEnd,
@@ -57,6 +58,67 @@ PRIVATE void ZonePrint()
         #endif
 
     }
+}
+
+/*
+ * ZoneGetByName - 通过获取一个空间
+ * @name: 空间的名字
+ */
+PUBLIC struct Zone *ZoneGetByName(char *name)
+{
+    if (!strcmp(name, ZONE_STATIC_NAME)) {
+        return &zoneTable[0];
+    } else if (!strcmp(name, ZONE_DYNAMIC_NAME)) {
+        return &zoneTable[1];
+    } else if (!strcmp(name, ZONE_DURABLE_NAME)) {
+        return &zoneTable[2];
+    } else {
+        return NULL;
+    }
+}
+
+/*
+ * ZoneGetTotalPages - 通过获取一个空间的页的数量
+ * @name: 空间的名字
+ */
+PUBLIC unsigned int ZoneGetTotalPages(char *name)
+{
+    if (!strcmp(name, ZONE_STATIC_NAME)) {
+        return zoneTable[0].pageTotalCount;
+    } else if (!strcmp(name, ZONE_DYNAMIC_NAME)) {
+        return zoneTable[1].pageTotalCount;
+    } else if (!strcmp(name, ZONE_DURABLE_NAME)) {
+        return zoneTable[2].pageTotalCount;
+    } else {
+        return 0;
+    }
+}
+
+
+/*
+ * ZoneGetAllTotalPages - 获取所有空间的总页数量
+ */
+PUBLIC unsigned int ZoneGetAllTotalPages()
+{
+    int i;
+    unsigned int pages = 0;
+    for (i = 0; i < MAX_ZONE_NR - 1; i++) {
+        pages += zoneTable[i].pageTotalCount;
+    }
+    return pages;
+}
+
+/*
+ * ZoneGetAllUsingPages - 获取所有空间的使用页数量
+ */
+PUBLIC unsigned int ZoneGetAllUsingPages()
+{
+    int i;
+    unsigned int pages = 0;
+    for (i = 0; i < MAX_ZONE_NR - 1; i++) {
+        pages += zoneTable[i].pageUsingCount;
+    }
+    return pages;
 }
 
 /* 
@@ -69,14 +131,14 @@ PUBLIC unsigned int ZoneGetInitMemorySize()
 
 /*
  * ZonePageInfoInit - 对空间对应的页结构进行初始化
- * @type: 空间的类型
+ * @zname: 空间的名字
  * 
  * 初始化页数组和页位图
  */
-PRIVATE void ZonePageInfoInit(int type)
+PRIVATE void ZonePageInfoInit(char *zname)
 {
     // 获取空间
-    struct Zone *zone = ZoneGetByType(type);
+    struct Zone *zone = ZoneGetByName(zname);
     
     /* ----物理页数组---- */
     zone->pageArray = (struct Page *)BootMemAlloc(zone->pageTotalCount*sizeof(struct Page));
@@ -84,11 +146,16 @@ PRIVATE void ZonePageInfoInit(int type)
     #ifdef CONFIG_ZONE_DEBUG
     printk(" |- page array:%x size:%x\n", zone->pageArray, zone->pageTotalCount*sizeof(struct Page));
     #endif
+    
     /* ----物理页位图---- */
     zone->pageMap.btmpBytesLen = zone->pageTotalCount / 8;
-    zone->pageMap.bits = (unsigned char *)BootMemAlloc(zoneOfMemory.pageMap.btmpBytesLen);
+    zone->pageMap.bits = (unsigned char *)BootMemAlloc(zone->pageMap.btmpBytesLen);
+    
+    //memset(zone->pageMap.bits, 0, zone->pageMap.btmpBytesLen);
+    
     // 初始化位图
-    BitmapInit(&zoneOfMemory.pageMap);
+    BitmapInit(&zone->pageMap);
+    //return;
     
     #ifdef CONFIG_ZONE_DEBUG
     printk(" |- zone page map addr:%x len:%d\n",
@@ -99,14 +166,14 @@ PRIVATE void ZonePageInfoInit(int type)
 
 /*
  * ZoneAreaInit - 对空间对应的区域进行初始化
- * @type: 空间的类型
+ * @zname: 空间的名字
  * 
  * 初始化空间区域信息
  */
-PRIVATE void ZoneAreaInit(int type)
+PRIVATE void ZoneAreaInit(char *zname)
 {
     // 获取空间
-    struct Zone *zone = ZoneGetByType(type);
+    struct Zone *zone = ZoneGetByName(zname);
     
     //根据物理内存区域选定位图大小
     unsigned int mask = PAGE_MASK;
@@ -152,14 +219,14 @@ PRIVATE void ZoneAreaInit(int type)
 
 /*
  * ZoneFreeAreaPage - 把空间页释放到area中去
- * * @type: 空间的类型
+ * @zname: 空间的名字
  * 
  * 释放area，往里面写入页的信息
  */
-PRIVATE void ZoneFreeAreaPage(int type)
+PRIVATE void ZoneFreeAreaPage(char *zname)
 {
     // 获取空间
-    struct Zone *zone = ZoneGetByType(type);
+    struct Zone *zone = ZoneGetByName(zname);
     // 物理地址
     unsigned int phyAddr = zone->physicStart;
     // 页的开头
@@ -186,9 +253,9 @@ PRIVATE void ZoneFreeAreaPage(int type)
  */
 PRIVATE void ZoneSeparate(size_t memSize)
 {
-    // 对总内存进行截取，最大不能超过黑洞内存的大小
-    if (memSize > ZONE_VIR_BLACK_HOLE_ADDR) {
-        memSize = ZONE_VIR_BLACK_HOLE_ADDR;
+    // 对总内存进行截取，最大不能超过持久化内存的大小
+    if (memSize > ZONE_PHY_DURABLE_ADDR) {
+        memSize = ZONE_PHY_DURABLE_ADDR;
     }
 
     //先计算位于STATIC开始的地方有多少个页
@@ -233,16 +300,20 @@ PRIVATE void ZoneSeparate(size_t memSize)
     // 初始化zone范围
     
     //静态物理内存占1份
-    ZoneSetInfo(ZONE_TYPE_STATIC, ZONE_VIR_STATIC_ADDR, ZONE_VIR_STATIC_SIZE, 
+    ZoneSetInfo(0, ZONE_STATIC_NAME, ZONE_STATIC_ADDR, ZONE_STATIC_SIZE, 
         physicAddressStart, pagesForStatic*PAGE_SIZE, pagesForStatic);
 
     physicAddressStart += pagesForStatic*PAGE_SIZE;
     
     //动态物理内存占1份
-    ZoneSetInfo(ZONE_TYPE_DYNAMIC, ZONE_VIR_DYNAMIC_ADDR, ZONE_VIR_DYNAMIC_SIZE,
+    ZoneSetInfo(1, ZONE_DYNAMIC_NAME, ZONE_DYNAMIC_ADDR, ZONE_DYNAMIC_SIZE,
         physicAddressStart, pagesForDynamic*PAGE_SIZE, 
         pagesForDynamic);
 
+    //持久态物理内存不占用这个物理内存，它占用设备映射地址
+    /*ZoneSetInfo(2, ZONE_DURABLE_NAME, ZONE_DURABLE_ADDR, ZONE_DURABLE_SIZE,
+        ZONE_DURABLE_ADDR,ZONE_DURABLE_SIZE, ZONE_DURABLE_SIZE/PAGE_SIZE);
+     */
     // ----空间分割完毕-----
 
 }
@@ -280,26 +351,6 @@ PRIVATE void ZoneCutUesdMemory()
     }
 }
 
-/*
- * ZoneGetByPage - 通过页结构得到zone空间
- * @page: 页结构
- * 
- * 返回页所在的对应的zone
- */
-PUBLIC struct Zone *ZoneGetByPage(struct Page *page)
-{
-    struct Zone *zone = NULL;
-    int i;
-    // 循环查询zone
-    for (i = 0; i < MAX_ZONE_NR; i++) {
-        zone = &zoneTable[i];
-        // 找到后跳出
-        if (zone->pageArray <= page && page < zone->pageArray + zone->pageTotalCount) {
-            break;
-        }
-    }
-    return zone;
-}
 
 /* 
  * PhysicAddressToPage - 把物理地址转换成页结构
@@ -311,8 +362,8 @@ PUBLIC struct Page *PhysicAddressToPage(unsigned int addr)
 {
 	struct Zone *zone = NULL;
     int i;
-    // 循环查询zone
-    for (i = 0; i < MAX_ZONE_NR; i++) {
+    // 循环查询zone，不查询durable
+    for (i = 0; i < MAX_ZONE_NR - 1; i++) {
         zone = &zoneTable[i];
         // 找到后跳出
         if (zone->physicStart <= addr && addr < zone->physicEnd) {
@@ -332,6 +383,71 @@ PUBLIC struct Page *PhysicAddressToPage(unsigned int addr)
 }
 
 /*
+ * ZoneGetByPage - 通过页结构得到zone空间
+ * @page: 页结构
+ * 
+ * 返回页所在的对应的zone
+ */
+PUBLIC struct Zone *ZoneGetByPage(struct Page *page)
+{
+    struct Zone *zone = NULL;
+    int i;
+    // 循环查询zone，不查询durable
+    for (i = 0; i < MAX_ZONE_NR - 1; i++) {
+        zone = &zoneTable[i];
+        // 找到后跳出
+        if (zone->pageArray <= page && page < zone->pageArray + zone->pageTotalCount) {
+            break;
+        }
+    }
+    return zone;
+}
+
+
+/*
+ * ZoneGetByVirtualAddress - 通过虚拟地址得到zone空间
+ * @vaddr: 虚拟地址
+ * 
+ * 返回虚拟地址对应的zone
+ */
+PUBLIC struct Zone *ZoneGetByVirtualAddress(unsigned int vaddr)
+{
+    struct Zone *zone = NULL;
+    int i;
+    // 循环查询zone
+    for (i = 0; i < MAX_ZONE_NR; i++) {
+        zone = &zoneTable[i];
+        // 找到后跳出
+        if (zone->virtualStart <= vaddr && vaddr < zone->virtualEnd) {
+            break;
+        }
+    }
+    return zone;
+}
+
+
+/*
+ * ZoneGetByPhysicAddress - 把物理地址转换成空间
+ * @paddr: 需要转换的地址
+ * 
+ * 如果获取失败则返回NULL
+ */
+PUBLIC struct Zone *ZoneGetByPhysicAddress(unsigned int paddr)
+{
+    struct Zone *zone = NULL;
+    int i;
+    // 循环查询zone
+    for (i = 0; i < MAX_ZONE_NR; i++) {
+        zone = &zoneTable[i];
+        // 找到后跳出
+        if (zone->physicStart <= paddr && paddr < zone->physicEnd) {
+            break;
+        }
+    }
+    return zone;
+}
+
+/*
  * PageToPhysicAddress - 把页结构转换成页对应的物理地址
  * @page: 页结构
  * 
@@ -341,8 +457,8 @@ PUBLIC address_t PageToPhysicAddress(struct Page *page)
 {
     struct Zone *zone = NULL;
     int i;
-    // 循环查询zone
-    for (i = 0; i < MAX_ZONE_NR; i++) {
+    // 循环查询zone，不检查durable
+    for (i = 0; i < MAX_ZONE_NR - 1; i++) {
         zone = &zoneTable[i];
 
         //printk(" |- zone :%x start:%x end:%x page:%x\n", zone, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);  
@@ -382,16 +498,14 @@ PUBLIC address_t VirtualToPhysic(unsigned int vaddr)
     }
 
     unsigned int physicAddr = 0;
-
-    int type = zone - zoneTable;
-
     // 根据不同的zone选择不同的方法
-    if (type == ZONE_TYPE_STATIC) {
+    if (!strcmp(zone->name, ZONE_STATIC_NAME)) {
         // 静态是直接映射的，所以只要把虚拟地址减去内核虚拟起始地址就行了。
         physicAddr = vaddr - ZONE_VIR_ADDR_OFFSET;
     } else {
         // 动态的话就需要在当前页目录表中转换。
         physicAddr = PageAddrV2P(vaddr);
+        
     }
 
     return physicAddr;
@@ -415,10 +529,8 @@ PUBLIC address_t PhysicToVirtual(unsigned int paddr)
     unsigned int virtualAddr = 0;
     //printk(" |- PhysicToVirtual# zone name:%s \n", paddr, zone->virtualStart);
     
-    int type = zone - zoneTable;
-
     // 根据不同的zone选择不同的方法
-    if (type == ZONE_TYPE_STATIC) {
+    if (!strcmp(zone->name, ZONE_STATIC_NAME)) {
         // 静态是直接映射的，所以只要把虚拟地址加上内核虚拟起始地址就行了。
         virtualAddr = paddr + ZONE_VIR_ADDR_OFFSET;
         //printk(" |- PhysicToVirtual# paddr:%x base:%x \n", paddr, zone->virtualStart);
@@ -516,33 +628,49 @@ PUBLIC void InitZone()
     #ifdef CONFI_ZONE_DEBUG
     printk("\n |- memory size from ram hal:%x\n", memSize);
     #endif
-
+    
     if (memSize < RAM_HAL_BASIC_SIZE) 
         Panic("Sorry! Your computer memory is %d MB,please make sure your computer memory is at least %d MB.\n", 
         memSize/MB, RAM_HAL_BASIC_SIZE/MB);
 
     // ----根据物理地址计算物理内存分配----
     ZoneSeparate(memSize);
-
+    
     // ----显示zone 范围----
     ZonePrint();
-
+    
     /*
 	因为在引导的时候就已经把0~4MB映射好了，所以可以直接使用这里面的内存
     页映射,我们需要从最开始映射到静态结束
 	*/
     InitPageEnvironment(ZONE_PHY_DMA_ADDR, zoneTable[0].physicEnd);
-
+    
+    /*!!!BUG start*/
     // ----初始化static的空间页和area信息----
-    ZonePageInfoInit(ZONE_TYPE_STATIC);
-    ZoneAreaInit(ZONE_TYPE_STATIC);
-    ZoneFreeAreaPage(ZONE_TYPE_STATIC);
+    ZonePageInfoInit(ZONE_STATIC_NAME);
+    //return;
+    ZoneAreaInit(ZONE_STATIC_NAME);
+    ZoneFreeAreaPage(ZONE_STATIC_NAME);
     
     // ----初始化dynamic的空间页和area信息----
-    ZonePageInfoInit(ZONE_TYPE_DYNAMIC);
-    ZoneAreaInit(ZONE_TYPE_DYNAMIC);
-    ZoneFreeAreaPage(ZONE_TYPE_DYNAMIC);
+    ZonePageInfoInit(ZONE_DYNAMIC_NAME);
+    ZoneAreaInit(ZONE_DYNAMIC_NAME);
+    ZoneFreeAreaPage(ZONE_DYNAMIC_NAME);
     
+    
+    /*!!!BUG end*/
+    
+    /*
+    ----durable----
+    持久化空间没有buddy管理，因为它里面的地址都是直接映射的。
+    */ 
+    /*
+    ZonePageInfoInit(ZONE_DURABLE_NAME);
+    ZoneAreaInit(ZONE_DURABLE_NAME);
+    ZoneFreeAreaPage(ZONE_DURABLE_NAME);
+
+    */
+   
     /* 还需要注意一点，因为存放buddy系统信息也要占用一定空间，
     所以我们需要把占用的空间腾出来。直接最简单的方法就是在buddy
     中直接摘取相应的大小空间。
@@ -553,6 +681,7 @@ PUBLIC void InitZone()
     printk(" |- bootmem:%x \n", BootMemPosition());
     #endif
     //ZoneBuddySystemTest();
+
    
     PART_END();
 }

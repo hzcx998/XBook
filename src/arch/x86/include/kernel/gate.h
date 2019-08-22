@@ -14,7 +14,7 @@
 #include <interrupt.h>
 
 /* IDT 的虚拟地址 */
-#define IDT_VADDR		0xc0200800
+#define IDT_VADDR		0x80200800
 #define IDT_LIMIT		0x000007ff
 
 #define	DA_TaskGate		0x85	/* 任务门类型值				*/

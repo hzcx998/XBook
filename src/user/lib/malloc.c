@@ -10,10 +10,11 @@
  * 1.使用显示双向链表，按地址顺序维护内存块。
  * 2.使用循环首次适应算法进行空闲块的选择。
  */
-#include <user/unistd.h>
+#include <share/unistd.h>
 #include <share/stddef.h>
 #include <share/types.h>
 #include <user/conio.h>
+#include <user/stdlib.h>
 
 #define __HAS_NOT_USED 	0
 #define __HAS_USED		1
@@ -342,6 +343,8 @@ void *realloc(void *ptr, size_t size)
 			//printf("realloc: shrik-> block size %d size %d\n", block->size, size);
 		
 			SplitBlock(block, _size);
+			/* 标记块 */
+			flag = block;
 		}
 		/* 收缩完后，还是返回原来的空间 */
 
@@ -358,6 +361,9 @@ void *realloc(void *ptr, size_t size)
 			if(block->prev->size - _size >= (MEM_BLOCK_SIZE + 4))
 				SplitBlock(block->prev, _size);
 
+			/* 标记块 */
+			flag = block->prev;
+
 			/* 因为把block合并到prev中去了，所以要修改成prev的地址 */
 			ptr = (struct MemoryBlock *)block->prev + 1;
 
@@ -365,7 +371,8 @@ void *realloc(void *ptr, size_t size)
 		
 			/* 与此同时还需要复制数据 */
 			CopyBlockData(block, block->prev);
-		
+
+			
 		} else if(block->prev->used && !block->next->used &&
 			(block->size + MEM_BLOCK_SIZE + block->next->size) >= _size) {
 			/*如果前继是used的，后继是unused的，并且如果合并后大小满足size，考虑合并 */
@@ -377,7 +384,8 @@ void *realloc(void *ptr, size_t size)
 				SplitBlock(block, _size);
 		
 			//printf("realloc: merge next size %d size %d\n", block->size, _size);
-		
+			/* 标记块 */
+			flag = block;
 			/* 因为block还在，所以不需要复制数据 */	
 		} else if(!block->prev->used && !block->next->used &&
 			(block->size + block->prev->size + block->next->size + MEM_BLOCK_SIZE*2) >= _size){
@@ -391,6 +399,9 @@ void *realloc(void *ptr, size_t size)
 			如果prev满足size，再看能不能split*/
 			if(block->prev->size - _size >= (MEM_BLOCK_SIZE + 4))
 				SplitBlock(block->prev, _size);
+
+			/* 标记块 */
+			flag = block->prev;
 
 			/* 因为把block合并到prev中去了，所以要修改成prev的地址 */
 			ptr = (struct MemoryBlock *)block->prev + 1;
@@ -411,7 +422,9 @@ void *realloc(void *ptr, size_t size)
 			
 			free(ptr);//释放old 
 			//printf("realloc: block size %d size %d\n", newBlock->size, _size);
-		
+			/* 标记块 */
+			flag = newBlock;
+
 			return newPtr;
 		}
 	}

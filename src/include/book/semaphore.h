@@ -12,33 +12,17 @@
 #include <share/const.h>
 #include <book/list.h>
 #include <book/atomic.h>
+#include <book/waitqueue.h>
+#include <book/schedule.h>
 
 /**
  * 当前这种信号量的值可以是很多，不仅仅局限于二元（0,1）
  */
 
-struct WaitQueue {
-	struct List waitList;	// 记录所有被挂起的进程（等待中）的链表
-	struct Task *task;		// 当前被挂起的进程
-};
-
 struct Semaphore {
 	Atomic_t counter;			// 统计资源的原子变量
 	struct WaitQueue waiter;	// 在此信号量上等待的进程
 };
-
-/**
- * WaitQueueInit - 等待队列初始化
- * @waitQueue: 等待队列
- * @task: 等待的任务
- */
-PRIVATE INLINE void WaitQueueInit(struct WaitQueue *waitQueue, struct Task *task)
-{
-	/* 初始化队列 */
-	INIT_LIST_HEAD(&waitQueue->waitList);
-	/* 设置等待队列中的任务 */
-	waitQueue->task = task;
-}
 
 /**
  * SemaphoreInit - 信号量初始化

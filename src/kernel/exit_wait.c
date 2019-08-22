@@ -68,13 +68,8 @@ PRIVATE void NotifyParent(int parentPid)
  */
 PRIVATE void ReleaseZombie(struct Task *task)
 {
-    
-    /* 还要回收页目录中的物理页，也就是页表项*/
-    // ReleasePgdir(task->pgdir);
-
     /* 回收页目录 */
     kfree(task->pgdir);
-
     /* 回收MM */
     FreeTaskMemory(task);
 

@@ -27,6 +27,9 @@ typedef struct {
 #define AtomicGet(atomic)	((atomic)->value)
 #define AtomicSet(atomic,val)	(((atomic)->value) = (val))
 
+#define ATOMIC_INIT(val)	{val}
+
+
 /**
  * AtomicAdd - 原子加运算
  * @atomic: 原子结构

@@ -37,38 +37,38 @@ char* interruptNameTable[MAX_INTERRUPT_NR];
 // 汇编部分的中断处理函数的入口点组成的数组
 EXTERN intr_handler_t interruptEntryTable[MAX_INTERRUPT_NR];	    // 声明引用定义在kernel.S中的中断处理函数入口数组
 
-EXTERN void InterruptEntry0x00();
-EXTERN void InterruptEntry0x01();
-EXTERN void InterruptEntry0x02();
-EXTERN void InterruptEntry0x03();
-EXTERN void InterruptEntry0x04();
-EXTERN void InterruptEntry0x05();
-EXTERN void InterruptEntry0x06();
-EXTERN void InterruptEntry0x07();
-EXTERN void InterruptEntry0x08();
-EXTERN void InterruptEntry0x09();
-EXTERN void InterruptEntry0x0a();
-EXTERN void InterruptEntry0x0b();
-EXTERN void InterruptEntry0x0c();
-EXTERN void InterruptEntry0x0d();
-EXTERN void InterruptEntry0x0e();
-EXTERN void InterruptEntry0x0f();
-EXTERN void InterruptEntry0x10();
-EXTERN void InterruptEntry0x11();
-EXTERN void InterruptEntry0x12();
-EXTERN void InterruptEntry0x13();
-EXTERN void InterruptEntry0x14();
-EXTERN void InterruptEntry0x15();
-EXTERN void InterruptEntry0x16();
-EXTERN void InterruptEntry0x17();
-EXTERN void InterruptEntry0x18();
-EXTERN void InterruptEntry0x19();
-EXTERN void InterruptEntry0x1a();
-EXTERN void InterruptEntry0x1b();
-EXTERN void InterruptEntry0x1c();
-EXTERN void InterruptEntry0x1d();
-EXTERN void InterruptEntry0x1e();
-EXTERN void InterruptEntry0x1f();
+EXTERN void ExceptionEntry0x00();
+EXTERN void ExceptionEntry0x01();
+EXTERN void ExceptionEntry0x02();
+EXTERN void ExceptionEntry0x03();
+EXTERN void ExceptionEntry0x04();
+EXTERN void ExceptionEntry0x05();
+EXTERN void ExceptionEntry0x06();
+EXTERN void ExceptionEntry0x07();
+EXTERN void ExceptionEntry0x08();
+EXTERN void ExceptionEntry0x09();
+EXTERN void ExceptionEntry0x0a();
+EXTERN void ExceptionEntry0x0b();
+EXTERN void ExceptionEntry0x0c();
+EXTERN void ExceptionEntry0x0d();
+EXTERN void ExceptionEntry0x0e();
+EXTERN void ExceptionEntry0x0f();
+EXTERN void ExceptionEntry0x10();
+EXTERN void ExceptionEntry0x11();
+EXTERN void ExceptionEntry0x12();
+EXTERN void ExceptionEntry0x13();
+EXTERN void ExceptionEntry0x14();
+EXTERN void ExceptionEntry0x15();
+EXTERN void ExceptionEntry0x16();
+EXTERN void ExceptionEntry0x17();
+EXTERN void ExceptionEntry0x18();
+EXTERN void ExceptionEntry0x19();
+EXTERN void ExceptionEntry0x1a();
+EXTERN void ExceptionEntry0x1b();
+EXTERN void ExceptionEntry0x1c();
+EXTERN void ExceptionEntry0x1d();
+EXTERN void ExceptionEntry0x1e();
+EXTERN void ExceptionEntry0x1f();
 
 EXTERN void InterruptEntry0x20();
 EXTERN void InterruptEntry0x21();
@@ -105,38 +105,38 @@ PRIVATE void InitInterruptDescriptor()
 	/*
 	 异常的中断入口
 	 */
-	SetGateDescriptor(&idt[0x00], InterruptEntry0x00, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x01], InterruptEntry0x01, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x02], InterruptEntry0x02, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x03], InterruptEntry0x03, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x04], InterruptEntry0x04, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x05], InterruptEntry0x05, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x06], InterruptEntry0x06, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x07], InterruptEntry0x07, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x08], InterruptEntry0x08, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x09], InterruptEntry0x09, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0a], InterruptEntry0x0a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0b], InterruptEntry0x0b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0c], InterruptEntry0x0c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0d], InterruptEntry0x0d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0e], InterruptEntry0x0e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x0f], InterruptEntry0x0f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x10], InterruptEntry0x10, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x11], InterruptEntry0x11, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x12], InterruptEntry0x12, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x13], InterruptEntry0x13, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x14], InterruptEntry0x14, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x15], InterruptEntry0x15, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x16], InterruptEntry0x16, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x17], InterruptEntry0x17, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x18], InterruptEntry0x18, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x19], InterruptEntry0x19, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1a], InterruptEntry0x1a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1b], InterruptEntry0x1b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1c], InterruptEntry0x1c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1d], InterruptEntry0x1d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1e], InterruptEntry0x1e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
-	SetGateDescriptor(&idt[0x1f], InterruptEntry0x1f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x00], ExceptionEntry0x00, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x01], ExceptionEntry0x01, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x02], ExceptionEntry0x02, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x03], ExceptionEntry0x03, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x04], ExceptionEntry0x04, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x05], ExceptionEntry0x05, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x06], ExceptionEntry0x06, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x07], ExceptionEntry0x07, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x08], ExceptionEntry0x08, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x09], ExceptionEntry0x09, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0a], ExceptionEntry0x0a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0b], ExceptionEntry0x0b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0c], ExceptionEntry0x0c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0d], ExceptionEntry0x0d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0e], ExceptionEntry0x0e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x0f], ExceptionEntry0x0f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x10], ExceptionEntry0x10, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x11], ExceptionEntry0x11, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x12], ExceptionEntry0x12, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x13], ExceptionEntry0x13, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x14], ExceptionEntry0x14, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x15], ExceptionEntry0x15, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x16], ExceptionEntry0x16, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x17], ExceptionEntry0x17, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x18], ExceptionEntry0x18, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x19], ExceptionEntry0x19, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1a], ExceptionEntry0x1a, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1b], ExceptionEntry0x1b, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1c], ExceptionEntry0x1c, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1d], ExceptionEntry0x1d, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1e], ExceptionEntry0x1e, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
+	SetGateDescriptor(&idt[0x1f], ExceptionEntry0x1f, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL0); 
 	
 	/*
 	 IRQ的中断入口
@@ -163,7 +163,7 @@ PRIVATE void InitInterruptDescriptor()
 	 */
 	SetGateDescriptor(&idt[SYSCALL_INTERRUPT_NR], SyscallHandler, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL3);
 	 
-	LoadIDTR(IDT_LIMIT, IDT_VADDR);
+	//LoadIDTR(IDT_LIMIT, IDT_VADDR);
 
 }
 

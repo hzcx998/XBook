@@ -60,6 +60,14 @@ PRIVATE pid_t AllocatePid()
 }
 
 /**  
+ * FreePid - 释放一个pid
+ */
+PRIVATE void FreePid()
+{
+    --nextPid;
+}
+
+/**  
  * ForkPid - 分配一个pid
  * 
  * 调用私有的AllocatePid获取一个pid
@@ -74,7 +82,7 @@ PUBLIC pid_t ForkPid()
 PUBLIC uint32_t *CreatePageDir()
 {
     // 分配一个页来当作页目录
-    uint32_t *pageDirAddr = kmalloc(PAGE_SIZE);
+    uint32_t *pageDirAddr = kmalloc(PAGE_SIZE, GFP_KERNEL);
 
     if (!pageDirAddr) {
         printk(PART_WARRING "kmalloc for CreatePageDir failed!\n");
@@ -83,8 +91,8 @@ PUBLIC uint32_t *CreatePageDir()
     memset(pageDirAddr, 0, PAGE_SIZE);
     
     /* 复制页表内容,只复制内核部分 */
-    memcpy((void *)((unsigned char *)pageDirAddr + 1024*3), 
-            (void *)(PAGE_DIR_VIR_ADDR + 1024*3), 1024);
+    memcpy((void *)((unsigned char *)pageDirAddr + 2048), 
+            (void *)(PAGE_DIR_VIR_ADDR + 2048), 2048);
 
     /* 更新页目录表的页目录的物理地址，因为页目录表的最后一项时页目录表的物理地址 */
     uint32_t paddr = PageAddrV2P((uint32_t )pageDirAddr);
@@ -153,7 +161,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
 PUBLIC void AllocTaskMemory(struct Task *task)
 {
     // 初始化内存管理器
-    task->mm = (struct MemoryManager *)kmalloc(sizeof(struct MemoryManager));
+    task->mm = (struct MemoryManager *)kmalloc(sizeof(struct MemoryManager), GFP_KERNEL);
     if (!task->mm)
         Panic(PART_ERROR "kmalloc for task mm failed!\n"); 
     InitMemoryManager(task->mm);
@@ -177,7 +185,7 @@ PUBLIC void FreeTaskMemory(struct Task *task)
 PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void *arg)
 {
     // 创建一个新的线程结构体
-    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE);
+    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!thread)
         return NULL;
     // 初始化线程
@@ -205,6 +213,35 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     InterruptSetStatus(oldStatus);
     return thread;
 }
+
+/**
+ * ThreadExit - 关闭线程
+ * @thread: 要关闭的线程
+ */
+PUBLIC void ThreadExit(struct Task *thread)
+{
+    if (!thread)
+        return;
+
+    /* 操作链表时关闭中断，结束后恢复之前状态 */
+    enum InterruptStatus oldStatus = InterruptDisable();
+
+    /* 如果在就绪队列中，就从就绪队列中删除 */
+    if (ListFind(&thread->list, &taskReadyList)) 
+       ListDelInit(&thread->list);
+
+    // 保证存在于链表中
+    ASSERT(ListFind(&thread->globalList, &taskGlobalList));
+    // 添加到全局队列
+    ListDelInit(&thread->globalList);
+    
+    InterruptSetStatus(oldStatus);
+    
+    /* 释放线程占用的内存 */
+    kfree(thread);
+}
+
+
 /**
  * CurrentTask - 获取当前运行的任务
  * 
@@ -235,8 +272,8 @@ PRIVATE void MakeMainThread()
     // 当前运行的就是主线程
     mainThread = CurrentTask();
     // 为线程设置信息
-    TaskInit(mainThread, "main", 3);
-    
+    TaskInit(mainThread, "main", 1);
+
     // TaskMemoryInit(mainThread);
 
     // 保证不存在链表中
@@ -315,7 +352,7 @@ PRIVATE void StartProcess(void *fileName)
 {
     /* 开启进程的时候，需要去执行init程序，所以这里
     调用execv来完成这个工作 */
-    SysExecv("init", NULL);
+    SysExecv((char *)fileName, NULL);
     /* 如果运行失败就停在这里 */
     Panic("start init failed!\n");
 }
@@ -363,19 +400,24 @@ PUBLIC void TaskActivate(struct Task *task)
 }
 
 /**
- * TaskExecute - 执行一个任务
+ * TaskExecuteFirstProcess - 执行第一个进程
  * @fileName: 任务的文件名
  * @name: 任务的名字
  */
-PUBLIC struct Task *TaskExecute(void *fileName, char *name)
+PUBLIC struct Task *TaskExecuteFirstProcess(void *fileName, char *name)
 {
     // 创建一个新的线程结构体
-    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE);
+    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!thread)
         return NULL;
     // 初始化线程
     TaskInit(thread, name, TASK_DEFAULT_PRIO);
-    
+    /* 由于是第一个进程，所以我们不占用其pid，归还分配的pid，
+    并且把它设置成0，也就是说，他是init进程 */
+    FreePid();
+    /* 将pid设置为0，表明他是init进程 */
+    thread->pid = 0;
+
     AllocTaskMemory(thread);
     // 创建页目录
     thread->pgdir = CreatePageDir();
@@ -436,6 +478,20 @@ PUBLIC uint32_t SysGetPid()
     return CurrentTask()->pid;
 }
 
+/**
+ * PrintTask - 打印所有任务
+ */
+PUBLIC void PrintTask()
+{
+    printk(PART_TIP "\n----Task----\n");
+    struct Task *task;
+    ListForEachOwner(task, &taskGlobalList, globalList) {
+        printk(PART_TIP "name %s pid %d ppid %d\n", task->name, task->pid, task->parentPid);
+    }
+
+}
+
+
 PRIVATE struct SyncLock consoleLock;
 
 PRIVATE void lockPrintk(char *buf)
@@ -460,6 +516,7 @@ void ThreadA(void *arg)
         }
     }
 }
+
 void ThreadB(void *arg)
 {
     char *par = arg;
@@ -498,19 +555,21 @@ void TaskTestEntry()
 PUBLIC void InitTasks()
 {
     PART_START("Task");
-    nextPid = 0;
+    
+    /* 跳过init进程的pid = 0，后面执行init的时候会把它的pid设置为0*/
+    nextPid = 1;
 
-    /* 最开始初始化init进程，让它的pid为0 */
-    TaskExecute(0, "init");
+    /* 最开始初始化init进程，让它的pid为0
+    首先，在这里，先不执行init进程
+     */
+    // TaskExecute(0, "init");
     
     SyncLockInit(&consoleLock);
     
     MakeMainThread();
     
-    ThreadStart("testa", 1, ThreadA, "<11111111111111111111111111111111111111111111111111111> ");
-    ThreadStart("testb", 1, ThreadB, "<22222222222222222222222222222222222222222222222222222> ");
-
-    //TaskExecute(TaskTestEntry, "test");
-    
+	// 在初始化多任务之后才初始化任务的虚拟空间
+	InitVMSpace();
+	
     PART_END();
 }

@@ -46,7 +46,7 @@ FILE3_SEG EQU 0x6000
 
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
-KERNEL_START_ADDR EQU 0xc0100000
+KERNEL_START_ADDR EQU 0x80100000
 
 ;loader stack top is 0x90000
 LOADER_STACK_TOP EQU 0x90000

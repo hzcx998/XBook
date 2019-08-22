@@ -5,11 +5,13 @@
 /* init */
 int main(int argc, char *argv[])
 {
-
+	
 	int pid = fork();
 
 	if (pid > 0) {
 		printf("I am parent, my pid is %d my child is %d.\n", getpid(), pid);
+		
+		//while(1);
 		/* init进程就不断等待子进程，然后把他们回收 */
 		while (1) {
 			int status;
@@ -22,6 +24,9 @@ int main(int argc, char *argv[])
 	} else {
 		printf("I am child, my pid is %d.\n", getpid());	
 		
+		printf("Execv shell.\n");	
+		
+		//while(1);
 		/* init的第一个子进程就执行shell */
 		execv("shell", 0);
 	}

@@ -39,4 +39,9 @@
 /* 动态空间的页 */
 #define GFP_DYNAMIC       ZONE_DYNAMIC
 
+/* 内核获取页的标志 */
+#define GFP_KERNEL       GFP_STATIC
+
+
+
 #endif  /*_X86_MM_PFLAGS_H */

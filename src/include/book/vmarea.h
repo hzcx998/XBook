@@ -20,18 +20,18 @@
 
 
 /**
- * VMArea - 虚拟内存区域
+ * VirtualMemoryArea - 虚拟内存区域
  * 用来管理虚拟地址的一个区域
  */
-struct VMArea {
-    struct VMArea *next; // 下一个虚拟地址区域
+struct VirtualMemoryArea {
+    struct VirtualMemoryArea *next; // 下一个虚拟地址区域
     void *addr;     // 指向的虚拟地址 
     size_t size;     // 虚拟地址区域的大小
     flags_t flags;    // 虚拟地址区域的标志
     unsigned int pages; // 虚拟区域占用了多少个物理页
 };
 
-PUBLIC INIT void InitVMArea();
+PUBLIC INIT void InitVirtualMemoryArea();
 PUBLIC void *__vmalloc(size_t size, unsigned int flags);
 
 /**
@@ -50,6 +50,6 @@ PUBLIC void vfree(void *addr);
 PUBLIC void *vmap(address_t paddr, size_t size);
 PUBLIC void vunmap(void *addr);
 
-PUBLIC int iomap(address_t addr, size_t size);
+PUBLIC int ioremap(address_t addr, size_t size);
 
 #endif   /*_BOOK_VMAREA_H*/

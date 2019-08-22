@@ -10,6 +10,7 @@
 #include <book/list.h>
 #include <share/vsprintf.h>
 #include <share/string.h>
+#include <book/interrupt.h>
 
 //创建全局变量 halListHead 来管理所有的hal
 LIST_HEAD(halListHead);
@@ -22,8 +23,10 @@ HAL_EXTERN(halOfDisplay);
 HAL_EXTERN(halOfClock);
 HAL_EXTERN(halOfCpu);
 HAL_EXTERN(halOfRam);
+//HAL_EXTERN(halOfKeyboard);
 
-
+/* 上一次搜索的hal，用来当做缓存 */ 
+struct Hal *lastSearchedHal;
 
 /*
  * InitHal - 初始化hal环境
@@ -33,6 +36,7 @@ PUBLIC void InitHalEnvironment()
    // 初始化hal链表头
    INIT_LIST_HEAD(&halListHead);
    
+   lastSearchedHal = NULL;
 }
 
 /*
@@ -45,17 +49,16 @@ PUBLIC void InitHalEarly()
    }
    // 初始化控制台，基于硬件抽象层
 	ConsoleInit();
-   
+
    /* ----从此开始调试显示信息之旅---- */
 
    if (HalCreate(&halOfCpu)) {
-      printk("Register %s name samed!\n", halOfCpu.halName);
-      while(1);
+      Panic("Register %s name samed!\n", halOfCpu.halName);
+      
    }
-   
    if (HalCreate(&halOfRam)) {
-      printk("Register %s name samed!\n", halOfRam.halName);
-      while(1);
+      Panic("Register %s name samed!\n", halOfRam.halName);
+      
    }
 
 }
@@ -69,9 +72,12 @@ PUBLIC void InitHalKernel()
    PART_START("Hal kernel");
 
    if (HalCreate(&halOfClock)) {
-      printk("Register %s name samed!\n", halOfClock.halName);
-      while(1);
+      Panic("Register %s name samed!\n", halOfClock.halName);
    }
+/*
+   if (HalCreate(&halOfKeyboard)) {
+      Panic("Register %s name samed!\n", halOfKeyboard.halName);
+   }*/
 
    // 查看已经创建的hal
    struct Hal *hal;
@@ -80,6 +86,47 @@ PUBLIC void InitHalKernel()
    }
    //printk("<-\n");
    PART_END();
+}
+/*
+ * HalNameToHal - 通过名字找到hal指针
+ * @name: 要获取的hal的名字
+ * 
+ * 通过hal名字可以获取到hal地址，需要对hal进行操作。
+ */
+PUBLIC struct Hal *HalNameToHal(char *name)
+{
+   struct Hal *p;
+   //循环查找，是否有同名的hal
+   /*
+   这是一种野蛮方法，从前往后，每次都要进行这种方式查找。
+   如果数量太多，可能导致效率下降，所以找到一种可以提升的办法，
+   用一个缓存，来表示上次查找到的hal，如果这次的缓存和要朝招的一样，
+   那么就直接返回，就不会从头开始查找。这种方法在使用连续同一个hal的
+   时候就显得十分高效率。
+   */
+
+   /* 如果存在缓存，那么就先比较缓存 */
+   if (lastSearchedHal)
+   {
+      /* 如果名字一样就直接返回缓存中的hal */
+      if (!strcmp(lastSearchedHal->halName, name))
+         return lastSearchedHal;
+   }
+   
+   /* 缓存中没有才进行查找 */
+   ListForEachOwner(p, &halListHead, halList) {
+      //如果相同就返回
+      if (!strcmp(p->halName, name)) {
+         /* 写入到缓存中 */
+         lastSearchedHal = p;
+         return p;
+      }
+   }
+
+   /* 没找到就清空缓存 */
+   lastSearchedHal = NULL;
+   //没有找到
+   return NULL;
 }
 
 /*
@@ -90,6 +137,7 @@ PUBLIC void InitHalKernel()
  */
 PRIVATE void HalInit(struct Hal *hal)
 {
+   hal->isOpened = 0;
    hal->halOperate->Init();
 }
 
@@ -121,7 +169,7 @@ PUBLIC int HalCreate(struct Hal *hal)
    INIT_LIST_HEAD(&hal->halList);
 
    //再把链表添加到hal系统中
-   ListAdd(&hal->halList, &halListHead);
+   ListAddTail(&hal->halList, &halListHead);
 
    /* 3.初始化hal */
    HalInit(hal);
@@ -130,37 +178,45 @@ PUBLIC int HalCreate(struct Hal *hal)
 }
 
 /*
- * HalNameToHal - 通过名字找到hal指针
- * @name: 要获取的hal的名字
- * 
- * 通过hal名字可以获取到hal地址，需要对hal进行操作。
+ * HalDestory - 销毁一个已经创建的硬件抽象
  */
-PRIVATE struct Hal *HalNameToHal(char *name)
+PUBLIC int HalDestory(char *name)
 {
-   struct Hal *p;
-   //循环查找，是否有同名的hal
-   ListForEachOwner(p, &halListHead, halList) {
-      //如果相同就返回
-      if (!strcmp(p->halName, name)) {
-         return p;
-      }
+   struct Hal *hal = HalNameToHal(name);
+   //如果没有找到就返回
+   if (hal == NULL) {
+      return -1;
    }
-   //没有找到
-   return NULL;
-}
+   //还在使用中是不允许关闭的，必须关闭后才能摧毁
+   if (hal->isOpened > 0) {
+      return -1;
+   }
 
+   //再把链表从到hal系统中删除
+   ListDel(&hal->halList);
+   
+   if (hal->halOperate->Destruct != NULL) {
+      hal->halOperate->Destruct();
+   }
+   
+   return 0;
+}
 /*
  * HalOpen - 打开hal设备
  * @name: 要操作的hal
  */
 PUBLIC void HalOpen(char *name)
 {
+   //printk("%s ", name);
+   
    struct Hal *hal = HalNameToHal(name);
    //如果没有找到就返回
    if (hal == NULL) {
       return;
    }
    hal->isOpened++;
+   //printk("%s %d ", hal->halName, hal->isOpened);
+   
    if (hal->halOperate->Open == NULL) {
       return;
    }
@@ -188,6 +244,30 @@ PUBLIC void HalClose(char *name)
    hal->halOperate->Close();
 }
 
+PUBLIC int HalRead(char *name, unsigned char *buffer, unsigned int count)
+{
+   struct Hal *hal = HalNameToHal(name);
+   
+   //如果没有找到就返回
+   if (hal == NULL) {
+      return -1;
+   }
+   
+   //如果没有打开就返回
+   if (!hal->isOpened) {
+		return -1;
+	}
+   //printk("3");
+   
+   if (hal->halOperate->Read == NULL) {
+      return -1;
+   }
+   //printk("4");
+   
+   return hal->halOperate->Read(buffer, count);
+}
+
+
 /*
  * HalWrite - 往hal硬件写入数据
  * @name: 要操作的hal
@@ -214,32 +294,6 @@ PUBLIC int HalWrite(char *name, unsigned char *buffer, unsigned int count)
 }
 
 /*
- * HalRead - 从hal硬件读取数据
- * @name: 要操作的hal
- * @buffer: 数据存放的缓冲区
- * @count: 读取的字节数
- * 
- * 从hal设备读取数据，可以是一个一个地读，也可以存放到换个缓冲区中
- * 返回值是是否操作成功，如果是0则成功，-1则失败
- */
-PUBLIC int HalRead(char *name, unsigned char *buffer, unsigned int count)
-{
-   struct Hal *hal = HalNameToHal(name);
-   //如果没有找到就返回
-   if (hal == NULL) {
-      return -1;
-   }
-   //如果没有打开就返回
-   if (!hal->isOpened) {
-		return -1;
-	}
-   if (hal->halOperate->Read == NULL) {
-      return -1;
-   }
-   return hal->halOperate->Read(buffer, count);
-}
-
-/*
  * HalIoctl - hal输入输出控制
  * @name: 要操作的hal
  * @type: 操作的类型
@@ -262,29 +316,4 @@ PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param)
       return;
    }
    hal->halOperate->Ioctl(cmd, param);
-}
-
-/*
- * HalDestory - 销毁一个已经创建的硬件抽象
- */
-PUBLIC int HalDestory(char *name)
-{
-   struct Hal *hal = HalNameToHal(name);
-   //如果没有找到就返回
-   if (hal == NULL) {
-      return -1;
-   }
-   //还在使用中是不允许关闭的，必须关闭后才能摧毁
-   if (hal->isOpened > 0) {
-      return -1;
-   }
-
-   //再把链表从到hal系统中删除
-   ListDel(&hal->halList);
-   
-   if (hal->halOperate->Destruct != NULL) {
-      hal->halOperate->Destruct();
-   }
-   
-   return 0;
 }

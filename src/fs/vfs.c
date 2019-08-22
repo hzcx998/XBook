@@ -71,9 +71,9 @@ PRIVATE void FileInit(int id, char *name, uint32_t addr)
 PUBLIC void InitVFS()
 {
 	PART_START("VFS");
-	FileInit(0, "init", 0xc0042000);
-	FileInit(1, "test", 0xc0050000);
-	FileInit(2, "shell", 0xc0060000);
+	FileInit(0, "init", 0x80042000);
+	FileInit(1, "test", 0x80050000);
+	FileInit(2, "shell", 0x80060000);
 	/*
 	int *a = (int *)0x80042000;
 	int i;

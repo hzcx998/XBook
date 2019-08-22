@@ -12,7 +12,7 @@
 #include <share/stddef.h>
 
 int fork();
-uint32_t getpid();
+int32_t getpid();
 int execv(const char *path, const char *argv[]);
 
 void msleep(int msecond);

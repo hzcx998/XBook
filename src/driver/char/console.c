@@ -49,7 +49,7 @@ PUBLIC int ConsolePrint(const char *fmt, ...)
 PUBLIC int ConsoleFliter(char *buf, unsigned int count)
 {
 	//申请一样大的内存来暂时存放
-	unsigned char *tmp = kmalloc(PAGE_SIZE);
+	unsigned char *tmp = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	
 	//整个读取过来
 	HalRead("display",tmp, count);

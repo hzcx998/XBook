@@ -34,7 +34,7 @@ PRIVATE address_t GetUnmappedVMSpace(struct MemoryManager *mm, uint32 len)
     // 循环查找长度符合的空间
     while (space != NULL) {
         /* 如果到达最后，就退出查找 */
-        if (USER_VMS_SIZE - len < addr)
+        if (USER_VM_SIZE - len < addr)
             return -1;
 
         /* 如果要查找的区域在链表中间就直接返回地址 */
@@ -50,8 +50,17 @@ PRIVATE address_t GetUnmappedVMSpace(struct MemoryManager *mm, uint32 len)
     return addr;
 }
 
+/**
+ * MergeVMSpace - 尝试把空间和相邻的空间合并
+ * @prev: 前一个空间
+ * @space: 当前空间
+ * @next: 后一个空间
+ *
+ * 有合并过就返回1，没有合并过就返回0 
+ */
 PUBLIC int MergeVMSpace(struct VMSpace* prev, struct VMSpace* space, struct VMSpace* next)
 {
+    char merged = 0;
 
     /* 如果两者之间是连着的，prev的结束和space的开始相等 */
     if (prev != NULL && prev->end == space->start) {
@@ -64,6 +73,7 @@ PUBLIC int MergeVMSpace(struct VMSpace* prev, struct VMSpace* space, struct VMSp
             kfree(space);
             // 空间指向prev
             space = prev;
+            merged = 1;
         }
     }
     
@@ -75,11 +85,11 @@ PUBLIC int MergeVMSpace(struct VMSpace* prev, struct VMSpace* space, struct VMSp
             space->next = next->next;
             // 释放这个空间
             kfree(next);
+            merged = 1;
         }
     }
-    return 0;
+    return merged;
 }
-
 /**
  * InsertVMSpace - 把空间插入链表
  * @mm: 内存管理器
@@ -116,7 +126,7 @@ PUBLIC int InsertVMSpace(struct MemoryManager *mm, struct VMSpace* space)
     }
 
     /* 合并prev和space */
-    MergeVMSpace(prev, space, p);
+    //MergeVMSpace(prev, space, p);
     return 0;
 }
 
@@ -229,7 +239,7 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
     }
 
     /* 越界就返回 */
-    if (len > USER_VMS_SIZE || addr > USER_VMS_SIZE || addr > USER_VMS_SIZE - len) {
+    if (len > USER_VM_SIZE || addr > USER_VM_SIZE || addr > USER_VM_SIZE - len) {
         printk(PART_ERROR "DoMmap: addr and len out of range!\n");
         return -1;
     }
@@ -263,10 +273,11 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
             printk(PART_ERROR "DoMmap: GetUnmappedVMSpace failed!\n");
             return -1;
         }
+        
     }
     
     /* 从slab中分配一块内存来当做VMSpace结构 */
-    struct VMSpace *space = (struct VMSpace *)kmalloc(sizeof(struct VMSpace));
+    struct VMSpace *space = (struct VMSpace *)kmalloc(sizeof(struct VMSpace), GFP_KERNEL);
     if (!space) {
         printk(PART_ERROR "DoMmap: kmalloc for space failed!\n");
         return -1;    
@@ -284,7 +295,7 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
         return -1;
     }
 
-    printk(PART_TIP "DoMmap: %x\n", addr);
+    // printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
     // PART_END();
     return addr;
 }
@@ -295,12 +306,13 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
  * @addr: 空间的地址
  * @len: 空间的长度
  * 
- * 取消空间的映射，用于进程退出时使用
+ * 取消空间的映射，用于进程退出时使用，
+ * 成功返回0，失败返回-1和-2。检测空间范围失败返回-2
  */
 PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
 {
     /* 地址要和页大小PAGE_SIZE对齐 */
-    if ((addr & ~PAGE_MASK) || addr > USER_VMS_SIZE || len > USER_VMS_SIZE-addr) {
+    if ((addr & ~PAGE_MASK) || addr > USER_VM_SIZE || len > USER_VM_SIZE-addr) {
         printk(PART_ERROR "DoMunmap: addr and len error!\n");
         return -1;
     }
@@ -313,7 +325,7 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
         printk(PART_ERROR "DoMunmap: len is zero!\n");
         return -1;
     }
-    
+        
     /* 找到addr < space->end 的空间 */
     struct VMSpace* prev = NULL;
     struct VMSpace* space = FindVMSpacePrev(mm, addr, prev);
@@ -323,8 +335,12 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
         return -1;
     }
         
-    /* 保证地址是在空间范围内 */
-    if (addr < space->start || addr+len > space->end) {
+    /* 保证地址是在空间范围内
+        在DoBrk中，我们要执行DoUmmap。如果是第一次执行，那么DoUmmap就会失败而退出，
+        那么我们DoBrk就不会成功，因此，在这里，我们返回-2，而在DoBrk中判断返回-1才失败。
+        在其它情况下，我们判断不是0就说明DoMap失败，这是一个特例
+     */
+     if (addr < space->start || addr+len > space->end) {
         //printk(PART_ERROR "DoMunmap: addr out of space!\n");
         //printk(PART_ERROR "DoMunmap: space start %x end %x\n", space->start, space->end);
         return -2;
@@ -333,7 +349,7 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
     /* 分配一个新的空间，有可能要unmap的空间会分成2个空间，例如：
     [start, addr, addr+len, end] => [start, addr], [addr+len, end]
      */
-    struct VMSpace* spaceNew = (struct VMSpace*)kmalloc(sizeof(struct VMSpace));
+    struct VMSpace* spaceNew = (struct VMSpace*)kmalloc(sizeof(struct VMSpace), GFP_KERNEL);
     if (!spaceNew) {        
         printk(PART_ERROR "DoMunmap: kmalloc for spaceNew failed!\n");
         return -1;
@@ -394,7 +410,6 @@ PUBLIC int SysMunmap(uint32_t addr, uint32_t len)
 PUBLIC void InitMemoryManager(struct MemoryManager *mm)
 {
     mm->spaceMap = NULL;
-    mm->totalPages = 0;
 }
 
 /** 
@@ -411,8 +426,6 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
 
     /* 1.释放内存映射 */
     space = mm->spaceMap;
-
-    unsigned int paddr;
     /* 循环把每一个vmspace从空间中释放 */
     while (space != NULL) {
         /*  1.有释放栈的标志，并且space是栈，才释放空间（栈）
@@ -420,19 +433,21 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
          */
         if ((flags & VMS_STACK && space->flags & VMS_STACK) || 
             (flags & VMS_RESOURCE && !(space->flags & VMS_STACK))) {
-
+            
+            //printk("space: start %x end %x\n", space->start, space->end);
+        
             /* 对空间中的每一个页进行释放 */
             while (space->start < space->end) {
-                /* 取消链接，并尝试释放物理页 */
-                paddr = PageUnlinkAddress(space->start);
-                if (!paddr)
-                    FreePage(paddr);
+                //PageUnlinkAddress(space->start);
                 space->start += PAGE_SIZE;
             }
         }
 
         space = space->next;
     }
+
+    //printk("space\n");
+        
     /* 2.释放虚拟空间 */ 
     space = mm->spaceMap;
     /* 循环把每一个vmspace从空间中释放 */
@@ -445,7 +460,6 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
     mm->spaceMap = NULL;
 }
 
- 
 /**
  * SysBrk - 设置堆的空间
  * @addr: 地址
@@ -492,7 +506,7 @@ PRIVATE unsigned int DoBrk(struct MemoryManager *mm, unsigned int addr, unsigned
     }
 
     /* 创建一个space，用来映射新的地址 */
-    space = kmalloc(sizeof(struct VMSpace));
+    space = kmalloc(sizeof(struct VMSpace), GFP_KERNEL);
     if (space == NULL)
         return -1;
     

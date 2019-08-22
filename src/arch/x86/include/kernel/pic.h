@@ -28,7 +28,20 @@
 #define PIC1_ICW3		0x00a1
 #define PIC1_ICW4		0x00a1
 
+
+#define INT_M_CTL		PIC0_OCW2	// I/O port for interrupt controller         <Master>
+#define INT_M_CTLMASK   PIC0_IMR	// setting bits in this port disables ints   <Master>
+#define INT_S_CTL	    PIC1_OCW2	// I/O port for second interrupt controller  <Slave>
+#define INT_S_CTLMASK	PIC1_IMR	// setting bits in this port disables ints   <Slave>
+
+#define PIC_EIO		    0X20
+
 void InitPic();
-
-
+/*
+void PicEnable(unsigned int irq);
+void PicDisable(unsigned int irq);
+unsigned int PicInstall(unsigned int irq, void * arg);
+void PicUninstall(unsigned int irq);
+void PicAck(unsigned int irq);
+*/
 #endif	/*_ARCH_PIC_H*/

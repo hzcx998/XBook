@@ -62,7 +62,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	for (i = 0; i < pageDirEntryNumber; i++) {
 		//填写页目录表项
 		//把页表地址和属性放进去
-		pdt[768 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
+		pdt[512 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
 		
 		for (j = 0; j < PAGE_ENTRY_NR; j++) {
 			//填写页页表项
@@ -80,7 +80,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	//有剩余的我们才填写
 	if (pageTableEntryNumber != 0) {
 		// i 和 pageTablePhyAddress 的值在上面的循环中已经设置
-		pdt[768 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
+		pdt[512 + 2 + i] = (address_t)pageTablePhyAddress | PAGE_P_1 | PAGE_RW_W | PAGE_US_S;
 		
 		// 填写剩余的页表项数量
 		for (j = 0; j < pageTableEntryNumber; j++) {
@@ -101,7 +101,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
 	中初始化的0~8MB低端内存的映射要取消掉才行。
 	我们把用户内存空间的页目录项都清空 */ 
 	
-	for (i = 0; i < 768; i++) {
+	for (i = 0; i < 512; i++) {
 		pdt[i] = 0;
 	}
 
@@ -129,8 +129,8 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 	while(high > low) {
 		
 		if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone start %x end %x page %x", 
-				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone %s start %x end %x page %x", 
+				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 		
 		//改变area为更小的order
 		area--;
@@ -153,8 +153,8 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 	}
 	
 	if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone start %x end %x page %x", 
-				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone %s start %x end %x page %x", 
+				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 
 	// 统计空间页的使用数量
 	zone->pageFreeCount -= 1 << low;
@@ -190,10 +190,10 @@ PUBLIC unsigned int GetFreePages(unsigned int flags, unsigned int order)
 	// 根据mask选择zone
 	if (flags & ZONE_STATIC) {
 		
-		zone = ZoneGetByType(ZONE_TYPE_STATIC);
+		zone = ZoneGetByName(ZONE_STATIC_NAME);
 	} else if (flags & ZONE_DYNAMIC) {
 		
-		zone = ZoneGetByType(ZONE_TYPE_DYNAMIC);
+		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
 	
 	}
 	//printk(" |- GetFreePages - zone:%x name:%s \n",zone, zone->name);
@@ -237,8 +237,8 @@ PRIVATE struct Page *__PagesAlloc(unsigned int flags, unsigned int order, struct
 			page = ListFirstOwner(&area->pageList, struct Page, list);
 			
 			if (ZONE_BAD_RANGE(zone, page))
-			Panic("zone bad range-> zone start %x end %x page %x", 
-				zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
+			Panic("zone bad range-> zone %s start %x end %x page %x", 
+				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 			
 			//从链表中删除
 			ListDel(&page->list);
@@ -283,10 +283,10 @@ PUBLIC struct Page *PagesAlloc(unsigned int flags, unsigned int order)
 	// 根据mask选择zone
 	if (flags & ZONE_STATIC) {
 		
-		zone = ZoneGetByType(ZONE_TYPE_STATIC);
+		zone = ZoneGetByName(ZONE_STATIC_NAME);
 	} else if (flags & ZONE_DYNAMIC) {
 		
-		zone = ZoneGetByType(ZONE_TYPE_DYNAMIC);
+		zone = ZoneGetByName(ZONE_DYNAMIC_NAME);
 	}
 	
 	if (zone == NULL) {
@@ -354,8 +354,8 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 		buddy1 = zone->pageArray + (pageIdx ^ -mask);
 		//buddy2 = zone->pageArray + pageIdx;
 		if (ZONE_BAD_RANGE(zone, buddy1))
-			Panic("zone bad range-> zone start %x end %x page %x", 
-				zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy1);
+			Panic("zone bad range-> zone %s start %x end %x page %x", 
+				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy1);
 		
 		//NOTE:检查buddy的值是否符合范围
 
@@ -438,21 +438,6 @@ PRIVATE int GetPagesOrder(uint32_t pages)
 	return -1;
 }
 
-
-/**
- * PageAddrV2P - 通过页机制把虚拟地址转换成物理地址
- * @vaddr: 虚拟地址
- */
-PUBLIC uint32_t PageAddrV2P(uint32_t vaddr)
-{
-	pte_t* pte = PageGetPte(vaddr);
-	/* 
-	(*pte)的值是页表所在的物理页框地址,
-	去掉其低12位的页表项属性+虚拟地址vaddr的低12位
-	*/
-	return ((*pte & 0xfffff000) + (vaddr & 0x00000fff));
-}
-
 /*
  * PageLinkAddress - 物理地址和虚拟地址链接起来
  * @virtualAddr: 虚拟地址
@@ -486,7 +471,7 @@ PUBLIC int PageLinkAddress(address_t virtualAddr,
 			*pte = physicAddr | prot | PAGE_P_1;
 			//printk(PART_WARRING "page not exist.\n");
 		} else {
-			printk(PART_WARRING "PageLinkAddress: page %x already exists\n", *pte & PAGE_MASK);
+			//printk(PART_WARRING "PageLinkAddress: vir %x page %x already exists\n", virtualAddr, *pte & PAGE_MASK);
 			
 			//printk(PART_TIP "PageLinkAddress: page attr %x\n", *pte & PAGE_INSIDE);
 			
@@ -499,8 +484,8 @@ PUBLIC int PageLinkAddress(address_t virtualAddr,
 			
 			FreePage(paddr);
 			*/
-			*pte = physicAddr | prot | PAGE_P_1;
-			return 0;
+			*pte |= (prot | PAGE_P_1);
+			return 1;
 			
 		}
 	} else {
@@ -655,7 +640,6 @@ PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len)
 	return 0;
 }
 
-
 PRIVATE uint32_t ExpandStack(struct VMSpace* space, uint32_t addr)
 {
 	// 地址和页对其
@@ -674,7 +658,7 @@ PRIVATE uint32_t ExpandStack(struct VMSpace* space, uint32_t addr)
  */
 PRIVATE int MakePteWrite(unsigned int addr)
 {
-	if (addr > USER_VMS_SIZE)
+	if (addr > USER_VM_SIZE)
 		return -1;
 
 	pde_t *pde = PageGetPde(addr);
@@ -728,7 +712,6 @@ PRIVATE int DoHandleNoPage(uint32_t addr)
 	return 0;
 }
 
-
 /**
  * DoProtectionFault - 执行页保护异常
  * @space: 所在空间
@@ -779,13 +762,22 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 获取发生故障的地址
 	addr = ReadCR2();
 
-    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+    printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");
 
 	// 在虚拟空间中查找这个地址
     struct VMSpace* space = FindVMSpace(current->mm, addr);
 	
+	if (addr >= USER_VM_SIZE) {
+		
+		/* 内核中引起的页故障 */
+		if (!(frame->errorCode & PAGE_ERR_USER)) {
+			DoVMAreaFault(addr);
+		}
+
+	}
+
 	/* 没有找到空间或者是越界 */
     if (space == NULL || space->start > addr) {
 		
@@ -829,7 +821,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 			// Panic(PART_ERROR "# segment fault, addr: %x!\n", addr);
 			
 			// 如果没有找到这个地址就不是VMSpace中引起的错误
-
+			
 			/* 内核中引起的页故障 */
 			if (!(frame->errorCode & PAGE_ERR_USER)) {
 				DoVMAreaFault(addr);
@@ -863,4 +855,15 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
         
     }
     return 0;
+}
+
+
+PUBLIC uint32_t PageAddrV2P(uint32_t vaddr)
+{
+	pte_t* pte = PageGetPte(vaddr);
+	/* 
+	(*pte)的值是页表所在的物理页框地址,
+	去掉其低12位的页表项属性+虚拟地址vaddr的低12位
+	*/
+	return ((*pte & 0xfffff000) + (vaddr & 0x00000fff));
 }

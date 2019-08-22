@@ -14,33 +14,47 @@
 #include <book/task.h>
 #include <driver/timer.h>
 #include <share/math.h>
+#include <book/interrupt.h>
 
 PRIVATE int ticks;
 
 /**
  * ClockHnadler - 时钟中断处理函数
  */
-PRIVATE void ClockHnadler()
+PRIVATE void ClockHnadler(unsigned int irq, unsigned int data)
+{
+	ticks++;
+	
+	/* 激活定时器软中断 */
+	ActiveSoftirq(TIMER_SOFTIRQ);
+
+	/* 激活调度器软中断 */
+	ActiveSoftirq(SCHED_SOFTIRQ);
+	
+}
+
+/* 定时器软中断处理 */
+PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
+{
+	/* 更新定时器 */
+	UpdateTimerSystem();
+}
+
+/* 调度程序软中断处理 */
+PRIVATE void SchedSoftirqHandler(struct SoftirqAction *action)
 {
 	struct Task *current = CurrentTask();
 
-	/* 更新定时器 */
-	UpdateTimerSystem();
-
 	/* 更新任务调度 */
 	current->elapsedTicks++;
-	ticks++;
 	
 	if (current->ticks <= 0) {
-		//printk("S ");
 		
 		Schedule();
 	} else {
-		//printk("T ");
 		
 		current->ticks--;
 	}
-	
 }
 
 /**
@@ -81,17 +95,19 @@ PUBLIC void InitClock()
 	//打开时钟硬件抽象
 	HalOpen("clock");
 
-	// 注册时钟中断并打开中断
-	HalIoctl("clock", CLOCK_HAL_IO_REGISTER_INT, (unsigned int)&ClockHnadler);
-	HalIoctl("clock", CLOCK_HAL_IO_ENABLE_INT, 0);
-
 	ticks = 0;
 
 	/* 初始化定时器 */
 	InitTimer();
-	
-	// 打开中断标志
-	InterruptEnable();
+
+	/* 注册定时器软中断处理 */
+	BuildSoftirq(TIMER_SOFTIRQ, TimerSoftirqHandler);
+
+	/* 注册定时器软中断处理 */
+	BuildSoftirq(SCHED_SOFTIRQ, SchedSoftirqHandler);
+
+	/* 注册时钟中断并打开中断 */	
+	RegisterIRQ(IRQ0_CLOCK, &ClockHnadler, IRQF_DISABLED, "clockirq", "clock", 0);
 
 	PART_END();
 }

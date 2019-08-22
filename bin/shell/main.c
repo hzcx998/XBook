@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
 	printf("Welcome to shell. my pid %d\n", getpid());
 	printf("/ $> \n");
-	
+	//while(1);
 	int pid = fork();
 	if (pid > 0) {
 		printf("I am father. my pid %d, my child %d\n", getpid(), pid);	
@@ -20,6 +20,9 @@ int main(int argc, char *argv[])
 		while(1);
 	} else if (pid == 0) {
 		printf("I am child. my pid %d\n", getpid());
+		
+		//while(1);
+		
 		const char *arg[4];
 		
 		arg[0] = "hello";

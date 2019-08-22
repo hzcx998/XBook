@@ -9,8 +9,8 @@
 #define _SHARE_MATH_H
 
 /* max() & min() */
-#define	MATH_MAX(a,b)	((a) > (b) ? (a) : (b))
-#define	MATH_MIN(a,b)	((a) < (b) ? (a) : (b))
+#define	MAX(a,b)	((a) > (b) ? (a) : (b))
+#define	MIN(a,b)	((a) < (b) ? (a) : (b))
 
 #define DIV_ROUND_UP(X, STEP) ((X + STEP - 1) / (STEP))
 

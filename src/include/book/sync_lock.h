@@ -17,9 +17,6 @@
 #include <book/semaphore2.h>
 #include <book/task.h>
 
-
-
-
 struct SyncLock {
 	struct Task *holder;			// 锁的持有者
 	#ifdef CONFIG_SEMAPHORE_M

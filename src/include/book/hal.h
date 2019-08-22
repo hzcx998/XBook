@@ -11,6 +11,7 @@
 #include <share/stdint.h>
 #include <share/types.h>
 #include <book/list.h>
+#include <book/debug.h>
 
 /* 
  * 硬件抽象层 （Hardware Abstraction Layer）
@@ -43,21 +44,24 @@ struct HalOperate  {
    void (*Close)();    //关闭函数
    void (*Ioctl)(unsigned int , unsigned int ); //控制设置
    void (*Destruct)(); //析构函数
-   
 };
 
 PUBLIC void InitHalEnvironment();
 PUBLIC void InitHalEarly();
 PUBLIC void InitHalKernel();
 
+PUBLIC struct Hal *HalNameToHal(char *name);
+
 PUBLIC int HalCreate(struct Hal *hal);
 PUBLIC int HalDestory(char *name);
 
+
 PUBLIC void HalOpen(char *name);
-PUBLIC int HalRead(char *name,unsigned char *buffer, unsigned int count);
-PUBLIC int HalWrite(char *name,unsigned char *buffer, unsigned int count);
 PUBLIC void HalClose(char *name);
+PUBLIC int HalRead(char *name, unsigned char *buffer, unsigned int count);
+PUBLIC int HalWrite(char *name, unsigned char *buffer, unsigned int count);
 PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param);
+
 
 /* 为一个hal结构赋值 */
 #define HAL_INIT(op, name) {&(op), name, }
@@ -66,7 +70,7 @@ PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param);
 #define HAL(hal, op, name) \
       struct Hal hal = HAL_INIT(op, name)
 
-#define HAL_EXTERN(hal) extern struct Hal hal
+#define HAL_EXTERN(hal) extern struct Hal (hal)
 
 
 /* 导入hal头文件 */
@@ -74,6 +78,7 @@ PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param);
 #include <hal/char/cpu.h>
 #include <hal/char/display.h>
 #include <hal/block/ram.h>
+#include <hal/char/keyboard.h>
 
 
 

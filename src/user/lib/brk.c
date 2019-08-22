@@ -5,7 +5,7 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
-#include <user/unistd.h>
+#include <share/unistd.h>
 #include <share/stdint.h>
 #include <share/types.h>
 #include <user/conio.h>
@@ -27,7 +27,7 @@ static void *__curbrk = 0;
  * 
  * 成功返回0，失败返回-1
  */
-int __brk(void *addr)
+int brk(void *addr)
 {
   	void *newbrk;
 
@@ -50,18 +50,18 @@ int __brk(void *addr)
  * 返回移动前的brk指针位置
  * 成功则返回brk地址，失败则返回-1指针，而不是NULL
  */
-void *__sbrk(int increment)
+void *sbrk(int increment)
 {
   	void *oldbrk;
   	/* If this is not part of the dynamic library or the library is used
 	via dynamic loading in a statically linked program update
 	__curbrk from the kernel's brk value.  That way two separate
-	instances of __brk and __sbrk can share the heap, returning
+	instances of brk and sbrk can share the heap, returning
 	interleaved pieces of it.  */
   	
 	/* If have not Initialized */
 	if (__curbrk == NULL)
-    	if (__brk (0) < 0)      /* Initialize the break.  */
+    	if (brk (0) < 0)      /* Initialize the break.  */
       		return (void *) -1;
 	
 	/* If no increment, return current brk. */
@@ -75,7 +75,7 @@ void *__sbrk(int increment)
   	if ((increment > 0 ?
     	((uint32_t) oldbrk + (uint32_t) increment < (uint32_t) oldbrk) :
        	((int32_t)oldbrk < -((int32_t)increment))) ||
-      	__brk ((void *)((int32_t)oldbrk + (int32_t)increment)) < 0)
+      	brk ((void *)((int32_t)oldbrk + (int32_t)increment)) < 0)
     	return (void *) -1;
 	
 	// printf("__sbrk: %x\n", oldbrk);

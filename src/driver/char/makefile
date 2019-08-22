@@ -20,6 +20,8 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 OBJS =  clock.o \
 		console.o \
 		timer.o \
+		keyboard.o \
+		mouse.o \
 
 #First read here
 .PHONY: all

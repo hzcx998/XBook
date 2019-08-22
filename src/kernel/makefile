@@ -30,6 +30,10 @@ OBJS = 	bitmap.o \
 		sleep_wakeup.o \
 		atomic.o \
 		exit_wait.o \
+		interrupt.o \
+		softirq.o \
+		workqueue.o \
+		ioqueue.o \
 		
 
 #First read here
