@@ -12,6 +12,12 @@
 /*系统平台*/
 #define CONFIG_ARCH_X86
 
+/* CPU的数据宽度 */
+#define CONFIG_ARCH_32
+//#define CONFIG_ARCH_64
+
+
+
 /* 调试配置 */
 //#define CONFI_SLAB_DEBUG
 

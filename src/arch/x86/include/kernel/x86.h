@@ -39,5 +39,6 @@ void X86Invlpg(uint32_t vaddr);
 void X86Cpuid(unsigned int id_eax, unsigned int *eax, \
         unsigned int *ebx, unsigned int *ecx, unsigned int *edx);
 
+void CpuNop();
 
 #endif	/*_ARCH_X86_H*/

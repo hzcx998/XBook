@@ -20,6 +20,10 @@
 #include <book/atomic.h>
 #include <driver/keyboard.h>
 #include <book/interrupt.h>
+#include <book/deviceio.h>
+#include <driver/ide.h>
+#include <book/vmalloc.h>
+#include <fs/partition.h>
 
 /*
  * 功能: 内核的主函数
@@ -38,7 +42,9 @@ int main()
 	InitSlabCacheManagement();
 
 	// 初始化虚拟内存区域
-	InitVirtualMemoryArea();
+	//InitVirtualMemoryArea();
+
+	InitVM_Area();
 
 	/* 初始化IRQ描述结构 */
 	InitIrqDescription();
@@ -55,27 +61,43 @@ int main()
 	// 打开中断标志
 	InterruptEnable();
 	
+	/* 初始化设备I/O */
+	InitDeviceIO();
+	
 	//初始化时钟驱动
 	InitClock();
 
-	// 初始化键盘驱动
+	/* 初始化键盘驱动 */
 	InitKeyboardDriver();
-
+	
+	/* 初始化IDE硬盘驱动 */
+	InitIDE_Driver();
+	
+	/* 初始化磁盘分区 */
+	InitDiskPartiton();
+	
+	BOFS_Test();
+	Spin("bofs test");
 	/* 初始化虚拟文件系统 */
 	InitVFS();
 	
 	/* 加载init进程 */
-	TaskExecuteFirstProcess("init", "init");
+	InitFirstProcess("init", "init");
 
+	int key = 0;
 	/* main thread 就是idle线程 */
 	while (1) {
+		key = DeviceGetc(DEVICE_KEYBOARD);
+		if (key != KEYCODE_NONE)
+			printk("%c", key); 
+
 		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
 		知道再次被阻塞 */
-		TaskBlock(TASK_BLOCKED);
+		//TaskBlock(TASK_BLOCKED);
 		/* 打开中断 */
-		EnableInterrupt();
+		//EnableInterrupt();
 		/* 执行cpu停机 */
-		CpuHlt();
+		//CpuHlt();
 	};
 	PART_END();
 	return 0;

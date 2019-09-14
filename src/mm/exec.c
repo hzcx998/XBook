@@ -449,8 +449,7 @@ PRIVATE int MakeArguments(char *buf, char **argv)
  */
 PUBLIC int SysExecv(const char *path, const char *argv[])
 {
-    
-    //printk(PART_TIP "execv: path %s\n", path);
+    printk(PART_TIP "execv: path %s\n", path);
     int ret = 0;
     /* 1.读取文件 */
     /* 打开文件 */

@@ -17,7 +17,9 @@
 #endif
 
 #ifndef __cplusplus
-#define bool _Bool      //C语言下实现Bool
+//#define bool _Bool      //C语言下实现Bool
+#define bool char      
+
 #define true 1
 #define false 0
 #endif

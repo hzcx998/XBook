@@ -31,12 +31,12 @@
 00000000000i[     ]   SB16 support: yes
 00000000000i[     ]   USB support: yes
 00000000000i[     ]   VGA extension support: vbe cirrus
-00000000000i[MEM0 ] allocated memory at 038CA020. after alignment, vector=038CB000
+00000000000i[MEM0 ] allocated memory at 03841020. after alignment, vector=03842000
 00000000000i[MEM0 ] 256.00MB
 00000000000i[MEM0 ] mem block size = 0x00100000, blocks=256
 00000000000i[MEM0 ] rom at 0xfffe0000/131072 ('D:/Softwares/Bochs-2.5/BIOS-bochs-latest')
 00000000000i[CMOS ] Using local time for initial clock
-00000000000i[CMOS ] Setting initial clock to: Fri Aug 09 00:29:46 2019 (time0=1565281786)
+00000000000i[CMOS ] Setting initial clock to: Tue Sep 10 14:09:25 2019 (time0=1568095765)
 00000000000i[DMA  ] channel 4 used by cascade
 00000000000i[DMA  ] channel 2 used by Floppy Drive
 00000000000i[FDD  ] fd0: '../img/a.img' ro=0, h=2,t=80,spt=18
@@ -44,7 +44,7 @@
 00000000000i[PCI  ] PIIX3 PCI-to-ISA bridge present at device 1, function 0
 00000000000i[MEM0 ] Register memory access handlers: 0x00000000000a0000 - 0x00000000000bffff
 00000000000i[WGUI ] Desktop Window dimensions: 1536 x 864
-00000000000i[WGUI ] Number of Mouse Buttons = 5
+00000000000i[WGUI ] Number of Mouse Buttons = 8
 00000000000i[WGUI ] IME disabled
 00000000000i[KMAP ] Loading keymap from 'D:/Softwares/Bochs-2.5/keymaps/x11-pc-us.map'
 00000000000i[KMAP ] Loaded 168 symbols
@@ -167,25 +167,26 @@
 00001875357i[BIOS ] ata0-0: PCHS=20/16/63 translation=none LCHS=20/16/63
 00001933504i[BIOS ] ata0-1: PCHS=20/16/63 translation=none LCHS=20/16/63
 00014262744i[BIOS ] Booting from 0000:7c00
-00405604000p[WGUI ] >>PANIC<< POWER button turned off.
-00405604000i[CPU0 ] CPU is in protected mode (active)
-00405604000i[CPU0 ] CS.mode = 32 bit
-00405604000i[CPU0 ] SS.mode = 32 bit
-00405604000i[CPU0 ] | EAX=0000032c  EBX=00000ec0  ECX=00dd432c  EDX=00dd4000
-00405604000i[CPU0 ] | ESP=81a0bf5c  EBP=81a0bf84  ESI=00000000  EDI=00000000
-00405604000i[CPU0 ] | IOPL=0 id vip vif ac vm rf nt of df if tf sf zf af pf cf
-00405604000i[CPU0 ] | SEG selector     base    limit G D
-00405604000i[CPU0 ] | SEG sltr(index|ti|rpl)     base    limit G D
-00405604000i[CPU0 ] |  CS:0008( 0001| 0|  0) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] |  DS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] |  SS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] |  ES:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] |  FS:002b( 0005| 0|  3) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] |  GS:002b( 0005| 0|  3) 00000000 ffffffff 1 1
-00405604000i[CPU0 ] | EIP=80104e8c (80104e8c)
-00405604000i[CPU0 ] | CR0=0xe0000011 CR2=0x7fffdffc
-00405604000i[CPU0 ] | CR3=0x00201000 CR4=0x00000000
-00405604000i[CPU0 ] 0x0000000080104e8c>> nop  : 90
-00405604000i[CMOS ] Last time is 1565281887 (Fri Aug 09 00:31:27 2019)
-00405604000i[     ] restoring default signal behavior
-00405604000i[CTRL ] quit_sim called with exit code 1
+00106469893i[CPU0 ] WARNING: HLT instruction with IF=0!
+00312000000p[WGUI ] >>PANIC<< Window closed, exiting!
+00312000000i[CPU0 ] CPU is in protected mode (halted)
+00312000000i[CPU0 ] CS.mode = 32 bit
+00312000000i[CPU0 ] SS.mode = 32 bit
+00312000000i[CPU0 ] | EAX=0000001f  EBX=20555043  ECX=00001ae0  EDX=000003d5
+00312000000i[CPU0 ] | ESP=8002ae6c  EBP=8002af98  ESI=8170a200  EDI=8009ef58
+00312000000i[CPU0 ] | IOPL=0 id vip vif ac vm rf nt of df if tf sf ZF af PF cf
+00312000000i[CPU0 ] | SEG selector     base    limit G D
+00312000000i[CPU0 ] | SEG sltr(index|ti|rpl)     base    limit G D
+00312000000i[CPU0 ] |  CS:0008( 0001| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] |  DS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] |  SS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] |  ES:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] |  FS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] |  GS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+00312000000i[CPU0 ] | EIP=8010010c (8010010c)
+00312000000i[CPU0 ] | CR0=0xe0000011 CR2=0x20555043
+00312000000i[CPU0 ] | CR3=0x00201000 CR4=0x00000000
+00312000000i[CPU0 ] 0x000000008010010c>> ret  : C3
+00312000000i[CMOS ] Last time is 1568095843 (Tue Sep 10 14:10:43 2019)
+00312000000i[     ] restoring default signal behavior
+00312000000i[CTRL ] quit_sim called with exit code 1

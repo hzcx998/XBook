@@ -110,7 +110,20 @@
 #define PAD_MID		PAD_5			/* Middle key	*/
 #define PAD_DEL		PAD_DOT			/* Del		*/
 
+/* 按键码 */
+#define KEYCODE_NONE		-1			/* 没有按键 */
+
+
+/* 键盘命令模式 */
+#define KEYBOARD_CMD_MODE	1
+
+/* 键盘以同步模式工作 */
+#define KEYBOARD_MODE_SYNC	0
+
+/* 键盘以异步模式工作 */
+#define KEYBOARD_MODE_ASYNC	1
 
 PUBLIC void InitKeyboardDriver();
+PUBLIC void ExitKeyboardDriver();
 
 #endif  /* _DRIVER_CHAR_KEYBOARD_H */

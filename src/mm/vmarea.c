@@ -32,7 +32,7 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
 	int ret;
 	address_t end = vaddr + size;
 	address_t physicAddr;
-
+	
 	// 有物理地址的映射
 	char withPhysic = 0;
 	if (paddr)
@@ -54,7 +54,7 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
 			if (!physicAddr)
 				break;
 		}
-		//printk(PART_TIP "LINK: %x with %x\n", addr, physicAddr);
+		//printk(PART_TIP "LINK: %x with %x\n", vaddr, physicAddr);
 
 		/* 不是自带物理页则说明需要用我们分配的页，不然和虚拟地址一样
 		页的保护设置成系统，可写
@@ -80,6 +80,7 @@ PRIVATE INLINE int VirtualMemoryAreaMapPages(address_t vaddr, address_t paddr, s
 
 	return ret;
 }
+
 /**
  * VirtualMemoryAreaUnmapPages - 取消虚拟内存区域映射页
  * @vaddr: 虚拟地址
@@ -101,21 +102,23 @@ PRIVATE INLINE int VirtualMemoryAreaUnmapPages(address_t vaddr, address_t paddr,
 
 	//printk(PART_TIP "VirtualMemoryAreaUnmapPages: start\n");
 	
-	//printk(PART_TIP "addr %x size %x end %x\n", addr, size, end);
+	//printk(PART_TIP "addr %x size %x end %x\n", vaddr, size, end);
 	do {
 		physicAddr = PageUnlinkAddress(vaddr);
-		//printk(PART_TIP "get physicl addr %x\n", physicAddr);
-		
+		//printk(PART_TIP "vir %x get physicl addr %x\n", vaddr, physicAddr);
 		// 检测地址是否正确
 		if (!physicAddr)
 			return -1;
-
+		
 		// 不是自带物理页则说明需要释放已经分配的页
 		if (!withPhysic) {
-			FreePage(physicAddr);
+			//printk("free page %x\n", physicAddr);
+			//FreePage(physicAddr);
 		}
+		//printk("free over\n");
 		vaddr += PAGE_SIZE;
 	} while (vaddr && vaddr < end);
+		
 	//printk(PART_TIP "VirtualMemoryAreaUnmapPages: end\n");
 	return 0;
 }
@@ -246,17 +249,17 @@ PUBLIC void vfree(void *addr)
 		if (tmp->addr == addr && tmp->size) {
 			// 把地址对应的area从区域链表中删除
 			*p = tmp->next;
-
+			//printk(PART_TIP "vfree at %x size %x\n", (address_t )addr, tmp->size);
+			//Panic("test");
 			// 取消虚拟地址和物理页的映射
 			VirtualMemoryAreaUnmapPages((address_t)tmp->addr, 0, tmp->size);
 
 			// 释放area占用的内存
 			kfree(tmp);
-			//printk(PART_TIP "vfree at %x size %x\n", (address_t )addr, tmp->size);
 			return;
 		}
 	}
-	printk(PART_TIP "vfree address not exist in vma(%x)!", (address_t)addr);
+	//printk(PART_TIP "vfree address not exist in vma(%x)!", (address_t)addr);
 }
 
 /** 
@@ -360,21 +363,38 @@ PRIVATE void VirtualMemoryAreaTest()
 	// ----
 	printk(PART_TIP "----virtual memory area test----\n");
 
-	void *table[5];
+	//Panic("test");
+
+	char *vaddr = vmalloc(PAGE_SIZE*10);
+	memset(vaddr, 0, PAGE_SIZE);
+	
+	printk("vaddr %x\n", vaddr);
+
+	vfree(vaddr);
+
+	//Spin("vaddr");
 	int i;
+	void *table[5];
 	for (i = 0; i < 5; i++) {
 		table[i] = vmalloc(i*50*PAGE_SIZE);
-		memset(table[i], 0x5a, i*50*PAGE_SIZE);
-		printk(PART_TIP "vmalloc: %x size %x B\n", table[i], i*50*PAGE_SIZE);
+		if (table[i]) {
+			memset(table[i], 0x5a, i*50*PAGE_SIZE);
+			printk(PART_TIP "vmalloc: %x size %x B\n", table[i], i*50*PAGE_SIZE);
+		}
 	}
+
 	char *a = vmalloc(8*KB);
 	printk(PART_TIP "vmalloc: %x size %x\n", a, 8*KB);
 	memset(a, 0, 8*KB);
-	// vfree(a);
+	
+	vfree(a);
+	
 	printk(PART_TIP "vfree: %x \n", a);
 	for (i = 0; i < 5; i++) {
-		vfree(table[i]);
-		printk(PART_TIP "vfree: %x\n", table[i]);
+		if (table[i]) {
+			vfree(table[i]);
+			printk(PART_TIP "vfree: %x\n", table[i]);
+		}
 	}
 	
 	void *mapAddr = vmap(0xe0000000, 4*MB); 
@@ -406,6 +426,8 @@ PRIVATE void VirtualMemoryAreaListInit()
 	vmaList->addr = (void *)ZONE_DYNAMIC_ADDR;
 	vmaList->size = 0;
 	vmaList->pages = 0;
+
+	//vmalloc(PAGE_SIZE);
 } 
 
 /**
@@ -417,9 +439,9 @@ PUBLIC INIT void InitVirtualMemoryArea()
 
 	VirtualMemoryAreaListInit();
 	//VirtualMemoryAreaTest();
-	
-	MmuMemoryInfo();
-    //Spin("InitZone");
+	//Spin("InitZone");
 
+	MmuMemoryInfo();
+    
 	PART_END();
 }

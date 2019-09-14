@@ -44,7 +44,7 @@ PRIVATE INLINE void WaitQueueAdd(struct WaitQueue *waitQueue, struct Task *task)
 
 	/* 确保任务不在等待队列中 */
 	ASSERT(!ListFind(&task->list, &waitQueue->waitList));
-
+	
 	/* 添加到等待队列中，添加到最后 */
 	ListAddTail(&task->list, &waitQueue->waitList);
 

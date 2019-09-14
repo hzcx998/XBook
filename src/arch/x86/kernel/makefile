@@ -30,6 +30,7 @@ OBJS =  arch.o \
 		interrupt.o \
 		pic.o \
 		cpu.o \
+		cmos.o \
 		
 #First read here
 .PHONY: all

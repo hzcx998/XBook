@@ -83,7 +83,7 @@ PUBLIC void TaskUnblock(struct Task *thread);
 
 PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void *arg);
 PUBLIC void ThreadExit(struct Task *thread);
-PUBLIC struct Task *TaskExecute(void *fileName, char *name);
+PUBLIC struct Task *InitFirstProcess(void *fileName, char *name);
 
 PUBLIC pid_t ForkPid();
 

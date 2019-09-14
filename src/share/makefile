@@ -18,7 +18,8 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 
 OBJS = 	string.o \
 		vsprintf.o \
-		math.o 
+		math.o \
+		ctype.o 
 
 #First read here
 .PHONY: all

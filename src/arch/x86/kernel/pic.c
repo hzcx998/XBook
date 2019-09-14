@@ -46,6 +46,7 @@ PRIVATE void PicEnable(unsigned int irq)
 		EnableIRQ(IRQ2_CONNECT);
 
 	EnableIRQ(irq);
+	
 }
 
 /**

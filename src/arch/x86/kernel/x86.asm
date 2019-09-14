@@ -33,6 +33,7 @@ global 	PortWrite
 global 	x86CpuUD2
 global 	X86Invlpg
 global 	X86Cpuid
+global 	CpuNop
 
 [section .text]
 [bits 32]
@@ -188,5 +189,8 @@ X86Cpuid: 	; void X86Cpuid(unsigned int id_eax, unsigned int *eax,
 	mov [edi], edx
 	ret
 
-
+; void CpuNop();
+CpuNop:
+	nop
+	ret
 

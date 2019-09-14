@@ -10,6 +10,7 @@
 #include <book/task.h>
 #include <book/vmspace.h>
 #include <driver/clock.h>
+#include <book/vfs.h>
 
 
 /* 系统调用表 */ 
@@ -25,4 +26,10 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysExit,
     SysWait,
     SysBrk,
+    SysOpen,
+    SysClose,
+    SysRead,
+    SysWrite,
+    SysStat,
+    SysLseek,
 };

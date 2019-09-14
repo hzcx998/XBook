@@ -12,7 +12,6 @@
 #include <share/string.h>
 #include <share/math.h>
 
-
 /*
  * 如果是32位系统就有13个，不然就12个（少一个32字节的）
  * 通过页的大小来选择cache数量
@@ -25,7 +24,7 @@
 
 /* 
  * 通过页的大小来选择slab cache的最小的大小
- * 如果是32位的系统，那么就选择32，如果是位的
+ * 如果是32位的系统，那么就选择16，如果是位的
  * 就选择
  */
 #if PAGE_SIZE == 4096
@@ -736,7 +735,6 @@ PUBLIC void *kmalloc(size_t size, unsigned int flags)
 	if (size > MAX_SLAB_CACHE_SIZE)
 		return NULL;
 	
-
 	// 判断是否有标志
 	if (!flags) 
 		return NULL;

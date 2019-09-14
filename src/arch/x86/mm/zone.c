@@ -575,7 +575,6 @@ PRIVATE void ZoneBuddySystemTest()
             FreePages(paddr, i);
         }
     }
-    Spin("ZoneBuddySystemTest");
     unsigned int size = 0;
     for (i = 0; i < MAX_ORDER; i++) {
         paddr =  GetFreePages(ZONE_STATIC, i);
@@ -607,7 +606,7 @@ PRIVATE void ZoneBuddySystemTest()
             FreePages(paddr, i);
         }
     }
- 
+    
 }
 
 /* 
@@ -680,8 +679,9 @@ PUBLIC void InitZone()
     #ifdef CONFIG_ZONE_DEBUG
     printk(" |- bootmem:%x \n", BootMemPosition());
     #endif
-    //ZoneBuddySystemTest();
 
-   
+    ZoneBuddySystemTest();
+
+    //Panic("page");
     PART_END();
 }

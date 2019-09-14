@@ -11,6 +11,10 @@ NASM		= nasm
 
 INCLUDE_PATH = ../include/
 
+ABSURD_PATH = absurd/
+BOFS_PATH = bofs/
+
+
 #flags
 C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-fno-builtin -nostdlib \
@@ -20,6 +24,7 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
 OBJS = 	vfs.o \
+		partition.o \
 		
 #First read here
 .PHONY: all
@@ -28,11 +33,13 @@ all: compile
 
 #Compile files
 compile: $(OBJS)
-	
+	cd $(BOFS_PATH) && make
+
 #Clean temporary files
 clean:
 	-rm *.o
-	
+	cd $(BOFS_PATH) && make clean
+
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<
 

@@ -41,6 +41,7 @@ Entry:
 	call LoadeFile
 	call LoadeFile2
 	call LoadeFile3
+	call LoadeFile4
 	call KillMotor	;我们不再使用软盘，所以这里关闭软盘驱动
 	call CheckMemory
 
@@ -207,9 +208,6 @@ LoadeKernel:
 	mov cx, BLOCK_SIZE
 	call LoadeBlock
 
-
-
-
 	ret
 
 ;在这个地方把file加载到一个内存
@@ -286,6 +284,33 @@ LoadeFile3:
 	;call LoadeBlock
 	
 	ret
+
+
+;在这个地方把file加载到一个内存
+LoadeFile4:
+	;loade file
+	;first block 128 sectors
+	;把内核文件加载到段为FILE_SEG（0x4200）的地方，也就是物理内存
+	;为0x42000的地方，一次性加载BLOCK_SIZE（128）个扇区
+	;写入参数
+	mov ax, FILE4_SEG
+	mov si, FILE4_OFF
+	mov cx, 100
+	;调用读取一整个块的扇区数据函数，其实也就是循环读取128个扇区，只是
+	;把它做成函数，方便调用
+	call LoadeBlock
+	
+	;second block 128 sectors
+	;当读取完128个扇区后，我们的缓冲区位置要改变，也就是增加128*512=0x10000
+	;的空间，由于ax会给es，所以这个地方用改变段的位置，所以就是0x1000,
+	;扇区的位置是保留在si中的，上一次调用后，si递增了128，所以这里我们不对
+	;si操作
+	;add ax, 0x1000
+	;mov cx, BLOCK_SIZE
+	;call LoadeBlock
+	
+	ret
+
 ;Global Descriptor Table,GDT
 ;gdt[0] always null
 ;1个gdt描述符的内容是8字节，可以根据那个描述得结构来分析这个结构体里面的内容

@@ -27,6 +27,32 @@ int main(int argc, char *argv[])
 	printf("I will do some test and exit\n");	
 	// return 0;
 	
+
+	printf("----file test----\n");
+	int fd = open("bee", O_RDONLY);
+	if (fd == -1) {
+		printf("fd error\n");
+		exit(-1);
+	}
+
+	char fb[10];
+	memset(fb, 0, 10);
+	if (read(fd, fb, 10) != 10) {
+		printf("read error\n");
+	}
+	printf("%x %x\n", fb[0], fb[9]);
+
+	lseek(fd, 10, SEEK_SET);
+	
+	memset(fb, 0, 10);
+	if (read(fd, fb, 10) != 10) {
+		printf("read error\n");
+	}
+	printf("%x %x\n", fb[0], fb[9]);
+
+	close(fd);
+
+	while(1);
 	if (brk(0)) {
 		printf("brk failed!\n");
 	}

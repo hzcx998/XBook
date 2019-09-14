@@ -21,15 +21,11 @@ int main(int argc, char *argv[])
 	} else if (pid == 0) {
 		printf("I am child. my pid %d\n", getpid());
 		
-		//while(1);
+		const char *arg[2];
 		
-		const char *arg[4];
-		
-		arg[0] = "hello";
-		arg[1] = "world";
-		arg[2] = "xbook!";
-		arg[3] = 0;
-		
+		arg[0] = "test";
+		arg[1] = 0;
+
 		execv("test", arg);	
 	}
 	return 0;

@@ -16,6 +16,8 @@
 #include <share/math.h>
 #include <book/interrupt.h>
 
+PUBLIC struct SystemDate systemDate;
+
 PRIVATE int ticks;
 
 /**
@@ -33,9 +35,66 @@ PRIVATE void ClockHnadler(unsigned int irq, unsigned int data)
 	
 }
 
+/**
+ * ClockChangeSystemDate - 改变系统的时间
+*/
+PRIVATE void ClockChangeSystemDate()
+{
+	systemDate.second++;
+	if(systemDate.second >= 60){
+		systemDate.minute++;
+		systemDate.second = 0;
+		if(systemDate.minute >= 60){
+			systemDate.hour++;
+			systemDate.minute = 0;
+			if(systemDate.hour >= 24){
+				systemDate.day++;
+				systemDate.hour = 0;
+				//现在开始就要判断平年和闰年，每个月的月数之类的
+				if(systemDate.day > 30){
+					systemDate.month++;
+					systemDate.day = 1;
+					
+					if(systemDate.month > 12){
+						systemDate.year++;	//到年之后就不用调整了
+						systemDate.month = 1;
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * PrintSystemDate - 打印系统时间
+ */
+PUBLIC void PrintSystemDate()
+{
+	printk(PART_TIP "----Time & Date----\n");
+
+	printk("Time:%d:%d:%d Date:%d/%d/%d\n", \
+		systemDate.hour, systemDate.minute, systemDate.second,\
+		systemDate.year, systemDate.month, systemDate.day);
+	
+	/*char *weekday[7];
+	weekday[0] = "Monday";
+	weekday[1] = "Tuesday";
+	weekday[2] = "Wednesday";
+	weekday[3] = "Thursday";
+	weekday[4] = "Friday";
+	weekday[5] = "Saturday";
+	weekday[6] = "Sunday";
+	printk("weekday:%d", systemDate.weekDay);
+	*/
+
+}
+
 /* 定时器软中断处理 */
 PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 {
+	/* 改变系统时间 */
+	ClockChangeSystemDate();
+
 	/* 更新定时器 */
 	UpdateTimerSystem();
 }
@@ -74,6 +133,7 @@ PRIVATE void SleepByTicks(uint32_t sleepTicks)
 }
 
 /**
+ 
  * SysMSleep - 以毫秒为单位进行休眠
  */
 PUBLIC void SysMSleep(uint32_t msecond)
@@ -96,6 +156,26 @@ PUBLIC void InitClock()
 	HalOpen("clock");
 
 	ticks = 0;
+
+	//用一个循环让秒相等
+	do{
+		systemDate.year = CMOS_GetYear();
+		systemDate.month = CMOS_GetMonHex();
+		systemDate.day = CMOS_GetDayOfMonth();
+		
+		systemDate.hour = CMOS_GetHourHex();
+		systemDate.minute =  CMOS_GetMinHex8();
+		systemDate.second = CMOS_GetSecHex();
+		systemDate.weekDay = CMOS_GetDayOfWeek();
+		
+		/* 转换成本地时间 */
+		/*if(systemDate.hour >= 16){
+			systemDate.hour -= 16;
+		}else{
+			systemDate.hour += 8;
+		}*/
+
+	}while(systemDate.second != CMOS_GetSecHex());
 
 	/* 初始化定时器 */
 	InitTimer();

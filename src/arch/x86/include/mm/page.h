@@ -69,7 +69,7 @@ typedef unsigned int pte_t;
 但我知道这样算就可以能够得出结果。2019/7/4注
 */
 #define PAGE_MARK_USED(index, order, area) \
-	BitmapChange(&((area)->map), index >> (1 + order))
+	BitmapChange(&((area)->map), (index) >> (1 + (order)))
 
 #define PAGE_TO_ADDR(page, zone) (zone->physicStart + (page - zone->pageArray)*PAGE_SIZE)
 
@@ -153,6 +153,8 @@ PUBLIC uint32_t PageAddrV2P(uint32_t vaddr);
 PUBLIC int MapPages(uint32_t start, uint32_t len, 
 		flags_t flags, unsigned int prot);
 PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
+
+PUBLIC int GetPagesOrder(uint32_t pages);
 
 PRIVATE INLINE pde_t *GetPageDirTable()
 {

@@ -16,3 +16,9 @@ SYS_MSLEEP      EQU 7
 SYS_EXIT        EQU 8
 SYS_WAIT        EQU 9
 SYS_BRK         EQU 10
+SYS_OPEN        EQU 11
+SYS_CLOSE       EQU 12
+SYS_READ        EQU 13
+SYS_WRITE       EQU 14
+SYS_LSEEK       EQU 15
+SYS_STAT        EQU 16

@@ -17,8 +17,27 @@
 #include <driver/timer.h>
 
 /* ----中断上半部分---- */
+/* IRQ 编号 */
+enum {
+    IRQ0 = 0,
+    IRQ1,
+    IRQ2,
+    IRQ3,
+    IRQ4,
+    IRQ5,
+    IRQ6,
+    IRQ7,
+    IRQ8,
+    IRQ9,
+    IRQ10,
+    IRQ11,
+    IRQ12,
+    IRQ13,
+    IRQ14,
+    IRQ15,
+    NR_IRQS
+};
 
-#define NR_IRQS     16
 
 #define IRQF_DISABLED       0x01
 #define IRQF_SHARED         0x02
@@ -229,7 +248,7 @@ PUBLIC void PrintWorkQueue();
  * @func: 工作要执行的函数
  */
 #define DECLEAR_WORK(name, func) \
-    struct Work name = {0, LIST_HEAD_INIT(&name.list), func}
+    struct Work name = {0, LIST_HEAD_INIT(name.list), func}
 
 /**
  * WorkInit - 工作的初始化

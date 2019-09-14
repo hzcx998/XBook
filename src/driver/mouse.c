@@ -12,7 +12,7 @@
 #include <driver/mouse.h>
 #include <book/ioqueue.h>
 #include <hal/char/keyboard.h>
-
+#include <share/string.h>
 
 #define KEYCMD_SENDTO_MOUSE		0xd4
 #define MOUSECMD_ENABLE			0xf4

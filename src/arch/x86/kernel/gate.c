@@ -175,8 +175,6 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 		// 中断栈
 	struct TrapFrame *frame = (struct TrapFrame *)((uint32_t )esp);
 
-	struct Task *task = CurrentTask();
-
 	// 0x2f是从片8259A上的最后一个irq引脚，保留
 	if (frame->vec_no == 0x27 || frame->vec_no == 0x2f) {	
       	return;		//IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
@@ -191,7 +189,7 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 	
 	ConsolePrint("vec: %x\n", 
 			frame->vec_no);
-	
+	Panic("expection");
 	ConsolePrint("edi: %x esi: %x ebp: %x esp: %x\n", 
 			frame->edi, frame->esi, frame->ebp, frame->esp);
 	ConsolePrint("ebx: %x edx: %x ecx: %x eax: %x\n", 
@@ -223,11 +221,9 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 		}
 		ConsolePrint("    Selector: idx %d\n", (frame->errorCode&0xfff8)>>3);
 	}
-	ConsolePrint("    task %s %x kstack %x.\n", task->name, task, task->kstack);
+	/*ConsolePrint("    task %s %x kstack %x.\n", task->name, task, task->kstack);
 	ConsolePrint("    pgdir %x cr3 %x\n", task->pgdir, PageAddrV2P((uint32_t)task->pgdir));
-	
-
-	
+	*/	
    	if (frame->vec_no == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
       	unsigned int pageFaultVaddr = 0; 
 		pageFaultVaddr = ReadCR2();
@@ -238,7 +234,7 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 	ConsolePrint("! Exception Messag done.\n");
   	// 能进入中断处理程序就表示已经处在关中断情况下,
   	// 不会出现调度进程的情况。故下面的死循环不会再被中断。
-   	while(1);
+   	Panic("expection");
 }
 
 /* 完成一般中断处理函数注册及异常名称注册 */

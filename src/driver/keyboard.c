@@ -13,6 +13,8 @@
 #include <driver/keymap.h>
 #include <book/ioqueue.h>
 #include <hal/char/keyboard.h>
+#include <book/deviceio.h>
+#include <share/string.h>
 
 /*
 键盘的私有数据
@@ -32,6 +34,9 @@ struct KeyboardPrivate {
 	
 	int rowData;	/* 原始数据 */
 	int keyData;	/* 解析后的数据 */
+
+	char workMode;	/* 工作模式 */
+	struct WaitQueue callerWaitQueue;		/* 调用者等待队列 */
 };
 
 /* 键盘的私有数据 */
@@ -44,16 +49,19 @@ PRIVATE struct KeyboardPrivate keyboardPrivate;
 PRIVATE void SetKeyData(unsigned int key)
 {
 	keyboardPrivate.keyData = key;
+	/* 唤醒等待队列中的一个任务 */
+	WaitQueueWakeUp(&keyboardPrivate.callerWaitQueue);
 }
 
 /**
  * GetKeyData - 获取字符的数据
+ * 
+ * 把键盘值返回给调用者
  */
 PRIVATE unsigned int GetKeyData()
 {
 	unsigned int data = keyboardPrivate.keyData;
 	keyboardPrivate.keyData = 0;
-
 	return data;
 }
 
@@ -415,23 +423,23 @@ PRIVATE void TaskAssistHandler(unsigned int data)
 	AnalysisKeyboard();
 	
 	/* 获取解析后的键值 */
-	unsigned int keyData = GetKeyData();
+	/*unsigned int keyData = GetKeyData();
 	if (keyData != 0) {
 		printk("%c", keyData);
-		/* 应该在这里把按键值传递给其他地方。 */
-		
-	}
+		// 应该在这里把按键值传递给其他地方。
+
+	}*/
 }
 
 /* 键盘任务协助 */
 PRIVATE struct TaskAssist keyboardAssist;
 
 /**
- * KeyboardHnadler - 时钟中断处理函数
+ * KeyboardHandler - 时钟中断处理函数
  * @irq: 中断号
  * @data: 中断的数据
  */
-PRIVATE void KeyboardHnadler(unsigned int irq, unsigned int data)
+PRIVATE void KeyboardHandler(unsigned int irq, unsigned int data)
 {
 	/* 先从硬件获取按键数据 */
 	//HalRead("keyboard", (unsigned char *)&keyboardPrivate.rowData, 4);
@@ -444,7 +452,7 @@ PRIVATE void KeyboardHnadler(unsigned int irq, unsigned int data)
 /**
  * InitKeyboard - 初始化键盘驱动
  */
-PUBLIC void InitKeyboardDriver()
+PRIVATE int KeyboardInit(struct DeviceEntry *deviceEntry)
 {
 	PART_START("Keyboard driver");
 
@@ -462,6 +470,9 @@ PUBLIC void InitKeyboardDriver()
 	keyboardPrivate.keyData = 0;
 	keyboardPrivate.rowData = 0;
 
+	keyboardPrivate.workMode = KEYBOARD_MODE_SYNC;
+	WaitQueueInit(&keyboardPrivate.callerWaitQueue, NULL);
+
 	//打开时钟硬件抽象
 	HalOpen("keyboard");
 	
@@ -469,7 +480,139 @@ PUBLIC void InitKeyboardDriver()
 	TaskAssistInit(&keyboardAssist, TaskAssistHandler, 0);
 
 	/* 注册时钟中断并打开中断 */	
-	RegisterIRQ(IRQ1_KEYBOARD, &KeyboardHnadler, IRQF_DISABLED, "Keyboardirq", "Keyboard", 0);
+	RegisterIRQ(deviceEntry->irq, deviceEntry->Handler, IRQF_DISABLED, "IRQ1", deviceEntry->name, 0);
 
 	PART_END();
+	return 0;
+}
+
+/**
+ * KeyboardOpen - 键盘打开
+ * 
+ */
+PRIVATE int KeyboardOpen(struct DeviceEntry *deviceEntry, char *name, char *mode)
+{
+	/* 设置工作模式 */
+	if (!strcmp(mode, "sync"))
+		keyboardPrivate.workMode = KEYBOARD_MODE_SYNC;
+	else if (!strcmp(mode, "async"))
+		keyboardPrivate.workMode = KEYBOARD_MODE_ASYNC;
+	
+	return 0;
+}
+
+PRIVATE int KeyboardClose(struct DeviceEntry *deviceEntry)
+{
+	
+	return 0;
+}
+
+/**
+ * KeyboardGetc - 获取字符
+ * @deviceEntry: 设备项
+ * 
+ * 获取字符有2中模式
+ * 1.同步：获取字符，有数据就返回数据，不然就休眠
+ * 2.异步：获取字符，有数据就返回数据，没有数据就直接诶返回
+ * 
+ * 无值就为-1，成功则>=0
+ */
+PRIVATE int KeyboardGetc(struct DeviceEntry *deviceEntry)
+{
+	struct Task *current = CurrentTask();
+	int keyData;
+	if (keyboardPrivate.workMode == KEYBOARD_MODE_SYNC) {
+		/* 查看是否已经有数据了 */
+		keyData = GetKeyData();
+		/* 有效的数据 */
+		if (keyData != 0) {
+			return keyData;
+		}
+		
+		/* 添加到等待队列 */
+		WaitQueueAdd(&keyboardPrivate.callerWaitQueue, current);
+		/* 设置为阻塞状态 */
+		current->status = TASK_BLOCKED;
+		/* 调度任务，让自己休眠 */
+		Schedule();
+		
+		/* 唤醒后获取一个数据并返回 */
+		keyData = GetKeyData();
+		
+		return keyData;
+	} else if (keyboardPrivate.workMode == KEYBOARD_MODE_ASYNC) {
+		/* 直接获取并返回 */
+		keyData = GetKeyData();
+		if (keyData == 0)
+			return -1;
+		else
+			return keyData;
+	}
+
+	return -1;
+}
+
+/**
+ * KeyboardIoctl - 键盘的IO控制
+ * @deviceEntry: 设备项
+ * @cmd: 命令
+ * @arg1: 参数1
+ * @arg2: 参数2
+ * 
+ * 成功返回0，失败返回-1
+ */
+PRIVATE int KeyboardIoctl(struct DeviceEntry *deviceEntry, int cmd, int arg1, int arg2)
+{
+	int retval = 0;
+	switch (cmd)
+	{
+	case KEYBOARD_CMD_MODE:
+		/* 如果是模式命令就设置模式 */
+		if (arg1 == KEYBOARD_MODE_SYNC || arg1 == KEYBOARD_MODE_ASYNC)
+			keyboardPrivate.workMode = arg1;
+		else 
+			retval = -1;	/* 失败 */
+		break;
+		
+	default:
+		/* 失败 */
+		retval = -1;
+		break;
+	}
+
+	return retval;
+}
+
+struct DeviceOperate operate = {
+	.Init =  &KeyboardInit, 
+	.Open = &KeyboardOpen, 
+	.Close = &KeyboardClose, 
+	.Read = (void *)&IoNull, 
+	.Write = (void *)&IoNull,
+	.Getc = &KeyboardGetc, 
+	.Putc = (void *)&IoNull, 
+	.Ioctl = &KeyboardIoctl, 
+};
+
+/**
+ * InitKeyboardDriver - 初始化键盘驱动
+ */
+PUBLIC void InitKeyboardDriver()
+{
+	/* 注册键盘驱动到系统中去 */
+	RegisterDevice(DEVICE_KEYBOARD, 0, "keyboard", 
+		&operate, &keyboardPrivate, &KeyboardHandler, IRQ1_KEYBOARD);
+
+	DeviceInit(DEVICE_KEYBOARD);
+	DeviceOpen(DEVICE_KEYBOARD, "keyboard", "async");
+}
+
+/**
+ * ExitKeyboardDriver - 退出键盘驱动
+ */
+PUBLIC void ExitKeyboardDriver()
+{
+	/* 关闭设备后注销中断 */
+	DeviceClose(DEVICE_KEYBOARD);
+	UnregisterIRQ(IRQ1, 0);
 }

@@ -77,7 +77,7 @@ InterruptEntry%1:		 ; 每个中断处理程序都要压入中断向量号,所以
    
    ; softirq
    call DoSoftirq
-      
+
    jmp InterruptExit
 
 %endmacro

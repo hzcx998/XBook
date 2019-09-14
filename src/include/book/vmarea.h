@@ -15,9 +15,8 @@
 
 /* 虚拟地址区域的标志 */
 
-#define VMA_ALLOC    0X00000001     // vmalloc使用
-#define VMA_MAP  0X00000002     // vmap使用
-
+#define VMA_ALLOC       0X00000001     // vmalloc使用
+#define VMA_MAP         0X00000002     // vmap使用
 
 /**
  * VirtualMemoryArea - 虚拟内存区域

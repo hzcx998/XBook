@@ -23,6 +23,12 @@ enum {
     SYS_EXIT,
     SYS_WAIT,
     SYS_BRK,
+    SYS_OPEN,
+    SYS_CLOSE,
+    SYS_READ,
+    SYS_WRITE,
+    SYS_LSEEK,
+    SYS_STAT,
     MAX_SYSCALL_NR,
 };
 

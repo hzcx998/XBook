@@ -1,10 +1,28 @@
 #----
-#file:		hal/makefile
-#auther: 	Jason Hu
-#time: 		2019/6/22
+#File: 		driver/char/makefile
+#Auther: 	Jason Hu
+#Time: 		2019/6/26
 #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
+#The tools name
+CC			= gcc
+
+#The file path
+INCLUDE_PATH = ../include/
+
+#flags
+C_FLAGS	= -c -fno-builtin -nostdlib \
+	-I $(INCLUDE_PATH) \
+	-Wall -Wunused \
+	-m32 -fno-stack-protector
+
+OBJS =  clock.o \
+		console.o \
+		timer.o \
+		keyboard.o \
+		mouse.o \
+		ide.o \
 
 #First read here
 .PHONY: all
@@ -12,11 +30,12 @@
 all: compile
 
 #Compile files
-compile: 
-	cd char && make
-	
+compile: $(OBJS)
 
 #Clean temporary files
 clean:
-	cd char && make clean
+	-rm *.o
+	
+%.o: %.c
+	$(CC) $(C_FLAGS) -o $@ $<
 	

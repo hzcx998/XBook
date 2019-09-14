@@ -121,7 +121,7 @@ PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAdd
  * 尝试把大的页拆分成小的页，当从low到high中没有空闲页时来做这就事
  * 注意，这里返回页指针
  */
-PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page, 
+PRIVATE struct Page *PageExpand(struct Zone *zone, struct Page *page, 
 		unsigned int index, int low, int high, struct FreeArea *area)
 {
 	//先计算出size的大小，这里不是页的大小，而是area能够容纳的list大小
@@ -156,10 +156,6 @@ PRIVATE INLINE struct Page *PageExpand(struct Zone *zone, struct Page *page,
 			Panic("zone bad range-> zone %s start %x end %x page %x", 
 				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, page);
 
-	// 统计空间页的使用数量
-	zone->pageFreeCount -= 1 << low;
-	zone->pageUsingCount += 1 << low;
-	
 	/* 
 	返回找到的最小的那个页
 	如果有order变化就会是新找到的页，
@@ -249,9 +245,14 @@ PRIVATE struct Page *__PagesAlloc(unsigned int flags, unsigned int order, struct
 			printk(" |- __PagesAlloc: zone %s pages:%d index:%d \norder:%d area:%x page %x\n", 
 					zone->name, zone->pageTotalCount,  index, new_order, area, page); 
 			 */
-			//在area中把它标记为使用
-			PAGE_MARK_USED(index, order, area);
-
+			/* 不是最大的order才标记 */
+			if (new_order != MAX_ORDER -1)
+				PAGE_MARK_USED(index, order, area); //在area中把它标记为使用
+			
+			// 统计空间页的使用数量
+			zone->pageFreeCount -= 1UL << order;
+			zone->pageUsingCount += 1UL << order;
+			
 			// 找到大的页，把它拆分成合适的页
 			return PageExpand(zone, page, index, order, new_order, area);
 		}
@@ -327,35 +328,47 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 	//计算page在order中位图的索引
 	unsigned int index = pageIdx >> (1 + order);
 
-	unsigned int mask = (~0) << order;
+	unsigned int mask = (~0UL) << order;
+
+	/* 页的索引出错 */
+	if (pageIdx & ~mask) {
+		Panic("page idx error!\n");
+	}
 
 	//获取order对应的area
 	struct FreeArea *area = zone->freeArea + order;
 
-	/* 
+	/*
 	printk("order:%d area:%x page idx:%d index:%d mask:%x\n", \
 		order, area, pageIdx, index, mask);
 	*/
-
 	struct Page *buddy1;
-	//struct Page *buddy2;
+	struct Page *buddy2;
 	
 	// 统计空间页的使用数量
-	zone->pageFreeCount += 1 << order;
-	zone->pageUsingCount -= 1 << order;
+	zone->pageFreeCount += 1 << mask;
+	zone->pageUsingCount -= 1 << mask;
 	
 
 	while (mask + (1 << (MAX_ORDER - 1))) {
+		if (area >= zone->freeArea + MAX_ORDER) {
+			Panic("area error!\n");
+		}
+		
 		//检测取反前是否为0，如果是0，那么取反后为1，就不能释放了
 		if (!BitmapTestAndChange(&area->map, index)) {
 			break;
 		}
 		//根据算法获取buddy的指针
 		buddy1 = zone->pageArray + (pageIdx ^ -mask);
-		//buddy2 = zone->pageArray + pageIdx;
+		buddy2 = zone->pageArray + pageIdx;
 		if (ZONE_BAD_RANGE(zone, buddy1))
 			Panic("zone bad range-> zone %s start %x end %x page %x", 
 				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy1);
+		
+		if (ZONE_BAD_RANGE(zone, buddy2))
+			Panic("zone bad range-> zone %s start %x end %x page %x", 
+				zone->name, zone->pageArray, zone->pageArray + zone->pageTotalCount, buddy2);
 		
 		//NOTE:检查buddy的值是否符合范围
 
@@ -364,11 +377,18 @@ PRIVATE void __PagesFree(struct Page *page, unsigned int order, struct Zone *zon
 		//printk("->ListDel:%x ", &buddy1->list);
 		//printk(" |- order %d buddy %x area %x index %d total %d\n", order, buddy1, area, index, zone->pageTotalCount);
 
+		//printk("buddy addr %x\n", PageToPhysicAddress(buddy1));
 		// 把buddy从对应的area中删除，等会儿合并到更高的order中去
+		
+		//printk("list %x\n", &buddy1->list);
+
+		/* 在队列中才进行删除 */
+		//if (ListFind(&buddy1->list, &area->pageList)) {
 		ListDel(&buddy1->list);
-		//printk("->ListDel \n");
+			//printk("find \n");
+		//}
 		//向上移动order
-		order++;
+		//order++;
 		//area 也改变成更高的
 		area++;
 		//index也移动到更高级的order，变成更高的area中的map的索引
@@ -419,7 +439,7 @@ PUBLIC void PagesFree(struct Page *page, unsigned int order)
  * 
  * 成功返回order，失败返回-1
  */
-PRIVATE int GetPagesOrder(uint32_t pages)
+PUBLIC int GetPagesOrder(uint32_t pages)
 {
 	
 	/* 如果传入的页数不为正，或者页数超过最大可分配页数，就失败 */
@@ -452,7 +472,7 @@ PUBLIC int PageLinkAddress(address_t virtualAddr,
 {
 	pde_t *pde = PageGetPde(virtualAddr);
 	
-	struct Page *page;
+	//struct Page *page;
 	
 	//printk(PART_TIP "page vir %x pde %x\n", virtualAddr, pde);
 	
@@ -506,11 +526,13 @@ PUBLIC int PageLinkAddress(address_t virtualAddr,
 		*pte = physicAddr | prot | PAGE_P_1;
 		//printk(PART_TIP "page table and page not exist.\n");
 	}
+	
+	/*
 	// 把物理地址转换成页
 	page = PhysicAddressToPage(physicAddr);
 	// 填写虚拟地址
 	page->virtual = virtualAddr;
-	
+	*/
 	// printk(PART_TIP "link page %x phy %x vir %x\n", page, physicAddr, virtualAddr);
 	return 0;
 }
@@ -574,7 +596,7 @@ PUBLIC address_t PageUnlinkAddress(address_t virtualAddr)
 	pte_t *pte = PageGetPte(virtualAddr);
 	address_t physicAddr;
 
-	//printk(PART_TIP "virtual %x pde %x pte %x\n", virtualAddr, *pde, *pte);
+	//printk(PART_TIP "virtual %x pte %x\n", virtualAddr, *pte);
 
 	// 去掉属性部分获取物理页地址
 	physicAddr = *pte & PAGE_ADDR_MASK;
@@ -587,17 +609,15 @@ PUBLIC address_t PageUnlinkAddress(address_t virtualAddr)
 		
 		//更新tlb，把这个虚拟地址从页高速缓存中移除
 		X86Invlpg(virtualAddr);
-
+		
 		// 把物理地址转换成页
 		struct Page *page = PhysicAddressToPage(VirtualToPhysic(virtualAddr));
 		// 如果页存在，那么就把虚拟地址取消
 		if (page) {
 			page->virtual = 0;
-			
 		}
 			
 	}
-
 	// 返回物理页地址
 	return physicAddr;
 }
@@ -762,7 +782,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 获取发生故障的地址
 	addr = ReadCR2();
 
-    printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");
 

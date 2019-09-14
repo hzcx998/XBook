@@ -1,12 +1,13 @@
 #----
-#File: 		driver/char/makefile
-#Auther: 	Jason Hu
-#Time: 		2019/6/26
+#File: user/lib/makefile
+#Auther: Jason Hu
+#Time: 2019/7/29
 #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
 #The tools name
 CC			= gcc
+NASM		= nasm
 
 #The file path
 INCLUDE_PATH = ../../include/
@@ -17,11 +18,12 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS =  clock.o \
-		console.o \
-		timer.o \
-		keyboard.o \
-		mouse.o \
+ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
+
+OBJS = 	main.o \
+		meta.o \
+		superblock.o \
+		direntry.o \
 
 #First read here
 .PHONY: all
@@ -37,4 +39,7 @@ clean:
 	
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<
+
+%.o: %.asm
+	$(NASM) $(ASM_FLAGS) -o $@ $<
 	

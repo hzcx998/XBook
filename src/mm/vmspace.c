@@ -228,7 +228,7 @@ PUBLIC struct VMSpace *FindVMSpaceIntersection(struct MemoryManager *mm,
 PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint32_t prot, uint32_t flags)
 {
     //PART_START("DoMap");
-    // printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
+     printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
     /* 让长度和页大小PAGE_SIZE对齐  */
     len = PAGE_ALIGN(len);
 
@@ -438,7 +438,7 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
         
             /* 对空间中的每一个页进行释放 */
             while (space->start < space->end) {
-                //PageUnlinkAddress(space->start);
+                PageUnlinkAddress(space->start);
                 space->start += PAGE_SIZE;
             }
         }

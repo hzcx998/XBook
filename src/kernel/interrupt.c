@@ -211,7 +211,7 @@ PRIVATE int HandleAction(unsigned int irq, struct IrqAction *action)
     
     /* 如果有关闭中断标志。就关闭中断 */
     if (action->flags & IRQF_DISABLED) {
-        InterruptDisable();    
+        DisableInterrupt();    
     }
     
     /* 具体的行为处理 */
@@ -219,7 +219,7 @@ PRIVATE int HandleAction(unsigned int irq, struct IrqAction *action)
     
     /* 如果有关闭中断标志。就打开中断 */
     if (action->flags & IRQF_DISABLED) {
-        InterruptEnable();
+        EnableInterrupt();
     }
     return 0;
 }

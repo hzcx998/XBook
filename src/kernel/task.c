@@ -400,11 +400,11 @@ PUBLIC void TaskActivate(struct Task *task)
 }
 
 /**
- * TaskExecuteFirstProcess - 执行第一个进程
+ * InitFirstProcess - 初始化第一个进程
  * @fileName: 任务的文件名
  * @name: 任务的名字
  */
-PUBLIC struct Task *TaskExecuteFirstProcess(void *fileName, char *name)
+PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
 {
     // 创建一个新的线程结构体
     struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
@@ -567,6 +567,11 @@ PUBLIC void InitTasks()
     SyncLockInit(&consoleLock);
     
     MakeMainThread();
+    
+    /* 有可能做测试阻塞main线程，那么就没有线程，
+    在切换任务的时候就会出错，所以这里创建一个测试线程 */
+    ThreadStart("test", 3, ThreadA, "NULL");
+    ThreadStart("test2", 3, ThreadB, "NULL");
     
 	// 在初始化多任务之后才初始化任务的虚拟空间
 	InitVMSpace();

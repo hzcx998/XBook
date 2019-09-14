@@ -25,6 +25,7 @@ OBJS = 	slab.o \
 		vmspace.o \
 		fork.o \
 		exec.o \
+		vmalloc.o \
 
 #First read here
 .PHONY: all

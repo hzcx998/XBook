@@ -34,7 +34,9 @@ OBJS = 	bitmap.o \
 		softirq.o \
 		workqueue.o \
 		ioqueue.o \
-		
+		block.o \
+		deviceio.o \
+		device.o \
 
 #First read here
 .PHONY: all

@@ -13,6 +13,7 @@
 #define MB      (1024*KB)
 #define GB      (1024*MB)
 
-
+/* 扇区大小的定义 */
+#define SECTOR_SIZE      512
 
 #endif  /*_SHARE_CONST_H*/

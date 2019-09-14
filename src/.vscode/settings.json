@@ -24,7 +24,16 @@
         "vmalloc.h": "c",
         "vmarea.h": "c",
         "sync_lock.h": "c",
-        "ram.h": "c"
+        "ram.h": "c",
+        "absurd.h": "c",
+        "ide.h": "c",
+        "partition.h": "c",
+        "meta.h": "c",
+        "direntry.h": "c",
+        "superblock.h": "c",
+        "inode.h": "c",
+        "deviceio.h": "c",
+        "share.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

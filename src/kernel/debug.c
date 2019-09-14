@@ -25,7 +25,9 @@ void Panic(const char *fmt, ...)
 	
 	printk("\n> Panic: %s", buf);
 	DisableInterrupt();
-	while(1);
+	while(1){
+		CpuHlt();
+	}
 
 }
 //断言
@@ -46,5 +48,8 @@ void AssertionFailure(char *exp, char *file, char *baseFile, int line)
 void Spin(char * functionName)
 {
 	printk("\nSpinning in %s", functionName);
-	while(1);
+	DisableInterrupt();
+	while(1){
+		CpuHlt();
+	}
 }

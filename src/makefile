@@ -25,6 +25,8 @@ IMG_DIR = ../img/
 FLAPPY_IMG 	= $(IMG_DIR)a.img
 HDA_IMG		= $(IMG_DIR)c.img
 HDB_IMG		= $(IMG_DIR)d.img
+HDC_IMG		= $(IMG_DIR)e.img
+HDD_IMG		= $(IMG_DIR)f.img
 
 #----flags----
 #out a map file: -Map kernel.map
@@ -69,8 +71,8 @@ ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	$(ARCH_KERNEL_DIR)pic.o \
 	$(ARCH_KERNEL_DIR)interrupt.o \
 	$(ARCH_KERNEL_DIR)cpu.o \
+	$(ARCH_KERNEL_DIR)cmos.o \
 	
-
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS) \
 			$(ARCH_DIR)mm/zone.o \
@@ -97,25 +99,30 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)softirq.o \
 				$(KERNEL_DIR)workqueue.o \
 				$(KERNEL_DIR)ioqueue.o \
+				$(KERNEL_DIR)block.o \
+				$(KERNEL_DIR)deviceio.o \
+				$(KERNEL_DIR)device.o \
 	
 #hal objs
-HAL_OBJS = 	$(HAL_DIR)char/display.o \
-			$(HAL_DIR)char/clock.o \
-			$(HAL_DIR)char/cpu.o \
-			$(HAL_DIR)block/ram.o \
-			$(HAL_DIR)char/keyboard.o \
+HAL_OBJS = 	$(HAL_DIR)display.o \
+			$(HAL_DIR)clock.o \
+			$(HAL_DIR)cpu.o \
+			$(HAL_DIR)ram.o \
+			$(HAL_DIR)keyboard.o \
 
 #share objs
 SHARE_OBJS = 	$(SHARE_DIR)string.o \
 				$(SHARE_DIR)vsprintf.o \
-				$(SHARE_DIR)math.o
+				$(SHARE_DIR)math.o \
+				$(SHARE_DIR)ctype.o
 
 #driver objs
-DRIVER_OBJS = 	$(DRIVER_DIR)char/clock.o \
-				$(DRIVER_DIR)char/console.o \
-				$(DRIVER_DIR)char/timer.o \
-				$(DRIVER_DIR)char/keyboard.o \
-				$(DRIVER_DIR)char/mouse.o \
+DRIVER_OBJS = 	$(DRIVER_DIR)clock.o \
+				$(DRIVER_DIR)console.o \
+				$(DRIVER_DIR)timer.o \
+				$(DRIVER_DIR)keyboard.o \
+				$(DRIVER_DIR)mouse.o \
+				$(DRIVER_DIR)ide.o \
 
 #mm objs
 MM_OBJS = 	$(MM_DIR)slab.o \
@@ -124,9 +131,17 @@ MM_OBJS = 	$(MM_DIR)slab.o \
 			$(MM_DIR)vmspace.o \
 			$(MM_DIR)fork.o \
 			$(MM_DIR)exec.o \
+			$(MM_DIR)vmalloc.o \
 
 #fs objs
 FS_OBJS = 	$(FS_DIR)vfs.o \
+			$(FS_DIR)partition.o \
+			$(FS_DIR)bofs/main.o \
+			$(FS_DIR)bofs/super_block.o \
+			$(FS_DIR)bofs/inode.o \
+			$(FS_DIR)bofs/dir_entry.o \
+			$(FS_DIR)bofs/bitmap.o \
+			$(FS_DIR)bofs/dir.o \
 			
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
@@ -143,6 +158,7 @@ USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/_brk.o \
 			$(USER_DIR)lib/brk.o \
 			$(USER_DIR)lib/malloc.o \
+			$(USER_DIR)lib/file.o \
 
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
@@ -197,7 +213,8 @@ bochsdbg:
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
-	$(QEMU) -m 2456 -fda $(FLAPPY_IMG)  \
+	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
+	-hda $(HDA_IMG) -hdb $(HDB_IMG) -hdc $(HDC_IMG) -hdd $(HDD_IMG) \
 	-boot a
 
 
