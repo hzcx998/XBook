@@ -16,7 +16,6 @@
 #include <book/task.h>
 #include <user/stdlib.h>
 #include <user/mman.h>
-#include <book/vfs.h>
 #include <book/atomic.h>
 #include <driver/keyboard.h>
 #include <book/interrupt.h>
@@ -24,6 +23,7 @@
 #include <driver/ide.h>
 #include <book/vmalloc.h>
 #include <fs/partition.h>
+#include <fs/interface.h>
 
 /*
  * 功能: 内核的主函数
@@ -76,13 +76,13 @@ int main()
 	/* 初始化磁盘分区 */
 	InitDiskPartiton();
 	
-	BOFS_Test();
-	Spin("bofs test");
-	/* 初始化虚拟文件系统 */
-	InitVFS();
+	/* 初始化文件系统 */
+	InitFileSystem();
+
+	//Spin("bofs test");
 	
 	/* 加载init进程 */
-	InitFirstProcess("init", "init");
+	InitFirstProcess("/bin/init", "init");
 
 	int key = 0;
 	/* main thread 就是idle线程 */

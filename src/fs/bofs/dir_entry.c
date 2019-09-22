@@ -15,6 +15,7 @@
 #include <fs/bofs/dir_entry.h>
 #include <fs/bofs/bitmap.h>
 #include <share/math.h>
+#include <driver/clock.h>
 
 PUBLIC void BOFS_CreateDirEntry(struct BOFS_DirEntry *dirEntry,
     unsigned int inode,
@@ -112,7 +113,7 @@ PUBLIC bool BOFS_SearchDirEntry(struct BOFS_SuperBlock *sb,
 					//printk("search success!\n");
 					return true;
 				}
-			}else{
+			} else {
 				//printk("search failed!\n");
 				return false;
 			}
@@ -213,10 +214,10 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				}
-				/*printk("same dir entry but name different\n");
+				printk("same dir entry but name different\n");
 				//printk(">>disk inode:%d child dir inode:%d\n", dirEntry[i].inode, childDir->inode);
 				printk("scan: id:%d lba:%d\n", blockID, lba);
-				*/
+				
 				return 1;
 			}else if(dirEntry[i].name[0] == '\0'){
 				/*empty dir entry
@@ -248,7 +249,7 @@ void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
 	struct BOFS_Inode childInode;
 	BOFS_LoadInodeByID(&childInode, childDir->inode, sb);
 	
-	BOFS_DumpInode(&childInode);
+	//BOFS_DumpInode(&childInode);
 
 	/*release child data*/
 	BOFS_ReleaseInodeData(sb, &childInode);
@@ -267,7 +268,7 @@ void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
 	we do not set inode to 0, so that we can recover 
 	dir inode, but we can't recover data.
 	*/
-	/*child_dir->inode = 0;*/
+	/*childDir->inode = 0;*/
 
 	/*change file type to INVALID, so that we can search it but not use it*/
 	childDir->type = BOFS_FILE_TYPE_INVALID;
@@ -283,4 +284,56 @@ void BOFS_CloseDirEntry(struct BOFS_DirEntry *dirEntry)
 		return;
 	}
 	kfree(dirEntry);
+}
+
+
+bool BOFS_LoadDirEntry(struct BOFS_DirEntry *parentDir, 
+	char *name,
+	struct BOFS_DirEntry *childDir,
+	struct BOFS_SuperBlock *sb)
+{
+	/*1.read parent data*/
+	struct BOFS_Inode parentInode;
+	
+	BOFS_LoadInodeByID(&parentInode, parentDir->inode, sb);
+	
+	/*we need read data in parent inode
+	we read a sector once.if not finish, read again.
+	*/
+	uint32 lba;
+	uint32 blockID = 0;
+	struct BOFS_DirEntry *dirEntry = (struct BOFS_DirEntry *)sb->iobuf;
+	int i;
+	
+	uint32 blocks = DIV_ROUND_UP(parentInode.size, SECTOR_SIZE);
+	//printk(">>>load dir entry: inode size:%d blocks:%d\n", parentInode.size, blocks);
+	/*we check for blocks, we need load in old dir entry*/
+	while(blockID < blocks){
+		BOFS_GetInodeData(&parentInode, blockID, &lba, sb);
+		
+		//printk("inode data: id:%d lba:%d\n", blockID, lba);
+		memset(sb->iobuf, 0, SECTOR_SIZE);
+		
+		if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+			return -1;
+		}
+		
+		/*scan a sector*/
+		for(i = 0; i < BOFS_DIR_NR_IN_SECTOR; i++){
+			
+			if(!strcmp(dirEntry[i].name, name) && dirEntry[i].type != BOFS_FILE_TYPE_INVALID){
+				//printk(">>load dir entry %s %s\n", dir_buf[i].name, name);
+				/*copy data to child dir*/
+				memcpy(childDir, &dirEntry[i], sizeof(struct BOFS_DirEntry));
+				
+				/*change access time*/
+				parentInode.acstime = SystemDateToData();
+				BOFS_SyncInode(&parentInode, sb);
+				return true;
+			}
+			
+		}
+		blockID++;
+	}
+	return false;
 }

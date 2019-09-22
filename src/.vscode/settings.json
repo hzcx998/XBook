@@ -33,7 +33,14 @@
         "superblock.h": "c",
         "inode.h": "c",
         "deviceio.h": "c",
-        "share.h": "c"
+        "share.h": "c",
+        "device.h": "c",
+        "super_block.h": "c",
+        "file.h": "c",
+        "dir_entry.h": "c",
+        "bofs.h": "c",
+        "interface.h": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "C_Cpp.dimInactiveRegions": false
 }

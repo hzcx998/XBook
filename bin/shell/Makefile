@@ -19,7 +19,7 @@ SHARE_DIR = ../../src/share/
 
 BIN = bin
 
-BIN_OFF = 700 
+BIN_OFF = 500 
 BIN_CNTS = 100
 
 #img dir

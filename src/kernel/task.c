@@ -124,6 +124,7 @@ PRIVATE void ThreadCreate(struct Task *thread, ThreadFunc function, void *arg)
     threadStack->ebp = threadStack->ebx = \
     threadStack->esi = threadStack->edi = 0;
 }
+
 /**
  * TaskInit - 初始化线程
  * @thread: 线程结构地址
@@ -151,8 +152,15 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     thread->pid = AllocatePid();
     thread->parentPid = -1;
     thread->exitStatus = -1;
+
+    memset(thread->cwd, 0, MAX_PATH_LEN);
+    /* 默认的工作目录是根目录 */
+    strcpy(thread->cwd, "/");
+    
     // 设置中断栈为当前线程的顶端
     thread->kstack = (uint8_t *)(((uint32_t )thread) + PAGE_SIZE);
+
+    thread->stackMagic = TASK_STACK_MAGIC;
 }
 /**
  * AllocTaskMemory - 初始化任务的内存管理
@@ -240,7 +248,6 @@ PUBLIC void ThreadExit(struct Task *thread)
     /* 释放线程占用的内存 */
     kfree(thread);
 }
-
 
 /**
  * CurrentTask - 获取当前运行的任务

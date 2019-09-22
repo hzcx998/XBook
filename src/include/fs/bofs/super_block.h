@@ -91,6 +91,11 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
 	struct BOFS_DirEntry *childDir);
 
+bool BOFS_LoadDirEntry(struct BOFS_DirEntry *parentDir, 
+	char *name,
+	struct BOFS_DirEntry *childDir,
+	struct BOFS_SuperBlock *sb);
+
 /* inode */
 int BOFS_GetInodeData(struct BOFS_Inode *inode,
  	uint32 blockID,
@@ -107,6 +112,10 @@ int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
 
 void BOFS_ReleaseInodeData(struct BOFS_SuperBlock *sb,
 	struct BOFS_Inode *inode);
+
+int BOFS_EmptyInode(struct BOFS_Inode *inode,
+	struct BOFS_SuperBlock *sb);
+
 
 #endif
 

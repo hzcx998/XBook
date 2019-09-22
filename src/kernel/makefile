@@ -37,6 +37,7 @@ OBJS = 	bitmap.o \
 		block.o \
 		deviceio.o \
 		device.o \
+		iostream.o \
 
 #First read here
 .PHONY: all

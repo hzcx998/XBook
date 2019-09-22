@@ -14,7 +14,11 @@ global log
 
 ; void log(char *buf);
 log:
+	
+
 	mov eax, SYS_LOG
 	mov ebx, [esp + 4]	; buf
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

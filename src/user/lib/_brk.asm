@@ -13,7 +13,11 @@
 ; int _brk(void * addr);
 global _brk
 _brk:
+	
+
 	mov eax, SYS_BRK
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

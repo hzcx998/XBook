@@ -12,7 +12,8 @@
 #include <book/task.h>
 #include <book/elf32.h>
 #include <share/math.h>
-#include <book/vfs.h>
+#include <fs/interface.h>
+#include <book/iostream.h>
 
 /**
  * ReadFileFrom - 从文件读取数据
@@ -21,13 +22,13 @@
  * @offset: 偏移
  * @size: 要读取的数据数量
  */
-PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
+PRIVATE int ReadFileFrom(struct IoStream *stream, void *buffer, uint32_t offset, uint32_t size)
 {
-    SysLseek(fd, offset, SEEK_SET);
 
-    if (SysRead(fd, buffer, size) != size) {
+    IoStreamSeek(stream, offset, SEEK_SET);
+    //printk("seek!\n");
+    if (IoStreamRead(stream, buffer, size) != size) {
         printk(PART_ERROR "ReadFileFrom: SysRead failed!\n");
-
         return -1;
     }
     return 0;
@@ -43,7 +44,7 @@ PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
  * 加载一个段到内存
  */
 PRIVATE int 
-SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
+SegmentLoad(struct IoStream *stream, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
 {
     /*printk(PART_TIP "SegmentLoad:fd %d off %x size %x vaddr %x\n",
         fd, offset, fileSize, vaddr);
@@ -121,13 +122,15 @@ SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
     }
     //printk(PART_TIP "VMSpace: addr %x page %d\n", vaddrFirstPage, occupyPages);
     
-    /*  */
+    //memset(vaddr, 0, fileSize);
+
     /* 读取数据到内存中 */
-    if (ReadFileFrom(fd, (void *)vaddr, offset, fileSize)) {
+    if (ReadFileFrom(stream, (void *)vaddr, offset, fileSize)) {
         return -1;
     }
-    //printk(PART_TIP "read file done\n");
-    
+
+    //memcpy(vaddr, iobuf, fileSize);
+
     return 0;
 }
 
@@ -135,7 +138,7 @@ SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
  * LoadElfBinary - 加载文件镜像
  * @pathname: 文件的位置
  */
-PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader, int fd)
+PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader, struct IoStream *stream)
 {
     struct Elf32_Phdr progHeader;
     /* 获取程序头起始偏移 */
@@ -150,7 +153,7 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
         memset(&progHeader, 0, progHeaderSize);
 
         /* 读取程序头 */
-        if (ReadFileFrom(fd, (void *)&progHeader, progHeaderOffset, progHeaderSize)) {
+        if (ReadFileFrom(stream, (void *)&progHeader, progHeaderOffset, progHeaderSize)) {
             
             return -1;
         }
@@ -164,7 +167,7 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
             /* 由于bss段不占用文件大小，但是要占用内存，
             所以这个地方我们加载的时候就加载成memsz，
             运行的时候访问未初始化的全局变量时才可以正确 */
-            if (SegmentLoad(fd, progHeader.p_offset, 
+            if (SegmentLoad(stream, progHeader.p_offset, 
                     progHeader.p_memsz, progHeader.p_vaddr)) {
                 return -1;
             }
@@ -457,21 +460,44 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     if (fd == -1) {
         printk(PART_ERROR "SysExecv: open file %s failed!\n", path);
         return -1;
-    }   
-    
-    /* 2.读取elf头 */
+    }
+     printk("open sucess!");
+    struct stat fstat;
+    if(SysStat(path, &fstat)) {
+        printk(PART_ERROR "SysExecv: fstat %s failed!\n", path);
+        return -1;
+    }
+
+    struct IoStream *stream = CreateIoStream("execute stream", fstat.st_size);
+    if (stream == NULL) {
+        printk("stream null");
+        return -1;
+    }
+
+    if (SysRead(fd, stream->start, fstat.st_size) != fstat.st_size) {
+        printk("stream null");
+        return -1;
+    }
+        /* 2.读取elf头 */
     struct Elf32_Ehdr elfHeader;
 
     memset(&elfHeader, 0, sizeof(struct Elf32_Ehdr));
     
     /* 读取elf头部分，出错就跳到ToEnd关闭文件 */
-    if (SysRead(fd, &elfHeader, sizeof(struct Elf32_Ehdr)) !=\
+    /*if (SysRead(fd, &elfHeader, sizeof(struct Elf32_Ehdr)) !=\
             sizeof(struct Elf32_Ehdr)) {
         ret = -1;
         printk(PART_ERROR "SysExecv: read elf header failed!\n");
         goto ToEnd;
+    }*/
+    //ReadFileFrom(fd, &elfHeader, 0, sizeof(struct Elf32_Ehdr));
+    if (ReadFileFrom(stream, &elfHeader, 0, sizeof(struct Elf32_Ehdr))) {
+        ret = -1;
+        printk(PART_ERROR "SysExecv: read elf header failed!\n");
+        goto ToEnd;
     }
-    // printk(PART_TIP "read elfHeader\n");
+
+     printk(PART_TIP "read elfHeader\n");
     /* 3.检验elf头 */
     /* 检验elf头，看它是否为一个elf格式的程序 */
     if (memcmp(elfHeader.e_ident, "\177ELF\1\1\1", 7) || \
@@ -530,14 +556,18 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 只释放占用的其它资源*/
     MemoryManagerRelease(current->mm, 0);
     
+    //printk("start load");
     /* 6.加载程序段 */
-    if (LoadElfBinary(current->mm, &elfHeader, fd)) {
+    if (LoadElfBinary(current->mm, &elfHeader, stream)) {
         printk(PART_ERROR "SysExecv: load elf binary failed!\n");
         
         ret = -1;
         goto ToEnd;
     }
-
+    
+    DestoryIoStream(stream);
+    
+    //printk("end load\n");
     /* 7.设置中断栈 */
     
     /* 构建新的中断栈 */

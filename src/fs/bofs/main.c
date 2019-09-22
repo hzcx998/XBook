@@ -12,12 +12,17 @@
 #include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
+#include <book/device.h>
+#include <share/vsprintf.h>
+
 #include <fs/partition.h>
 #include <fs/bofs/super_block.h>
 #include <fs/bofs/inode.h>
 #include <fs/bofs/dir_entry.h>
 #include <fs/bofs/bitmap.h>
 #include <fs/bofs/dir.h>
+#include <fs/bofs/file.h>
+#include <fs/bofs/device.h>
 
 /**
  * BOFS_MountMasterFS - 挂载主文件系统
@@ -214,7 +219,7 @@ PUBLIC struct BOFS_SuperBlock *BOFS_FormatFs(unsigned int deviceID,
             superBlock->dataStartLba);*/
     }
 
-    BOFS_DumpSuperBlock(superBlock);
+    //BOFS_DumpSuperBlock(superBlock);
 
     if (BOFS_LoadBitmap(superBlock)) {
         printk("BOFS load bitmap failed!\n");
@@ -243,11 +248,11 @@ PUBLIC struct BOFS_SuperBlock *BOFS_FormatFs(unsigned int deviceID,
     idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_INODE, 1);
     printk("idx %d\n", idx);
     */
-    printk("sb size %d\n", sizeof(struct BOFS_SuperBlock));
+    /*printk("sb size %d\n", sizeof(struct BOFS_SuperBlock));
     printk("dir size %d\n", sizeof(struct BOFS_Dir));
     printk("dir entry size %d\n", sizeof(struct BOFS_DirEntry));
     printk("inode size %d\n", sizeof(struct BOFS_Inode));
-    
+    */
     //Spin("test");
 
     if (BOFS_OpenRootDir(superBlock)) {
@@ -282,16 +287,192 @@ PUBLIC struct BOFS_SuperBlock *BOFS_MakeFS(struct DiskPartitionTableEntry *dpte,
     return sb;
 }
 
-PUBLIC void BOFS_Test()
+PUBLIC void BOFS_Setup()
 {
-    BOFS_DumpSuperBlock(masterSuperBlock);
+    //BOFS_DumpSuperBlock(masterSuperBlock);
+    //Spin("1");
     
-    /* 创建挂载目录 */
-    BOFS_MakeDir("/mnt");
-    BOFS_MakeDir("/mnt/hda");
+    if (BOFS_Access("/dev", BOFS_F_OK)) {
+        BOFS_MakeDir("/dev");
+    }
+    /* 创建设备文件，再往设备文件下面添加设备之前，先把里面得所有设备都删除 */
+    
+    /* 扫描文件描述信息，并创建对应得设备文件 */
+    /*if (BOFS_MakeDevice("/dev/hda", BOFS_FILE_TYPE_BLOCK, DEVICE_HDD0)) {
+        printk("make device failed!\n");
+    }
+    
+    if (BOFS_MakeDevice("/dev/hda0", BOFS_FILE_TYPE_BLOCK, DEVICE_HDD0)) {
+        printk("make device failed!\n");
+    }
 
+    if (BOFS_MakeDevice("/dev/hda1", BOFS_FILE_TYPE_BLOCK, DEVICE_HDD0)) {
+        printk("make device failed!\n");
+    }
+
+    if (BOFS_MakeDevice("/dev/hdb0", BOFS_FILE_TYPE_BLOCK, DEVICE_HDD1)) {
+        printk("make device failed!\n");
+    }
+    
+    if (BOFS_MakeDevice("/dev/hdc0", BOFS_FILE_TYPE_BLOCK, DEVICE_HDD2)) {
+        printk("make device failed!\n");
+    }*/
+
+    /* 根据已经有的设备创建设备文件 */
+
+    char devpath[64];
+    struct Device *device;
+    char fsDeviceType;
+    ListForEachOwner(device, &deviceListHead, list) {
+        memset(devpath, 0, 64);
+    
+        // 生成路径
+        strcat(devpath, "/dev/");
+        strcat(devpath, device->name);
+        
+        /* 选择类型 */
+        switch (device->type)
+        {
+        case DEVICE_TYPE_BLOCK:
+            fsDeviceType = BOFS_FILE_TYPE_BLOCK;
+            break;
+        case DEVICE_TYPE_CHAR:
+            fsDeviceType = BOFS_FILE_TYPE_CHAR;
+            break;
+        case DEVICE_TYPE_NET:
+            fsDeviceType = BOFS_FILE_TYPE_NET;
+            break;
+        default:
+            Panic("make device under /dev failed!\n");
+            break;
+        }
+
+        //printk("device path: %s type %x device id %d\n", devpath, fsDeviceType, device->deviceID);
+        /* 创建设备文件 */
+        if (BOFS_MakeDevice(devpath, fsDeviceType, device->deviceID)) {
+            printk("make device failed!\n");
+        }
+        //BOFS_DumpSuperBlock(device->pointer);
+    }
+
+
+    /*
+    int fd = BOFS_Open("/dev/hda", BOFS_O_RDWR);
+    if (fd < 0)
+        printk("fd error!\n");
+    BOFS_DumpFD(fd);
+
+    
+    char buf[512];
+    printk("fd:%d\n", fd);
+    BOFS_Lseek(fd, 2, BOFS_SEEK_SET);
+
+    if (512 != BOFS_Read(fd, buf, 512)) {
+        printk("read error!\n");
+    }
+    int i;
+    for (i = 0; i < 16; i++) {
+        printk("buf %x",buf[i]);
+    
+    }
+    
+    memset(buf, 0xff, 512);
+
+    BOFS_Lseek(fd, 2, BOFS_SEEK_SET);
+    
+    if (512 != BOFS_Write(fd, buf, 512)) {
+        printk("write error!\n");
+    }
+
+    BOFS_Lseek(fd, 2, BOFS_SEEK_SET);
+    memset(buf, 0, 512);
+    
+    if (512 != BOFS_Read(fd, buf, 512)) {
+        printk("read error!\n");
+    }
+    
+    for (i = 0; i < 16; i++) {
+        printk("buf %x",buf[i]);
+    }
+*/
+ 
+    /* 创建挂载目录 */
+    
+    if (BOFS_Access("/mnt", BOFS_F_OK)) {
+        BOFS_MakeDir("/mnt");
+    }
+    
+    /* 创建根目录 */
+
+    if (BOFS_Access("/root", BOFS_F_OK)) {
+        BOFS_MakeDir("/root");
+    }
+    /* 挂载根目录，这样就不能直接对设备卸载了 */
+    BOFS_MountDir("/dev/hda0", "/root");
+
+    /* 创建用户目录 */
+
+    if (BOFS_Access("/user", BOFS_F_OK)) {
+        BOFS_MakeDir("/user");
+    }
+
+    /* 创建程序目录 */
+
+    if (BOFS_Access("/bin", BOFS_F_OK)) {
+        BOFS_MakeDir("/bin");
+    }
+    /*
+    BOFS_UnmountDir("/root");
+
+    BOFS_Unlink("/dev/hda0");*/
+
+    //BOFS_MakeDir("/root/new");
+
+    /*BOFS_ListDir("/root", 0);
+    BOFS_ListDir("/root/new", 0);
+    
+    BOFS_ListDir("/", 0);*/
+
+    /*
+    int sectors = 0;
+    BOFS_Ioctl(fd, ATA_IO_SECTORS, (int)&sectors);
+    
+    printk("get sectors from disk:%d\n", sectors);
+    BOFS_Close(fd);
+    */
+    //Spin("1");
+
+    /* 要挂载的目录 */
+    /*BOFS_MakeDir("/mnt/winc");
+    BOFS_MountDir("/dev/hda1", "/mnt/winc");
+    
+    BOFS_MakeDir("/mnt/winc/test");
+    BOFS_ListDir("/mnt/winc", 0);
+    
+    BOFS_MakeDir("/mnt/wind");
+    BOFS_MountDir("/dev/hdb0", "/mnt/wind");
+    
+    BOFS_MakeDir("/mnt/wind/test");
+    BOFS_ListDir("/mnt/wind", 0);
+    
+    BOFS_MakeDir("/mnt/wine");
+    BOFS_MountDir("/dev/hdc0", "/mnt/wine");
+    
+    BOFS_MakeDir("/mnt/wine/test");
+    BOFS_ListDir("/mnt/wine", 0);
+*/
+    //BOFS_ListDir("/dev", 0);
+
+    /*
+    BOFS_MakeDir("/mnt/wine");
+    BOFS_MountDir("/mnt/wine", "hdc0");
+    
+    BOFS_MakeDir("/mnt/winf");
+    BOFS_MountDir("/mnt/winf", "hdd0");*/
+    //Spin("1");
+    /*
     BOFS_ListDir("/", 2);
-    BOFS_ListDir("/mnt", 2);
+    BOFS_ListDir("/mnt", 2);*/
     /* 
     BOFS_RemoveDir("/mnt/hda");
     BOFS_ListDir("/mnt", 2);
@@ -316,19 +497,24 @@ PUBLIC void BOFS_Test()
 */
     //BOFS_RemoveDir("/mnt/hda");
 
-    BOFS_MountDir("/mnt/hda", "hda1");
+    //BOFS_MakeDir("/mnt/winc/test");
+     //Spin("test");
     
-    BOFS_MakeDir("/mnt/hda/test");
-    
-    BOFS_ListDir("/mnt/hda", 2);
-    BOFS_ListDir("/mnt/hda/test", 0);
-    BOFS_ListDir("/mnt", 0);
+    //BOFS_ListDir("/mnt/winc", 2);
     //Spin("test");
+    /*
+    BOFS_ListDir("/mnt/hda/test", 0);
+    BOFS_ListDir("/mnt", 0);*/
     //BOFS_MakeDir("/mnt/hda/test2");
     
-    BOFS_RemoveDir("/mnt/hda/test");
+    //BOFS_RemoveDir("/mnt/hda/test");
     
-    BOFS_RemoveDir("/mnt/hda");
+    //BOFS_RemoveDir("/mnt/hda");
+    
+    //BOFS_MountDir("/mnt/hda/test", "hda1");
+    /*BOFS_UnmountDir("/mnt/hda");
+    BOFS_RemoveDir("/mnt/hda/test");
+    BOFS_ListDir("/mnt/hda", 2);*/
     
     /*BOFS_MakeDir("/mnt");
     
@@ -341,66 +527,231 @@ PUBLIC void BOFS_Test()
     BOFS_ListDir("/bin/vi", 1);
     BOFS_ListDir("/", 2);
     */
-    /*struct BOFS_Dir *dir = BOFS_OpenDir("/bin");
-    if (dir == NULL) {
-        return;
-    }
-
-    struct BOFS_DirEntry *dirEntry;
-
-    do {
-        dirEntry = BOFS_ReadDir(dir);
-        if (dirEntry == NULL) 
-            break;
-
-        BOFS_DumpDirEntry(dirEntry);
-    } while (dirEntry != NULL);
-    
-    dir = BOFS_OpenDir("/bin/vi");
-    if (dir == NULL) {
-        return;
-    }
-
-    do {
-        dirEntry = BOFS_ReadDir(dir);
-        if (dirEntry == NULL) 
-            break;
-
-        BOFS_DumpDirEntry(dirEntry);
-    } while (dirEntry != NULL);
-    
-     BOFS_RemoveDir("/");
-    
-
-    dir = BOFS_OpenDir("/");
-    if (dir == NULL) {
-        return;
-    }
-    
-    do {
-        dirEntry = BOFS_ReadDir(dir);
-        if (dirEntry == NULL) 
-            break;
-
-        BOFS_DumpDirEntry(dirEntry);
-    } while (dirEntry != NULL);
-   
-    BOFS_RewindDir(dir);
-    do {
-        dirEntry = BOFS_ReadDir(dir);
-        if (dirEntry == NULL) 
-            break;
-
-        BOFS_DumpDirEntry(dirEntry);
-    } while (dirEntry != NULL);*/
 }
 
+PRIVATE void BOFS_Test()
+{
+
+    return;
+    //Spin("test");
+
+
+    int fd = BOFS_Open("/test2", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+
+    //BOFS_DumpFD(fd);
+    
+    BOFS_Close(fd);    
+
+    fd = BOFS_Open("/test2", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+
+    //BOFS_DumpFD(fd);
+
+    BOFS_Close(fd);    
+
+    fd = BOFS_Open("/mnt/winc/open", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+
+    BOFS_ListDir("/mnt/winc", 1);
+    //BOFS_DumpFD(fd);
+
+    BOFS_Close(fd);    
+    
+    fd = BOFS_Open("/mnt/wind/open", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+    BOFS_ListDir("/mnt/wind", 1);
+
+    fd = BOFS_Open("/mnt/wine/open", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+    BOFS_ListDir("/mnt/wine", 1);
+    fd = BOFS_Open("/mnt/winf/open", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+    BOFS_ListDir("/mnt/winf", 1);
+
+    BOFS_ListDir("/mnt", 2);
+    
+
+    //BOFS_DumpFD(fd);
+/*
+    if(!BOFS_Access("/mnt/hda/open", BOFS_F_OK)) {
+        printk("file exist!\n");
+    } else {
+        printk("file not exist!\n");
+    }*/
+/*
+    if(!BOFS_Access("/mnt/hda/open2", BOFS_F_OK)) {
+        printk("file exist!\n");
+    } else {
+        printk("file not exist!\n");
+    }
+    
+    if(!BOFS_Access("/mnt/hda/open", BOFS_R_OK | BOFS_W_OK)) {
+        printk("file RW!\n");
+    } else {
+        printk("file not RW!\n");
+    }*/
+/*
+    int mode = BOFS_GetMode("/mnt/hda/open");
+    printk("get mode:%x\n", mode);
+
+    BOFS_SetMode("/mnt/hda/open", mode | BOFS_IMODE_X);
+
+    mode = BOFS_GetMode("/mnt/hda/open");
+    printk("set mode:%x\n", mode);
+    */
+    /*struct BOFS_Stat stat;
+    BOFS_Stat("/", &stat);
+
+    printk("stat: size %d mode %x type %d device %d\n", stat.size, stat.mode, stat.type, stat.device);
+    
+    BOFS_Stat("/mnt", &stat);
+
+    printk("stat: size %d mode %x type %d device %d\n", stat.size, stat.mode, stat.type, stat.device);
+    */
+    /*char cwd[32];
+    BOFS_GetCWD(cwd, 32);
+    printk(cwd);
+
+    BOFS_ChangeCWD("/mnt");
+    BOFS_GetCWD(cwd, 32);
+    printk(cwd);
+    BOFS_ListDir("/mnt/winc", 2);
+    
+    BOFS_ResetName("/mnt/winc/open", "rename");
+
+    BOFS_ListDir("/mnt/winc", 2);*/
+
+    /*
+    fd = BOFS_Open("/mnt/hda", BOFS_O_CREAT | BOFS_O_RDWR);
+    if (fd < 0) {
+        printk("file open failed!\n");
+    }
+    
+    BOFS_DumpFD(fd);
+    */
+    //BOFS_Close(fd);   
+    /*char *buf = kmalloc(1024*100, GFP_KERNEL); 
+    if (buf == NULL)
+    {
+        Panic("alloc failed!");
+    }
+    
+    memset(buf, 0x5a, 1024*100);
+    BOFS_Write(fd, buf, 1024*100);
+
+    BOFS_Lseek(fd, 0, BOFS_SEEK_SET);
+    memset(buf, 0, 1024*100);
+    if (BOFS_Read(fd, buf, 1024*100) != 1024*100) {
+        printk("read error!\n");
+    }
+    int i;
+    for (i = 0; i < 32; i++) {
+        printk("%x", buf[i]);
+    }*/
+/*
+    BOFS_Unlink("/mnt/hda/open");
+    BOFS_Unlink("/mnt/hda");
+    BOFS_Unlink("/mnt");
+    //BOFS_Unlink("/test2");
+    BOFS_Unlink("/");
+    */
+
+
+
+}
 
 PUBLIC int BOFS_Init()
 {
+    /* 初始化文件系统环境 */
     BOFS_InitSuperBlockTable();
     masterSuperBlock = NULL;
     currentSuperBlock = NULL;
     
+    /* 创建文件系统 */
+	unsigned int deviceID = DEVICE_HDD0;
+    int i;
+
+	for (i = 0; i < ideDiskFound; i++) {
+		/* 打印分区信息 */
+		/*printk("DPTE: flags %x type %x start lba %d limit sectors %d\n", 
+			dptTable[0]->DPTE[0].flags, dptTable[0]->DPTE[0].type,
+			dptTable[0]->DPTE[0].startLBA, dptTable[0]->DPTE[0].sectorsLimit);
+		*/
+		/* 现在已经拥有分区信息，可以在分区上创建文件系统了 */
+		
+		/* 在分区上创建文件系统 */
+
+		
+        char targe[4] = {'a', 'b', 'c', 'd'};
+
+		struct Device *device;
+		char name[DEVICE_NAMELEN];
+		
+        /* ----记录设备---- */
+
+        sprintf(name, "hd%c", targe[i]);
+        /* 如果不是分区设备，就把pointer设置成NULL，这样就不能挂载 */
+        device = CreateDevice(name, NULL, DEVICE_TYPE_BLOCK, deviceID);
+		if (device == NULL)
+			Panic("create device %s failed!\n", name);
+        /* 添加到设备信息记录管理器  */
+        AddDevice(device);
+        /* ----记录设备分区---- */
+
+        /* 创建块设备，并把块设备添加到块设备系统中 */
+        /* 创建并挂载成一个主文件系统 */
+		struct BOFS_SuperBlock *sb = BOFS_MakeFS(&dptTable[i]->DPTE[0], deviceID);
+		
+		if (BOFS_MountMasterFS(sb) && i == 0) {
+			Panic("BOFS mount master failed!\n");
+		}
+
+        sprintf(name, "hd%c%d", targe[i], 0);
+		device = CreateDevice(name, sb, DEVICE_TYPE_BLOCK, deviceID);
+		if (device == NULL)
+			Panic("create device hda0 failed!\n");
+		AddDevice(device);
+		
+		sb = BOFS_MakeFS(&dptTable[i]->DPTE[1], deviceID);
+		if (sb == NULL) {
+			printk("make fs failed!\n");
+			return -1;
+		}
+        sprintf(name, "hd%c%d", targe[i], 1);
+		device = CreateDevice(name, sb, DEVICE_TYPE_BLOCK, deviceID);
+
+		if (device == NULL)
+			Panic("create device hda0 failed!\n");
+		AddDevice(device);
+
+		/* 指向下一个设备 */
+		deviceID++;
+	}
+
+    //DumpDevices();
+
+    //Spin("test");
+    /* 做一些重要的步骤 */
+    BOFS_Setup();
+
+
+    /* 做测试 */
+    BOFS_Test();
+
     return 0;
 }
+
+

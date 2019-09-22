@@ -9,7 +9,7 @@
 #include <book/arch.h>
 #include <book/slab.h>
 #include <book/debug.h>
-#include <share/string.h>
+#include <book/share.h>
 #include <book/deviceio.h>
 #include <fs/partition.h>
 #include <driver/ide.h>
@@ -68,7 +68,7 @@ PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable 
 		/* 已经存在分区表，直接使用就行了 */
 		return 0;
 	}
-
+	
 	/* 创建分区信息 */
 
 	/* 填写引导标志 */
@@ -79,7 +79,6 @@ PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable 
     DeviceIoctl(deviceID, ATA_IO_SECTORS, (int)&diskSectors, 0);
     printk("device %d sector size is %d\n", deviceID, diskSectors);
 
-	
 	/* 填写第一个分区的信息 */
 	unsigned int partitionStart = 2;
 	unsigned int partitionSectors = (diskSectors-2)/2;
@@ -99,7 +98,7 @@ PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable 
 	return 0;
 }
 
-//#define USE_MORE_DISK
+#define DEBUG_MAX_DISK_NR 4
 
 /**
  * InitDiskPartiton - 初始化磁盘分区
@@ -112,11 +111,14 @@ PUBLIC void InitDiskPartiton()
 	int i = 0;
 	int deviceID = DEVICE_HDD0;
 	
-
+	if (ideDiskFound > DEBUG_MAX_DISK_NR)
+	{
+		ideDiskFound = DEBUG_MAX_DISK_NR;
+	}
+	
 	/* 先初始化磁盘分区 */
-	#ifdef USE_MORE_DISK
 	for (i = 0; i < ideDiskFound; i++) {
-	#endif
+	
 		/* 如果没有分区，就创建分区 */
 		dptTable[i] = kmalloc(SECTOR_SIZE, GFP_KERNEL);
 		if (dptTable[i] == NULL) {
@@ -128,59 +130,8 @@ PUBLIC void InitDiskPartiton()
 			printk(PART_ERROR "create disk partition failed!\n");
 			return;
 		}
-	#ifdef USE_MORE_DISK
 		/* 指向下一个设备 */
 		deviceID++;
 	}
-	#endif
-
-	/* 先初始化文件系统，应该放到一个初始化文件系统的地方进行设定 */
-	BOFS_Init();
-
-	i = 0;
-	deviceID = DEVICE_HDD0;
-	#ifdef USE_MORE_DISK
-	for (i = 0; i < ideDiskFound; i++) {
-	#endif
-		/* 打印分区信息 */
-		/*printk("DPTE: flags %x type %x start lba %d limit sectors %d\n", 
-			dptTable[0]->DPTE[0].flags, dptTable[0]->DPTE[0].type,
-			dptTable[0]->DPTE[0].startLBA, dptTable[0]->DPTE[0].sectorsLimit);
-		*/
-		/* 现在已经拥有分区信息，可以在分区上创建文件系统了 */
-		
-		/* 在分区上创建文件系统 */
-
-		/* 创建并挂载成一个主文件系统 */
-		struct BOFS_SuperBlock *sb = BOFS_MakeFS(&dptTable[i]->DPTE[0], deviceID);
-
-		if (BOFS_MountMasterFS(sb)) {
-			Panic("BOFS mount master failed!\n");
-		}
-		struct Device *device;
-		//MakeDevice(&hda, char *name, void *pointer)
-		device = CreateDevice("hda0", sb);
-		if (device == NULL)
-			Panic("create device hda0 failed!\n");
-		AddDevice(device);
-
-		sb = BOFS_MakeFS(&dptTable[i]->DPTE[1], deviceID);
-		if (sb == NULL) {
-			printk("make fs failed!\n");
-			return;
-		}
-		device = CreateDevice("hda1", sb);
-		if (device == NULL)
-			Panic("create device hda0 failed!\n");
-		AddDevice(device);
 	
-	DumpDevices();
-	
-	#ifdef USE_MORE_DISK
-		/* 指向下一个设备 */
-		deviceID++;
-	}
-	#endif
-	
-	//Spin("test");
 }

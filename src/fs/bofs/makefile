@@ -26,6 +26,8 @@ OBJS = 	main.o \
 		dir_entry.o \
 		bitmap.o \
 		dir.o \
+		file.o \
+		device.o \
 		
 
 #First read here

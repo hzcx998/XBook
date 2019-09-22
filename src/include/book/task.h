@@ -45,11 +45,15 @@ typedef int pid_t;
 
 #define MAX_TASK_NAMELEN 32
 
+#define MAX_PATH_LEN 256
+
 #define TASK_DEFAULT_PRIO 5
+
+#define TASK_STACK_MAGIC 0X19980325
+
 
 /* 工作者线程特权级 */
 #define TASK_WORKER_PRIO 3
-
 
 #define MAX_STACK_ARGC 16
 typedef struct Task {
@@ -64,9 +68,12 @@ typedef struct Task {
     int exitStatus;                 // 退出时的状态
     char name[MAX_TASK_NAMELEN];
     
+    char cwd[MAX_PATH_LEN];		//当前工作路径,指针
+	
     struct MemoryManager *mm;       // 内存管理
     struct List list;               // 处于所在队列的链表
     struct List globalList;         // 全局任务队列，用来查找所有存在的任务
+    unsigned int stackMagic;         /* 任务的魔数 */
 } Task_t;
 
 

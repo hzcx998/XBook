@@ -13,7 +13,11 @@
 ; int _wait(int *status);
 global _wait
 _wait:
+	
+
 	mov eax, SYS_WAIT
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

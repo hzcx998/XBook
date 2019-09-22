@@ -18,7 +18,8 @@ LIST_HEAD(deviceListHead);
  * @name: 设备名
  * @pointer: 特殊指针
  */
-PUBLIC struct Device *CreateDevice(char *name, void *pointer)
+PUBLIC struct Device *CreateDevice(char *name, void *pointer, char type,
+    unsigned int deviceID)
 {
     struct Device *device = kmalloc(sizeof(struct Device), GFP_KERNEL);
     if (device == NULL)
@@ -30,6 +31,8 @@ PUBLIC struct Device *CreateDevice(char *name, void *pointer)
     strcpy(device->name, name);
 
     device->pointer = pointer;
+    device->deviceID = deviceID;
+    device->type = type;
 
     return device;
 }
@@ -40,7 +43,8 @@ PUBLIC struct Device *CreateDevice(char *name, void *pointer)
  * @name: 设备名
  * @pointer: 特殊指针
  */
-PUBLIC int MakeDevice(struct Device *device, char *name, void *pointer)
+PUBLIC int MakeDevice(struct Device *device, char *name, void *pointer,
+    char type, unsigned int deviceID)
 {
     INIT_LIST_HEAD(&device->list);
 
@@ -48,6 +52,8 @@ PUBLIC int MakeDevice(struct Device *device, char *name, void *pointer)
     strcpy(device->name, name);
 
     device->pointer = pointer;
+    device->deviceID = deviceID;
+    device->type = type;
 }
 
 /**
@@ -115,6 +121,26 @@ PUBLIC void *GetDevicePointer(char *name)
 }
 
 /**
+ * GetDevice - 获取设备
+ * @name: 设备名
+ * 
+ * 返回设备结构体
+ */
+PUBLIC struct Device *GetDevice(char *name)
+{
+    struct Device *device;
+    ListForEachOwner(device, &deviceListHead, list) {
+        /* 如果名字相等就说明找到 */
+        if (!strcmp(device->name, name)) {
+            return device;
+        }
+    }
+    return NULL;
+}
+
+
+
+/**
  * DumpDevices - 打印所有设备信息
  */
 PUBLIC void DumpDevices()
@@ -123,6 +149,6 @@ PUBLIC void DumpDevices()
     struct Device *device;
     ListForEachOwner(device, &deviceListHead, list) {
         printk(PART_TIP "name:%s pointer:%x\n", device->name, device->pointer);
-        BOFS_DumpSuperBlock(device->pointer);
+        //BOFS_DumpSuperBlock(device->pointer);
     }
 }

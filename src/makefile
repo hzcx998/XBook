@@ -102,6 +102,7 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)block.o \
 				$(KERNEL_DIR)deviceio.o \
 				$(KERNEL_DIR)device.o \
+				$(KERNEL_DIR)iostream.o \
 	
 #hal objs
 HAL_OBJS = 	$(HAL_DIR)display.o \
@@ -134,7 +135,7 @@ MM_OBJS = 	$(MM_DIR)slab.o \
 			$(MM_DIR)vmalloc.o \
 
 #fs objs
-FS_OBJS = 	$(FS_DIR)vfs.o \
+FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)partition.o \
 			$(FS_DIR)bofs/main.o \
 			$(FS_DIR)bofs/super_block.o \
@@ -142,6 +143,8 @@ FS_OBJS = 	$(FS_DIR)vfs.o \
 			$(FS_DIR)bofs/dir_entry.o \
 			$(FS_DIR)bofs/bitmap.o \
 			$(FS_DIR)bofs/dir.o \
+			$(FS_DIR)bofs/file.o \
+			$(FS_DIR)bofs/device.o \
 			
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
@@ -159,6 +162,7 @@ USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/brk.o \
 			$(USER_DIR)lib/malloc.o \
 			$(USER_DIR)lib/file.o \
+			$(USER_DIR)lib/dir.o \
 
 #objs
 OBJS =  $(ARCH_OBJS) $(INIT_OBJS) $(KERNEL_OBJS) $(HAL_OBJS) $(SHARE_OBJS) \
@@ -214,9 +218,8 @@ bochsdbg:
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
 	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG) -hdc $(HDC_IMG) -hdd $(HDD_IMG) \
+	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
 	-boot a
-
 
 #clean temporary files
 clean:

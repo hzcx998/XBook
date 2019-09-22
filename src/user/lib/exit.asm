@@ -13,7 +13,11 @@
 ; void exit(int status);
 global exit
 exit:
+	
+
 	mov eax, SYS_EXIT
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

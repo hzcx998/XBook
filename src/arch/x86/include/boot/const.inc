@@ -36,19 +36,6 @@ FILE_OFF EQU 500
 
 FILE_SEG EQU 0x4200
 
-FILE2_OFF EQU 600
-
-FILE2_SEG EQU 0x5000
-
-FILE3_OFF EQU 700
-
-FILE3_SEG EQU 0x6000
-
-FILE4_OFF EQU 800
-
-FILE4_SEG EQU 0x7000
-
-
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
 KERNEL_START_ADDR EQU 0x80100000

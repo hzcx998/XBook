@@ -359,17 +359,18 @@ PRIVATE void EndRequest(struct IDE_Private *device)
 
 	struct BlockBufferNode *node = device->requestQueue.inUsing;
 
-	/* 通知等待者以及处理完毕 */
-	if (node->waitQueue.task->status == TASK_BLOCKED) {
-		TaskUnblock(node->waitQueue.task);
-	}
-
+	
 	/* 释放当前节点 */
 	kfree(device->requestQueue.inUsing);
 
 	/* 把使用中的节点置空 */
 	device->requestQueue.inUsing = NULL;
 
+	/* 通知等待者以及处理完毕 */
+	if (node->waitQueue.task->status == TASK_BLOCKED) {
+		TaskUnblock(node->waitQueue.task);
+	}
+	
 	/* 如果还有就继续发送命令 */
 	if (device->requestQueue.BlockRequestCount)
 		SendCmd(device);
@@ -640,7 +641,7 @@ PRIVATE int IDE_GetIdentify(unsigned int deviceID)
 	printk("\nFireware Version:");
 	for (i = 0; i < 4; i++) {
 		printk("%c%c", (device->info->Firmware_Version[i] >> 8) & 0xff,
-			device->info->Firmware_Version[i] & 0xff);
+			device->in fo->Firmware_Version[i] & 0xff);
 	}
 
 	printk("\nModel Number:");
@@ -656,7 +657,7 @@ PRIVATE int IDE_GetIdentify(unsigned int deviceID)
 	
 	printk("\nLBA supported:%s ",(device->info->Capabilities0 & 0x0200) ? "Yes" : "No");
 	printk("\nLBA48 supported:%s\n",((device->info->Cmd_feature_sets_supported1 & 0x0400) ? "Yes" : "No"));
-
+	
 	#endif
 
 	/* 检查是否支持LBA48,如果支持才可以用48的读写。不然就用24的读写 */
@@ -746,6 +747,16 @@ PRIVATE int IDE_Ioctl(struct DeviceEntry *deviceEntry, int cmd, int arg1, int ar
 }
 
 /**
+ * IDE_MiniDelay - 做一个小延时
+ * 
+ * 不能让驱动器执行过于频繁，在读/写的时候和下一个命令之间做一下延时
+ */
+PRIVATE void IDE_MiniDelay(int count)
+{
+	while(count-- > 0) CpuNop();
+}
+
+/**
  * IDE_Read - 读取硬盘数据
  * @deviceEntry: 设备项
  * @buf: 读取到缓冲区
@@ -787,6 +798,9 @@ PRIVATE int IDE_Read(struct DeviceEntry *deviceEntry, unsigned int lba, void *bu
 		/* 指向下一个扇区 */
 		lba++;
 		i++;
+		/* 做一下延迟 */
+		
+		IDE_MiniDelay(255);
 	} while (i < count);
 	
 	return 0;
@@ -826,6 +840,7 @@ PRIVATE int IDE_Write(struct DeviceEntry *deviceEntry, unsigned int lba, void *b
 		/* 指向下一个扇区 */
 		lba++;
 		i++;
+		IDE_MiniDelay(255);
 	} while (i < count);
 
 	return 0;

@@ -1,7 +1,7 @@
 /*
  * file:		include/fs/bofs/file.h
  * auther:		Jason Hu
- * time:		2019/9/5
+ * time:		2019/9/17
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
@@ -10,8 +10,7 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
-#include <fs/bofs/dir_entry.h>
-#include <fs/bofs/inode.h>
+#include <fs/bofs/super_block.h>
 
 #define BOFS_MAX_FD_NR 32
 
@@ -33,58 +32,53 @@
 #define BOFS_W_OK 4		/*file writable*/
 
 #define BOFS_FD_FREE 0
-#define BOFS_FD_USING 1
+#define BOFS_FD_USING 0x80000000
 
-struct bofs_file_descriptor
+/* 对文件的描述 */
+struct BOFS_FileDescriptor
 {
-	uint8 fd_status; /*fd is free or using*/
-	uint32 fd_pos;	/*file cursor pos*/
-	uint32 fd_flags; /*file operate flags*/
-	char fd_drive; /*file operate drive*/
+	unsigned int pos;	/*file cursor pos*/
+	unsigned int flags; 		/*file operate flags*/
 	
-	struct BOFS_DirEntry *fd_dir;	/*dir entry*/
-	struct BOFS_DirEntry *fd_parent;	/*parent dir entry*/
-	struct bofs_inode *fd_inode;	/*dir inode*/
+	struct BOFS_SuperBlock *superBlock;	/* 文件所在的超级块 */
+	struct BOFS_DirEntry *dirEntry;		/* dir entry */
+	struct BOFS_DirEntry *parentEntry;	/* parent dir entry */
+	struct BOFS_Inode *inode;			/* file inode */
 };
 
-struct bofs_stat
+/* 记录一些重要信息 */
+struct BOFS_Stat
 {
-	uint32 st_type;
-	uint32 st_size;
-	uint32 st_mode;
+	unsigned int type;
+	unsigned int size;
+	unsigned int mode;
+	unsigned int device;
+	
+	/* 时间日期 */
+
 };
 
-void bofs_init_fd_table();
-int bofs_alloc_fd_global();
-struct bofs_file_descriptor *bofs_get_file_by_fd(int fd);
 
-int bofs_create_file(struct BOFS_DirEntry *parent_dir, char *name, uint16 mode);
-int bofs_open_file(struct BOFS_DirEntry *parent_dir, char *name, uint16 mode);
-int bofs_close_file(struct bofs_file_descriptor *fd);
-int bofs_file_write( struct bofs_file_descriptor *fd, void* buf, uint32 count);
-int bofs_file_read( struct bofs_file_descriptor *fd, void* buf, uint32 count);
+void BOFS_InitFdTable();
+int BOFS_AllocFdGlobal();
+void BOFS_FreeFdGlobal(int fd);
+struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
 
-int bofs_is_path_exist(const char* pathname);
-int bofs_is_path_executable(const char* pathname);
-int bofs_is_path_readable(const char* pathname);
-int bofs_is_path_writable(const char* pathname);
+void BOFS_DumpFD(int fd);
+int BOFS_Open(const char *pathname, unsigned int flags);
+int BOFS_Close(int fd);
+int BOFS_Unlink(const char *pathname);
 
-int bofs_open(const char *pathname, uint32 flags);
-int bofs_close(int fd);
-int bofs_unlink(const char *pathname);
-int bofs_write(int fd, void* buf, uint32 count);
-int bofs_read(int fd, void* buf, uint32 count);
-int bofs_lseek(int fd, int offset, uint8 whence);
-int bofs_stat(const char *pathname, struct bofs_stat *buf);
-int bofs_access(const char *pathname, int mode);
-void bofs_exhibit_fd(int fd);
+int BOFS_Write(int fd, void* buf, unsigned int count);
+int BOFS_Read(int fd, void* buf, unsigned int count);
+int BOFS_Lseek(int fd, int offset, unsigned char whence);
+int BOFS_Ioctl(int fd, int cmd, int arg);
 
-int bofs_set_mode(const char* pathname, int mode);
-int bofs_get_mode(const char* pathname);
+int BOFS_Access(const char *pathname, int mode);
+int BOFS_GetMode(const char* pathname);
+int BOFS_SetMode(const char* pathname, int mode);
 
-int bofs_copy_file(const char *src_pathname, const char *dst_pathname);
-int bofs_move_file(const char *src_pathname, const char *dst_pathname);
-#endif
+int BOFS_Stat(const char *pathname, struct BOFS_Stat *buf);
 
 #endif
 

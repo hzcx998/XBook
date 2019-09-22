@@ -28,20 +28,7 @@ int malloc_usable_size(void *ptr);
 void *calloc(size_t count, size_t size);
 void *realloc(void *ptr, size_t size);
 
-/* file */
-#define SEEK_SET 1
 
-#define O_RDONLY 0x01
 
-struct stat {
-    unsigned int st_size;
-};
-
-int open(const char *path, unsigned int flags);
-int close(int fd);
-int read(int fd, void *buffer, unsigned int size);
-int write(int fd, void *buffer, unsigned int size);
-int lseek(int fd, unsigned int offset, char flags);
-int stat(const char *path, struct stat *buf);
 
 #endif  /* _USER_LIB_STDLIB_H */

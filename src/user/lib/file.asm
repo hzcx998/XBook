@@ -13,57 +13,129 @@
 global open
 ; int open(const char *path, unsigned int flags);
 open:
+	
+
 	mov eax, SYS_OPEN
 	mov ebx, [esp + 4]
 	mov ecx, [esp + 8]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
-
 global close
 ; int close(int fd);
 close:
+	
+
 	mov eax, SYS_CLOSE
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
 
 global read
 ; int read(int fd, void *buffer, unsigned int size);
 read:
+	
+
 	mov eax, SYS_READ
 	mov ebx, [esp + 4]
 	mov ecx, [esp + 8]
 	mov esi, [esp + 12]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
 
 global write
 ; int write(int fd, void *buffer, unsigned int size);
 write:
+	
+
 	mov eax, SYS_WRITE
 	mov ebx, [esp + 4]
 	mov ecx, [esp + 8]
 	mov esi, [esp + 12]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
 
 global lseek
 ; int lseek(int fd, unsigned int offset, char flags);
 lseek:
+	
+
 	mov eax, SYS_LSEEK
 	mov ebx, [esp + 4]
 	mov ecx, [esp + 8]
 	mov esi, [esp + 12]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
 
 global stat
 ; int stat(const char *path, struct stat *buf);
 stat:
+	
+
 	mov eax, SYS_STAT
 	mov ebx, [esp + 4]
 	mov ecx, [esp + 8]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret
 
+global unlink
+; int unlink(const char *pathname);
+unlink:
 	
+
+	mov eax, SYS_UNLINK
+	mov ebx, [esp + 4]
+	int INT_VECTOR_SYS_CALL
+	
+	
+	ret
+
+global ioctl
+; int ioctl(int fd, int cmd, int arg);
+ioctl:
+	
+
+	mov eax, SYS_IOCTL
+	mov ebx, [esp + 4]
+	mov ecx, [esp + 8]
+	mov esi, [esp + 12]
+	int INT_VECTOR_SYS_CALL
+	
+	
+	ret
+
+global getmode
+; int getmode(const char* pathname);
+getmode:
+	
+
+	mov eax, SYS_GETMODE
+	mov ebx, [esp + 4]
+	int INT_VECTOR_SYS_CALL
+
+	
+	ret
+
+global setmode
+; int setmode(const char* pathname, int mode);
+setmode:
+	
+
+	mov eax, SYS_SETMODE
+	mov ebx, [esp + 4]
+	mov ecx, [esp + 8]
+	int INT_VECTOR_SYS_CALL
+
+	
+	ret

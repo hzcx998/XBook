@@ -104,6 +104,8 @@ PRIVATE void SchedSoftirqHandler(struct SoftirqAction *action)
 {
 	struct Task *current = CurrentTask();
 
+	/* 检测内核栈是否溢出 */
+	ASSERT(current->stackMagic == TASK_STACK_MAGIC);
 	/* 更新任务调度 */
 	current->elapsedTicks++;
 	

@@ -20,7 +20,6 @@ int main(int argc, char *argv[])
 			if (pid != -1)
 				printf("task pid %d exit with status %d.\n", pid, status);	
 		}
-
 	} else {
 		printf("I am child, my pid is %d.\n", getpid());	
 		
@@ -28,7 +27,9 @@ int main(int argc, char *argv[])
 		
 		//while(1);
 		/* init的第一个子进程就执行shell */
-		execv("shell", 0);
+		if (execv("/bin/shell", 0)) {
+			printf("execute failed!\n");
+		}
 	}
 	return 0;
 }

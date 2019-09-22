@@ -17,6 +17,14 @@
 #include <fs/bofs/bitmap.h>
 #include <share/math.h>
 
+
+PUBLIC void BOFS_CloseInode(struct BOFS_Inode *inode)
+{
+	if(inode != NULL){
+		kfree(inode);
+	}
+}
+
 void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
@@ -36,6 +44,9 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
 	
     inode->deviceID = deviceID;	/* 设备ID */
 	
+	/* 不初始化其他设备的id */
+	inode->otherDeviceID = 0;
+
 	int i;
 	for(i = 0; i < BOFS_BLOCK_NR; i++){
 		inode->block[i] = 0;
@@ -45,9 +56,9 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
 void BOFS_DumpInode(struct BOFS_Inode *inode)
 {
     printk(PART_TIP "---- Inode ----\n");
-    printk(PART_TIP "id:%d mode:%x links:%d size:%x flags:%x block start:%d\n",
+    printk(PART_TIP "id:%d mode:%x links:%d size:%x flags:%x block start:%d other dev id %d\n",
         inode->id, inode->mode, inode->links, inode->size,
-        inode->flags, inode->block[0]);
+        inode->flags, inode->block[0], inode->otherDeviceID);
 
     printk(PART_TIP "Date: %d/%d/%d",
         DATA16_TO_DATE_YEA(inode->crttime >> 16),
@@ -57,7 +68,6 @@ void BOFS_DumpInode(struct BOFS_Inode *inode)
         DATA16_TO_TIME_HOU(inode->crttime),
         DATA16_TO_TIME_MIN(inode->crttime),
         DATA16_TO_TIME_SEC(inode->crttime));
-
 }
 
 PUBLIC int BOFS_SyncInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
@@ -81,6 +91,34 @@ PUBLIC int BOFS_SyncInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
     return 0;
 }
 
+
+int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
+{
+	uint32 sectorOffset = inode->id/sb->inodeNrInSector;
+	uint32 lba = sb->inodeTableLba + sectorOffset;
+	uint32 bufOffset = inode->id % sb->inodeNrInSector;
+	
+	//printk("bofs sync: sec off:%d lba:%d buf off:%d\n", sectorOffset, lba, bufOffset);
+	
+	memset(sb->iobuf, 0, SECTOR_SIZE);
+	
+	if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+		return -1;
+	}
+
+	struct BOFS_Inode *inodeBuf = (struct BOFS_Inode *)sb->iobuf;
+
+	memset(&inodeBuf[bufOffset], 0, sizeof(struct BOFS_Inode));
+	
+	if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+		return -1;
+	}
+
+	return 0;
+}
+
+
+
 /**
  * BOFS_LoadInodeByID - 通过inode id 加载节点信息
  * @inode: 储存节点信息
@@ -99,7 +137,6 @@ PUBLIC int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
 	uint32 bufOffset = id % sb->inodeNrInSector;
 	
 	//printk("BOFS load inode sec off:%d lba:%d buf off:%d\n", sectorOffset, lba, bufOffset);
-	
 	//printk("BOFS inode nr in sector %d\n", sb->inodeNrInSector);
 	
 	memset(sb->iobuf, 0, SECTOR_SIZE);
@@ -110,6 +147,44 @@ PUBLIC int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
 	struct BOFS_Inode *inode2 = (struct BOFS_Inode *)sb->iobuf;
 	*inode = inode2[bufOffset];
 	//BOFS_DumpInode(inode);
+	return 0;
+}
+
+int BOFS_CopyInodeData(struct BOFS_Inode *dst,
+	struct BOFS_Inode *src,
+	struct BOFS_SuperBlock *sb)
+{
+	/*if size is 0, don't copy data*/
+	if(src->size == 0){
+		return -1;
+	}
+	/*inode data blocks*/
+	uint32 blocks = DIV_ROUND_UP(src->size, SECTOR_SIZE);
+	uint32 blockID = 0;
+	
+	uint32 srcLba, dstLba;
+	
+	unsigned char *iobuf = kmalloc(SECTOR_SIZE, GFP_KERNEL);
+	if (iobuf == NULL) {
+		return -1;
+	}
+
+	while(blockID < blocks){
+		/*get a lba and read data*/
+		BOFS_GetInodeData(src, blockID, &srcLba, sb);
+		memset(iobuf, 0, SECTOR_SIZE);
+		if (DeviceRead(sb->deviceID, srcLba, iobuf, 1)) {
+			return -1;
+		}
+		
+		/*get a lba and write data*/
+		BOFS_GetInodeData(dst, blockID, &dstLba, sb);
+		if (DeviceWrite(sb->deviceID, dstLba, iobuf, 1)) {
+			return -1;
+		}
+		blockID++;
+	}
+	kfree(iobuf);
 	return 0;
 }
 
@@ -192,7 +267,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 		indirect[0] = inode->block[1];
 
 		if(indirect[0] == 0){
-			//printk("no indirect 0 data, now create a new sector to save it.\n");
+			printk("no indirect 0 data, now create a new sector to save it.\n");
 			
 			/*no data, alloc data*/
 			idx = BOFS_AllocBitmap(sb, BOFS_BMT_SECTOR, 1);
@@ -386,8 +461,8 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 			inode->block[0] = 0;
 			/*sync inode to save empty data*/
 			BOFS_SyncInode(inode, sb);
-			printk("<<<lba:%d\n", indirect[0]);
-			
+			/*printk("<<<lba:%d\n", indirect[0]);
+			*/
 		}else{
 			printk("no data.\n");
 		}
@@ -618,10 +693,14 @@ we need inode size to release data
 void BOFS_ReleaseInodeData(struct BOFS_SuperBlock *sb,
 	struct BOFS_Inode *inode)
 {
+	/* 如果节点没有数据，就直接返回 */
+	if (!inode->size)
+		return;
+
 	int i;
 	uint32 blocks = DIV_ROUND_UP(inode->size, SECTOR_SIZE);
 	
-	printk("inode:%d size:%d blocks:%d\n",inode->id,inode->size, blocks);
+	//printk("inode:%d size:%d blocks:%d\n",inode->id,inode->size, blocks);
 	/*scan back to*/
 	for(i = 0; i < blocks; i++){
 		BOFS_FreeInodeData(sb, inode, i);

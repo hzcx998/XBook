@@ -17,7 +17,7 @@
 
 /*book os file system inode*/
 #define BOFS_BLOCK_NR 3
-#define BOFS_Inode_RESERVED 5
+#define BOFS_INODE_RESERVED 4
 
 #define BOFS_SECTOR_BLOCK_NR  128	/*a sector max block nr*/
 
@@ -34,6 +34,7 @@
 
 #define BOFS_IMODE_F 0X10 /*file type mode*/
 #define BOFS_IMODE_D 0X20 /*directory type mode*/
+#define BOFS_IMODE_V 0X20 /* device mode*/
 
 /*
 we assume a inode is 64 bytes
@@ -41,7 +42,7 @@ we assume a inode is 64 bytes
 
 struct BOFS_Inode 
 {
-	devid_t deviceID;	/* 设备ID */
+	devid_t deviceID;	/* 所在的设备ID */
 
 	unsigned int id;	/*inode id*/
 	
@@ -56,11 +57,15 @@ struct BOFS_Inode
 	
 	uint32 flags;	/*access time*/
 	
+	/* 如果是设备文件，
+	那么这个就指向表示的设备的ID */
+	devid_t otherDeviceID;
+
 	uint32 block[BOFS_BLOCK_NR];	/*data block*/
 	
 	/* end 44 bytes */
 
-	uint32 reserved[BOFS_Inode_RESERVED];	/*data block*/
+	uint32 reserved[BOFS_INODE_RESERVED];	/*data block*/
 }__attribute__ ((packed));;
 
 void BOFS_CreateInode(struct BOFS_Inode *inode,
@@ -73,17 +78,7 @@ void BOFS_DumpInode(struct BOFS_Inode *inode);
 
 void BOFS_CopyInode(struct BOFS_Inode *dst, struct BOFS_Inode *src);
 
-void bofs_sync_inode(struct BOFS_Inode *inode);
-void bofs_load_inode_by_id(struct BOFS_Inode *inode, uint32 id);
-void bofs_copy_inode(struct BOFS_Inode *inode_a, struct BOFS_Inode *inode_b);
-void bofs_release_inode_data(struct BOFS_Inode *inode);
-void bofs_empty_inode(struct BOFS_Inode *inode);
-void bofs_close_inode(struct BOFS_Inode *inode);
-
-int bofs_get_inode_data(struct BOFS_Inode *inode, uint32 block_id, uint32 *data);
-int bofs_free_inode_data(struct BOFS_Inode *inode, uint32 block_id);
-void bofs_copy_inode_data(struct BOFS_Inode *inode_a, struct BOFS_Inode *inode_b);
-
+void BOFS_CloseInode(struct BOFS_Inode *inode);
 
 #endif
 

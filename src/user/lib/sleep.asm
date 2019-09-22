@@ -14,7 +14,11 @@ global sleep
 
 ; void sleep(int second);
 sleep:
+	
+
 	mov eax, SYS_SLEEP
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

@@ -14,7 +14,11 @@ global msleep
 
 ; void msleep(int msecond);
 msleep:
+	
+
 	mov eax, SYS_MSLEEP
 	mov ebx, [esp + 4]
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

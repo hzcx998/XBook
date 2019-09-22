@@ -76,7 +76,11 @@ PUBLIC void Schedule()
     //printk("-next %s-", next->name);
     
     //printk("Switch from %s to %s\n", current->name, next->name);
-    
+    /*
+    if (!strcmp(next->name,"init")) {
+        //printk("!!!!\n!!!!");
+    }*/
+
     /* 3.激活任务的内存环境 */
     TaskActivate(next);
     /* 4.切换到该任务运行 */

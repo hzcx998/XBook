@@ -12,16 +12,18 @@
 #include <driver/ide.h>
 #include <driver/clock.h>
 #include <book/share.h>
+#include <book/device.h>
+#include <book/task.h>
+
 #include <fs/bofs/dir.h>
 #include <fs/bofs/dir_entry.h>
 #include <fs/bofs/bitmap.h>
 #include <fs/bofs/super_block.h>
-#include <book/device.h>
-
+#include <fs/bofs/file.h>
 /*
 get the name from path
 */
-int BOFS_PathToName(const char *pathname, char *namebuf)
+PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf)
 {
 	char *p = (char *)pathname;
 	char depth = 0;
@@ -29,6 +31,7 @@ int BOFS_PathToName(const char *pathname, char *namebuf)
 	int i,j;
 	
 	if(*p != '/'){	//First must be /
+		printk("path %s first must be /\n", pathname);
 		return -1;
 	}
 	//Count how many dir 
@@ -55,10 +58,12 @@ int BOFS_PathToName(const char *pathname, char *namebuf)
 		name[j] = 0;
 		//printk("name:%s %d\n",name, i);
 		if(name[0] == 0){	//no name
+			printk("no name!\n");
 			return -1;
 		}
 		
 		if(i == depth-1){	//name is what we need
+			//printk("path to name %s\n", name);
 			j = 0;
 			while(name[j]){	//if not arrive next '/'
 				namebuf[j] = name[j];	// transform to A~Z
@@ -71,131 +76,15 @@ int BOFS_PathToName(const char *pathname, char *namebuf)
 	return -1;
 }
 
-struct BOFS_SuperBlock *BOFS_GetSuperBlockByPath(const char *pathname)
-{
-	int i, j;
-	
-	char *path = (char *)pathname;
-
-	//printk("The path is %s\n", path);
-	
-	char *p = (char *)path;
-	char depth = 0;
-	char name[BOFS_NAME_LEN];
-	
-	struct BOFS_DirEntry parentDir, childDir;
-	
-    /* 超级块指针 */
-    currentSuperBlock = masterSuperBlock;
-
-    struct BOFS_SuperBlock *sb = currentSuperBlock;
-
-
-	int isMount = 0;
-
-    /* 第一个必须是根目录符号 */
-	if(*p != '/'){
-		printk("BOFS_GetSuperBlockByPath: bad path!\n");
-		return NULL;
-	}
-
-	//计算一共有多少个路径/ 
-	while(*p){
-		if(*p == '/'){
-			depth++;
-		}
-		p++;
-	}
-	
-	p = (char *)path;
-
-	//  / /bin /bin/
-
-    /* 根据深度进行检测 */
-	for(i = 0; i < depth; i++){
-		//跳过目录分割符'/'
-        p++;
-
-        /* 准备获取目录名字 */
-		memset(name, 0, BOFS_NAME_LEN);
-		j = 0;
-
-        /* 如果没有遇到'/'就一直获取字符 */
-		while(*p != '/' && j < BOFS_NAME_LEN){
-			name[j] = *p;
-			j++;
-			p++;
-		}
-		//printk("dir name is %s\n", name);
-
-        /* 如果'/'后面没有名字，就直接返回 */
-		if(name[0] == 0){
-			
-			/* 判断是否为挂载的超级块 */
-			if (!isMount)
-				return masterSuperBlock;
-			else 
-				return sb;
-
-			return NULL;
-		}
-
-		/* 如果深度是0，就说明是根目录，则进行特殊处理 */
-		if(i == 0){
-            /* 在根目录中搜索目录项 */
-			if(BOFS_SearchDirEntry(sb, sb->rootDir->dirEntry, &childDir, name)){	
-				/* 如果搜索到，说明目录已经存在，那么就保存目录项，然后在子目录项中去搜索
-                子目录项变成父目录，以便进行下一次搜索。*/
-                memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
-
-				
-				/* 是在最后找到了 */
-				if(i == depth - 1){
-					/* 直接返回master */
-					return masterSuperBlock;
-				} else {
-					
-				}
-			} else {
-				/* 没找到目录 */
-				return NULL;
-			}
-		}else{	//if not under the root dir 
-            /* 如果是/mnt/目录，那么就根据/mnt/fs-sb来设置不同的超级块 */
-            
-			//parentDir we have gotten under root dir
-			if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
-				memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				
-				/* 是在最后找到了 */
-				if(i == depth - 1){
-					/* 返回超级块 */
-					return sb;
-				} else {
-					
-				}
-			} else {
-				/* 没找到目录 */
-				return NULL;
-			}
-		}
-	}
-	/*if dir has exist, it will arrive here.*/
-	return NULL;
-}
-
 void BOFS_ListDir(const char *pathname, int level)
 {
-	printk("List dir path: %s\n", pathname);
+	//printk("List dir path: %s\n", pathname);
 	//open a dir
 	struct BOFS_Dir *dir = BOFS_OpenDir(pathname);
 
 	if(dir == NULL){
 		return;
 	}
-	
-	struct BOFS_SuperBlock *sb = BOFS_GetSuperBlockByPath(pathname);
 
 	BOFS_RewindDir(dir);
 	
@@ -214,8 +103,15 @@ void BOFS_ListDir(const char *pathname, int level)
 				type = 'f';
 			}else if(dirEntry->type == BOFS_FILE_TYPE_INVALID){
 				type = 'i';
+			}else if(dirEntry->type == BOFS_FILE_TYPE_MOUNT){
+				type = 'm';
+			}else if(dirEntry->type == BOFS_FILE_TYPE_BLOCK){
+				type = 'b';
+			}else if(dirEntry->type == BOFS_FILE_TYPE_CHAR){
+				type = 'c';
 			}
-			BOFS_LoadInodeByID(&inode, dirEntry->inode, sb);
+			/* 需要加载目录所在的超级块中的节点 */
+			BOFS_LoadInodeByID(&inode, dirEntry->inode, dir->superBlock);
 			
 			printk("%d/%d/%d ",
 				DATA16_TO_DATE_YEA(inode.crttime>>16),
@@ -225,15 +121,23 @@ void BOFS_ListDir(const char *pathname, int level)
 				DATA16_TO_TIME_HOU(inode.crttime&0xffff),
 				DATA16_TO_TIME_MIN(inode.crttime&0xffff),
 				DATA16_TO_TIME_SEC(inode.crttime&0xffff));
-			printk("%c %d %s \n", type, inode.size, dirEntry->name);
+			printk("%c %d %s %d\n", type, inode.size, dirEntry->name, inode.deviceID);
 		}else if(level == 1){
 			if(dirEntry->type != BOFS_FILE_TYPE_INVALID){
 				if(dirEntry->type == BOFS_FILE_TYPE_DIRECTORY){
 					type = 'd';
 				}else if(dirEntry->type == BOFS_FILE_TYPE_NORMAL){
 					type = 'f';
+				}else if(dirEntry->type == BOFS_FILE_TYPE_MOUNT){
+					type = 'm';	
+				}else if(dirEntry->type == BOFS_FILE_TYPE_BLOCK){
+					type = 'b';
+				}else if(dirEntry->type == BOFS_FILE_TYPE_CHAR){
+					type = 'c';
 				}
-				BOFS_LoadInodeByID(&inode, dirEntry->inode, sb);
+				
+				/* 需要加载目录所在的超级块中的节点 */
+				BOFS_LoadInodeByID(&inode, dirEntry->inode, dir->superBlock);
 			
 				printk("%d/%d/%d ",
 					DATA16_TO_DATE_YEA(inode.crttime>>16),
@@ -243,7 +147,7 @@ void BOFS_ListDir(const char *pathname, int level)
 					DATA16_TO_TIME_HOU(inode.crttime&0xffff),
 					DATA16_TO_TIME_MIN(inode.crttime&0xffff),
 					DATA16_TO_TIME_SEC(inode.crttime&0xffff));
-				printk("%c %d %s \n", type, inode.size, dirEntry->name);
+				printk("%c %d %s %d\n", type, inode.size, dirEntry->name, inode.deviceID);
 			}
 		}else if(level == 0){
 			if(dirEntry->type != BOFS_FILE_TYPE_INVALID){
@@ -315,6 +219,9 @@ PRIVATE struct BOFS_Dir *BOFS_OpenDirSub(struct BOFS_DirEntry *dirEntry,
 	if(dir == NULL){
 		return NULL;
 	}
+	/* 绑定超级块 */
+	dir->superBlock = sb;
+
 	/* 绑定目录项 */
 	dir->dirEntry = dirEntry;
 	
@@ -407,8 +314,8 @@ struct BOFS_Dir *BOFS_OpenDir(const char *pathname)
 	int found = BOFS_SearchDir(path, &record, sb);
 	
 	if(!found){	//fount
-		printk("search dir parent name %s child name %s super at %x\n",
-			record.parentDir->name, record.childDir->name, record.superBlock);
+		/*printk("search dir parent name %s child name %s super at %x\n",
+			record.parentDir->name, record.childDir->name, record.superBlock);*/
 
 		if (record.childDir->type == BOFS_FILE_TYPE_NORMAL) {	///nomal file
 			//printk("%s is regular file!\n", path);
@@ -417,7 +324,7 @@ struct BOFS_Dir *BOFS_OpenDir(const char *pathname)
 		} else if (record.childDir->type == BOFS_FILE_TYPE_DIRECTORY) {
 			//printk("%s is dir file!\n", path);
 			
-			BOFS_DumpSuperBlock((struct BOFS_SuperBlock *)record.superBlock);
+			//BOFS_DumpSuperBlock((struct BOFS_SuperBlock *)record.superBlock);
 			dir = BOFS_OpenDirSub(record.childDir, record.superBlock);
 
 			/* 如果打开失败就释放资源并返回 */
@@ -453,6 +360,11 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 	memset(parentDir, 0, sizeof(struct BOFS_DirEntry));
 	memset(childDir, 0, sizeof(struct BOFS_DirEntry));
 	
+	/* 最开始初始化一下record */
+	record->parentDir = parentDir;
+	record->childDir = childDir;
+	record->superBlock = sb;
+
 	if(*p != '/'){	//First must be /
 		return -1;
 	}
@@ -479,9 +391,7 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 		
 		// 如果是根目录，就返回根目录信息
 		if(depth == 1 && pathname[0] == '/' && pathname[1] == 0){
-			/* 父目录会被释放 */
-			record->parentDir = NULL;
-			kfree(parentDir);
+			record->parentDir = parentDir;
 
 			/* 复制根目录数据给子目录 */
 			memcpy(childDir, sb->rootDir->dirEntry, sizeof(struct BOFS_DirEntry));
@@ -500,7 +410,7 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 		if(BOFS_SearchDirEntry(sb, parentDir, childDir, name)){	//find
 			/* 发现子目录是挂载目录，就记录挂载目录的位置 */
 			if (childDir->type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
-				printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
+				//printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
 				next = p;
 			}
 			if(i == depth - 1){	//finally
@@ -527,7 +437,12 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 				如：/mnt/floppy, 如果访问floppy，就相当于访问 软盘的根目录，软盘/
 				*/
 				if (next != NULL) {
-					printk("search under dir %s -> %s super at %x\n", p, next, childDir->mount);
+					//printk("search under dir %s -> %s super at %x\n", p, next, childDir->mount);
+					/* 挂载关联是否正确 */
+					if (!childDir->mount) {
+						printk("path %s mount link error!\n", pathname);
+						return -1;
+					}
 					return BOFS_SearchDir(next, record, (struct BOFS_SuperBlock *)childDir->mount);
 				}
 			}
@@ -537,9 +452,11 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 			printk("not found\n");
 
 			//printk("search:error!\n");
-			record->parentDir = sb->rootDir->dirEntry;
+			record->parentDir = parentDir;
 			record->childDir = NULL;
-			
+			/* 还是要记录超级块信息，当文件没有找到的时候，需要创建文件使用 */
+			record->superBlock = sb;
+
 			kfree(childDir);
 			break;
 		}
@@ -582,10 +499,17 @@ PUBLIC int BOFS_OpenRootDir(struct BOFS_SuperBlock *sb)
     sb->rootDir->pos = 0;
     sb->rootDir->size = 0;
 	sb->rootDir->buf = NULL;
+	sb->rootDir->superBlock = sb;
 
     return 0;
 }
-
+/**
+ * BOFS_CreateNewDirEntry - 创建一个新的目录项
+ * @sb: 超级块儿
+ * @parentDir: 父目录
+ * @childDir: 子目录
+ * @name: 目录项的名字
+ */
 PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 	struct BOFS_DirEntry *parentDir,
 	struct BOFS_DirEntry *childDir,
@@ -599,7 +523,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 	 */
 	struct BOFS_Inode inode;
 	
-	unsigned int inodeID = BOFS_AllocBitmap(sb, BOFS_BMT_INODE, 1); 
+	int inodeID = BOFS_AllocBitmap(sb, BOFS_BMT_INODE, 1); 
 	if (inodeID == -1) {
 		printk(PART_ERROR "BOFS alloc inode bitmap failed!\n");
 		return -1;
@@ -608,7 +532,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 	
 	/* 把节点id同步到磁盘 */
 	BOFS_SyncBitmap(sb, BOFS_BMT_INODE, inodeID);
-
+      
 	BOFS_CreateInode(&inode, inodeID, (BOFS_IMODE_R|BOFS_IMODE_W),
 		0, sb->deviceID);    
 
@@ -659,10 +583,10 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 	
 	//Spin("test");
 
-	int sync_ret = BOFS_SyncDirEntry(parentDir, childDir, sb);
+	int result = BOFS_SyncDirEntry(parentDir, childDir, sb);
 	
-	if(sync_ret > 0){	//successed
-		if(sync_ret == 1){
+	if(result > 0){	//successed
+		if(result == 1){
 			/* 当创建的目录不是使用的无效的目录项时才修改父目录的大小 */
 			BOFS_LoadInodeByID(&inode, parentDir->inode, sb);
 			
@@ -717,6 +641,7 @@ PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 
     /* 根据深度进行检测 */
 	for(i = 0; i < depth; i++){
+		/* 记录上一次的路径 */
 		last = p;
 		//跳过目录分割符'/'
         p++;
@@ -742,79 +667,54 @@ PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 			/* 创建的时候，如果没有指定名字，就只能返回。 */
 			return -1;
 		}
-
-		/* 如果深度是0，就说明是根目录，则进行特殊处理 */
+		/* 如果是在根目录下面查找，那么就需要把根目录数据复制给父目录 */
 		if(i == 0){
-            /* 在根目录中搜索目录项 */
-			if(BOFS_SearchDirEntry(sb, sb->rootDir->dirEntry, &childDir, name)){	
-				/* 如果搜索到，说明目录已经存在，那么就保存目录项，然后在子目录项中去搜索
-                子目录项变成父目录，以便进行下一次搜索。*/
-                memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
+			memcpy(&parentDir, sb->rootDir->dirEntry, sizeof(struct BOFS_DirEntry));
+		}
 
-				/* 如果已经存在，并且位于末尾，说明我们想要创建一个已经存在的目录，返回失败 */
-				if(i == depth - 1){
-					printk("mkdir: path %s has exist, can't create it again!\n", path);
-					return -1;
-				}
-			}else{
-                /* 在根目录中没有找到子目录，就可以创建这个目录 */
-	
-				//printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit! not find\n",depth, pathname, name);
-	
-				/* 检测是否是最后一个目录不存在，如果是，就创建这个目录 */
-				if(i == depth - 1){
-					//printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit!\n",depth, pathname, name);
+		/* 搜索子目录 */
+		if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){
+			/* 找到后，就把子目录转换成父目录，等待下一次进行搜索 */
 
-					//printk("BOFS_MakeDir: create path:%s name:%s\n", pathname, name);
+			memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));
+			//printk("BOFS_MakeDir:depth:%d path:%s name:%s has exsit!\n",depth, pathname, name);
+
+			/* 如果文件已经存在，并且位于末尾，说明我们想要创建一个已经存在的目录，返回失败 */
+			if(i == depth - 1){
+				printk("mkdir: path %s has exist, can't create it again!\n", path);
+				return -1;
+			}
+		}else{
+			
+			/* 没找到，并且是在路径末尾 */
+			if(i == depth - 1){
+				/* 创建目录 */
+				
+				//printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit!\n",depth, pathname, name);
+				// printk("parent %s\n", parentDir.name);
+				/* 查看父目录类型，如果是挂载目录，就会切换到该文件系统下面去，不是就正常在master中创建 */
+				if (parentDir.type == BOFS_FILE_TYPE_MOUNT) {
+					//printk("meet a mount dir %s!\n", pathname);
+
+					/* 进入挂在的目录所在的文件系统 */
+					//printk("last name %s\n", last);
 					
-					if (BOFS_CreateNewDirEntry(sb, sb->rootDir->dirEntry, &childDir, name)) {
+					/* 挂载关联是否正确 */
+					if (!parentDir.mount) {
+						printk("path %s mount link error!\n", pathname);
 						return -1;
 					}
-				}else{
-					//printk("mkdir:can't create path:%s name:%s\n", pathname, name);
-					
-					return -1;
-				}
-			}
-		}else{	//if not under the root dir 
-            /* 如果是/mnt/目录，那么就根据/mnt/fs-sb来设置不同的超级块 */
-            
-			//parentDir we have gotten under root dir
-			if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
-				memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				//printk("BOFS_MakeDir:depth:%d path:%s name:%s has exsit!\n",depth, pathname, name);
+					return BOFS_MakeDirSub(last, (struct BOFS_SuperBlock *)parentDir.mount);
 
-				/* 如果已经存在，并且位于末尾，说明我们想要创建一个已经存在的目录，返回失败 */
-				if(i == depth - 1){
-					printk("mkdir: path %s has exist, can't create it again!\n", path);
-					return -1;
+				} else {
+					/* 在master中创建 */	
+					if (BOFS_CreateNewDirEntry(sb, &parentDir, &childDir, name)) {
+						return -1;
+					}
 				}
 			}else{
-				
-				/*check whether is last dir name*/
-				if(i == depth - 1){	//create it
-					//printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit!\n",depth, pathname, name);
-					// printk("parent %s\n", parentDir.name);
-					/* 查看父目录类型，如果是挂载目录，就会切换到该文件系统下面去，不是就正常在master中创建 */
-					if (parentDir.type == BOFS_FILE_TYPE_MOUNT) {
-						printk("meet a mount dir %s!\n", pathname);
-
-						/* 进入挂在的目录所在的文件系统 */
-						printk("last name %s\n", last);
-						
-						return BOFS_MakeDirSub(last, (struct BOFS_SuperBlock *)parentDir.mount);
-
-					} else {
-						/* 在master中创建 */	
-						if (BOFS_CreateNewDirEntry(sb, &parentDir, &childDir, name)) {
-							return -1;
-						}
-					}
-				}else{
-					//printk("mkdir:can't create path:%s name:%s\n", pathname, name);
-					return -1;
-				}
+				printk("mkdir:can't create path:%s name:%s\n", pathname, name);
+				return -1;
 			}
 		}
 	}
@@ -824,12 +724,13 @@ PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 
 PUBLIC int BOFS_MakeDir(const char *pathname)
 {
-	printk("mkdir: path is %s\n", pathname);
+	//printk("mkdir: path is %s\n", pathname);
 	/* 选择一个超级块 */
     struct BOFS_SuperBlock *sb = masterSuperBlock;
 
 	return BOFS_MakeDirSub(pathname, sb);
 }
+
 
 /**
  * BOFS_MountDir - 在一个路径下面挂载一个文件系统
@@ -838,9 +739,8 @@ PUBLIC int BOFS_MakeDir(const char *pathname)
  * 
  * 挂载文件系统时，只能把把文件系统挂载到主文件系统下面
  */
-PUBLIC int BOFS_MountDir(const char *pathname, char *devname)
+PUBLIC int BOFS_UnmountDirSub(char *pathname, struct BOFS_SuperBlock *sb)
 {
-	struct BOFS_SuperBlock *sb = masterSuperBlock;
 
 	int i, j;
 	
@@ -849,17 +749,13 @@ PUBLIC int BOFS_MountDir(const char *pathname, char *devname)
 	//printk("The path is %s\n", path);
 	
 	char *p = (char *)path;
+	char *next = NULL;
 
 	char depth = 0;
 	char name[BOFS_NAME_LEN];   
 	
 	struct BOFS_DirEntry parentDir, childDir;
 	
-	struct BOFS_SuperBlock *devsb = GetDevicePointer(devname);
-	if (devsb == NULL) {
-		printk("Get device pointer failed!");
-		return -1;
-	}
     /* 第一个必须是根目录符号 */
 	if(*p != '/'){
 		printk("mkdir: bad path!\n");
@@ -897,87 +793,70 @@ PUBLIC int BOFS_MountDir(const char *pathname, char *devname)
 		
 		/*----判断是否没有名字----*/
 		
-        /* 如果'/'后面没有名字，就直接返回 */
+        /* 如果'/'后面没有名字，就直接返回，如果是挂载到根目录，就在这儿返回 */
 		if(name[0] == 0){
 			/* 创建的时候，如果没有指定名字，就只能返回。 */
 			return -1;
 		}
-
-		/* 如果深度是0，就说明是根目录，则进行特殊处理 */
 		if(i == 0){
+			/* 如果是根目录，就把根目录当做父目录 */
+			memcpy(&parentDir, sb->rootDir->dirEntry, sizeof(struct BOFS_DirEntry));
+		}
+		/*!!!! 这里还有一个问题，那就是在一个文件系统目录下面挂载一个文件系统，
+		然后再在挂载的文件系统下面挂载一个文件系统。对于这种情况，我们不让它挂载到非文件系统上，
+		也就是说，只能挂载到主文件系统上，不管你挂载到哪儿*/
 
-            /* 在根目录中搜索目录项 */
-			if(BOFS_SearchDirEntry(sb, sb->rootDir->dirEntry, &childDir, name)){	
-				/* 如果已经存在，并且位于末尾 */
-				if(i == depth - 1){
-					//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
-					/* 如果该目录已经是一个挂载目录，那么就不能再次挂载 */
-					/*if (childDir.type == BOFS_FILE_TYPE_MOUNT) {
-						printk("mount: path %s has mount, can't mount it again!\n", path);
-					} else {*/
-						/* 可以进行挂载，挂载到根目录下面的一个目录下面 */
-
-						/* 修改类型为挂载目录项 */
-						childDir.type = BOFS_FILE_TYPE_MOUNT;
-						childDir.mount = (unsigned int )devsb;
-						/* 挂载完成后，要写回磁盘，才能生效 */
-						if (!BOFS_SyncDirEntry(&parentDir, &childDir, sb)) {
-							return -1;
-						}
-						//BOFS_DumpDirEntry(&childDir);
-						
-						printk("mount: path %s mount sucess!\n", pathname);
-					//}
-				}
-				/* 如果搜索到，说明目录已经存在，那么就保存目录项，然后在子目录项中去搜索
-                子目录项变成父目录，以便进行下一次搜索。*/
-                memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				
-			}else{
-                /* 在根目录中没有找到子目录，就不能挂载 */
-
-				printk(PART_ERROR "mount: path:%s not exist!\n", pathname, name);
-				
-				return -1;
+		/* 搜索子目录 */
+		if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
+			/* 发现子目录是挂载目录，就记录挂载目录的位置 */
+			if (childDir.type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
+				//printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
+				next = p;
 			}
-		}else{	//if not under the root dir 
-            /* 如果是/mnt/目录，那么就根据/mnt/fs-sb来设置不同的超级块 */
-            
-			/*!!!! 这里还有一个问题，那就是在一个文件系统目录下面挂载一个文件系统，
-			然后再在挂载的文件系统下面挂载一个文件系统。对于这种情况，我们不让它挂载到非文件系统上，
-			也就是说，只能挂载到主文件系统上，不管你挂载到哪儿*/
+			
 
-			//parentDir we have gotten under root dir
-			if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
-				if(i == depth - 1){
-					//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
-					/* 如果该目录已经是一个挂载目录，那么就不能再次挂载 */
-					/*if (childDir.type == BOFS_FILE_TYPE_MOUNT) {
-						printk("mount: path %s has mount, can't mount it again!\n", path);
-					} else {*/
-						/* 可以进行挂载，挂载到非根目录下面的一个目录 */
-
-						/* 修改类型为挂载目录项 */
-						childDir.type = BOFS_FILE_TYPE_MOUNT;
-						childDir.mount = (unsigned int )devsb;
-						/* 挂载完成后，要写回磁盘，才能生效 */
-						if (!BOFS_SyncDirEntry(&parentDir, &childDir, sb)) {
-							return -1;
-						}
-						//BOFS_DumpDirEntry(&childDir);
-						
-						printk("mount: path %s mount sucess!\n", pathname);
-					//}
-				}
+			if(i == depth - 1){
+				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
 				
+				/* 如果是挂载目录，才能进行卸载，不然就返回错误 */
+				if (childDir.type == BOFS_FILE_TYPE_MOUNT) {
+					//printk();
+					childDir.type = BOFS_FILE_TYPE_DIRECTORY;
+					childDir.mount = 0;
+					/* 挂载完成后，要写回磁盘，才能生效 */
+					if (!BOFS_SyncDirEntry(&parentDir, &childDir, sb)) {
+						return -1;
+					}
+					//printk("unmount: path %s unmount sucess!\n", pathname);
+				} else {
+					/* 不是挂载目录，就返回错误 */
+					printk("unmount: path %s not mount dir!\n", pathname);
+					return -1;
+				}	
+			
+			} else {	
 				memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-				//printk("BOFS_MakeDir:depth:%d path:%s name:%s has exsit!\n",depth, pathname, name);
-			}else{
-				/* 在目录中没有找到子目录，就不能挂载 */
-				printk(PART_ERROR "mount: path:%s not exist!\n", pathname, name);
 				
-				return -1;
+				/* 如果是有挂在目录，那么就要进入挂在目录所在文件系统 */
+				if (next != NULL) {
+					//printk("mount dir %s -> %s super at %x\n", p, next, childDir.mount);
+
+					/* 挂载关联是否正确 */
+					if (!childDir.mount) {
+						printk("path %s mount link error!\n", pathname);
+						return -1;
+					}
+
+					return BOFS_UnmountDirSub(next, (struct BOFS_SuperBlock *)childDir.mount);
+				}
 			}
+			
+			//printk("BOFS_MakeDir:depth:%d path:%s name:%s has exsit!\n",depth, pathname, name);
+		}else{
+			/* 在目录中没有找到子目录，就不能挂载 */
+			printk(PART_ERROR "mount: path:%s not exist!\n", pathname, name);
+			
+			return -1;
 		}
 	}
 	/*if dir has exist, it will arrive here.*/
@@ -985,7 +864,201 @@ PUBLIC int BOFS_MountDir(const char *pathname, char *devname)
 }
 
 /**
- * BOFS_RemoveDir - 移除一个目录项
+ * BOFS_MountDir - 在一个路径下面挂载一个文件系统
+ * @pathname: 路径名
+ * @devname: 设备名
+ * 
+ * 挂载文件系统时，只能把把文件系统挂载到主文件系统下面
+ */
+PUBLIC int BOFS_UnmountDir(const char *target)
+{
+	struct BOFS_SuperBlock *sb = masterSuperBlock;
+
+	return BOFS_UnmountDirSub((char *)target, sb);
+}
+
+/**
+ * BOFS_MountDir - 在一个路径下面挂载一个文件系统
+ * @pathname: 路径名
+ * @devname: 设备名
+ * 
+ * 挂载文件系统时，只能把把文件系统挂载到主文件系统下面
+ */
+PUBLIC int BOFS_MountDirSub(char *pathname, struct BOFS_SuperBlock *sb,
+	struct BOFS_SuperBlock *devsb)
+{
+
+	int i, j;
+	
+	char *path = (char *)pathname;
+
+	//printk("The path is %s\n", path);
+	
+	char *p = (char *)path;
+	char *next = NULL;
+
+	char depth = 0;
+	char name[BOFS_NAME_LEN];   
+	
+	struct BOFS_DirEntry parentDir, childDir;
+	
+    /* 第一个必须是根目录符号 */
+	if(*p != '/'){
+		printk("mkdir: bad path!\n");
+		return -1;
+	}
+
+	//计算一共有多少个路径/ 
+	while(*p){
+		if(*p == '/'){
+			depth++;
+		}
+		p++;
+	}
+	
+	p = (char *)path;
+
+    /* 根据深度进行检测 */
+	for(i = 0; i < depth; i++){
+		//跳过目录分割符'/'
+        p++;
+
+		/*----读取名字----*/
+
+        /* 准备获取目录名字 */
+		memset(name, 0, BOFS_NAME_LEN);
+		j = 0;
+
+        /* 如果没有遇到'/'就一直获取字符 */
+		while(*p != '/' && j < BOFS_NAME_LEN){
+			name[j] = *p;
+			j++;
+			p++;
+		}
+		//printk("dir name is %s\n", name);
+		
+		/*----判断是否没有名字----*/
+		
+        /* 如果'/'后面没有名字，就直接返回，如果是挂载到根目录，就在这儿返回 */
+		if(name[0] == 0){
+			/* 创建的时候，如果没有指定名字，就只能返回。 */
+			return -1;
+		}
+		if(i == 0){
+			/* 如果是根目录，就把根目录当做父目录 */
+			memcpy(&parentDir, sb->rootDir->dirEntry, sizeof(struct BOFS_DirEntry));
+		}
+		/*!!!! 这里还有一个问题，那就是在一个文件系统目录下面挂载一个文件系统，
+		然后再在挂载的文件系统下面挂载一个文件系统。对于这种情况，我们不让它挂载到非文件系统上，
+		也就是说，只能挂载到主文件系统上，不管你挂载到哪儿*/
+
+		//parentDir we have gotten under root dir
+		if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
+			/* 发现子目录是挂载目录，就记录挂载目录的位置 */
+			if (childDir.type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
+				//printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
+				next = p;
+			}
+			
+			if(i == depth - 1){
+				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",depth, pathname, name);
+				
+				/* 如果是以经挂在的目录，那么可以重新挂在
+				修改类型为挂载目录项 */
+				childDir.type = BOFS_FILE_TYPE_MOUNT;
+				childDir.mount = (unsigned int )devsb;
+				/* 挂载完成后，要写回磁盘，才能生效 */
+				if (!BOFS_SyncDirEntry(&parentDir, &childDir, sb)) {
+					return -1;
+				}
+				//BOFS_DumpDirEntry(&childDir);
+				
+				//printk("mount: path %s mount sucess!\n", pathname);
+			
+			} else {	
+				memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
+				
+				/* 如果是有挂在目录，那么就要进入挂在目录所在文件系统 */
+				if (next != NULL) {
+					//printk("mount dir %s -> %s super at %x\n", p, next, childDir.mount);
+
+					return BOFS_MountDirSub(next, (struct BOFS_SuperBlock *)childDir.mount, devsb);
+				}
+			}
+			
+			//printk("BOFS_MakeDir:depth:%d path:%s name:%s has exsit!\n",depth, pathname, name);
+		}else{
+			/* 在目录中没有找到子目录，就不能挂载 */
+			printk(PART_ERROR "mount: path:%s not exist!\n", pathname, name);
+			
+			return -1;
+		}
+	}
+	/*if dir has exist, it will arrive here.*/
+	return 0;
+}
+
+/**
+ * BOFS_MountDir - 在一个路径下面挂载一个文件系统
+ * @devname: 设备路径名
+ * @pathname: 路径名
+ * 
+ * 挂载文件系统时，只能把把文件系统挂载到主文件系统下面
+ */
+PUBLIC int BOFS_MountDir(const char *devpath, const char *pathname)
+{
+	struct BOFS_SuperBlock *sb = masterSuperBlock;
+
+	char name[BOFS_NAME_LEN];
+	memset(name, 0, BOFS_NAME_LEN);
+
+	/* 获取命名 */
+	if (BOFS_PathToName(devpath, name)) {
+		return -1;
+	}
+
+	/* 获取设备对应得设备记录信息 */
+	
+	struct Device *device = GetDevice(name);
+
+	if (device == NULL) {
+		printk("Get device failed!\n");
+		return -1;
+	}
+
+	if (device->pointer == NULL) {
+		printk("device %s pointer is null!\n", device->name);
+		return -1;
+	}
+
+	struct BOFS_SuperBlock *devsb = device->pointer;
+	
+	struct BOFS_DirSearchRecord record;
+	
+	/* 检测设备是否为块设备，只有块设备才能进行挂载 */
+	int found = BOFS_SearchDir((char *)devpath, &record, sb);
+
+	if(!found){
+		/* 只有找到了，并且是块设备才能进行挂载 */
+		if (record.childDir->type == BOFS_FILE_TYPE_BLOCK) {
+			if(!BOFS_MountDirSub((char *)pathname, sb, devsb)) {
+				return 0;
+			} else {
+				printk("device mount failed!\n");
+				return -1;
+			}
+		}
+		printk("device %s not a block device!\n", name);
+		return -1;
+	}
+
+	printk("device %s not exist!\n", name);
+	return -1;
+}
+
+
+/**
+ * BOFS_RemoveDirSub - 移除一个目录项
  * @pathname: 路径名
  */
 PUBLIC int BOFS_RemoveDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
@@ -1038,108 +1111,66 @@ PUBLIC int BOFS_RemoveDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 		if(name[0] == 0){
 			return -1;
 		}
+		
+		if (i == 0) {
+			/* 是根目录的话，就把根目录当做父目录 */
+			memcpy(&parentDir, sb->rootDir->dirEntry, sizeof(struct BOFS_DirEntry));
+		}
+		/* 在根目录中搜索目录项 */
+		if (BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)) {	
+			/* 找到了才可以移除 */
 
-		/* 如果深度是0，就说明是根目录，则进行特殊处理 */
-		if(i == 0){
-            /* 在根目录中搜索目录项 */
-			if (BOFS_SearchDirEntry(sb, sb->rootDir->dirEntry, &childDir, name)) {	
-				/* 找到了才可以移除 */
+			//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",i, pathname, name);
+			/* 发现子目录是挂载目录，就记录挂载目录的位置 */
+			if (childDir.type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
+				//printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
+				next = p;
+			}
 
-				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",i, pathname, name);
-				/* 发现子目录是挂载目录，就记录挂载目录的位置 */
-				if (childDir.type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
-					printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
-					next = p;
-				}
-
-				/* 如果是最后一个目录路径就移除它 */
-				if(i == depth - 1){
-					/* 不能直接删除挂载目录 */
-					if (childDir.type != BOFS_FILE_TYPE_MOUNT) {
-						
-						
-						/* 先释放目录项，再同步目录项 */
-						BOFS_ReleaseDirEntry(sb, &childDir);
-						
-						BOFS_DumpDirEntry(&childDir);
-
-						if(BOFS_SyncDirEntry(sb->rootDir->dirEntry, &childDir, sb)){
-							/* 删除一个目录项之后，不用修改父目录的大小，因为我们只把
-							子目录设置成无效，这是为了以后能够恢复信息 */
-							return 0;
-						}
-					} else {
-						printk("rmdir: can't remove mount dir %s\n", pathname);
+			/* 如果是最后一个目录路径就移除它 */
+			if(i == depth - 1){
+				/* 不能直接删除挂载目录 */
+				if (childDir.type != BOFS_FILE_TYPE_MOUNT) {
+					if (childDir.type == BOFS_FILE_TYPE_BLOCK || childDir.type == BOFS_FILE_TYPE_CHAR) {
+						printk("rmdir: can't remove device %s with rmdir, please use rm instead!\n", pathname);
 						return -1;
 					}
+					/* 先释放目录项，再同步目录项 */
+					BOFS_ReleaseDirEntry(sb, &childDir);
 					
-				}else{
-					/*
-					还没有到最后一个目录，把子目录当做父目录，再次搜索
-					*/
-					memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-					printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s not last path, continue!\n",i, pathname, name);
-					/* 遇到挂载目录，并且还没有到最后的路径，说明要删除的路径在挂载目录里面 */
-					if (next != NULL) {
-						printk("remove under dir %s\n", next);
-						return BOFS_RemoveDirSub(next, (struct BOFS_SuperBlock *)childDir.mount);
-					}
-				}
-				
-			} else {
-				/* 没有找到，就会直接在后面返回 */
-				printk("BOFS_RemoveDir:depth:%d path:%s name:%s not exsit! not find\n",depth, pathname, name);
-			}
-		}else{
-            /* 如果是/mnt/目录，那么就根据/mnt/fs-sb来设置不同的超级块 */
-            
-			//parentDir we have gotten under root dir
-			if(BOFS_SearchDirEntry(sb, &parentDir, &childDir, name)){	//find
-				
-				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s has exsit! find\n",i, pathname, name);
-				
-				/* 发现子目录是挂载目录，就记录挂载目录的位置 */
-				if (childDir.type == BOFS_FILE_TYPE_MOUNT && next == NULL) {
-					printk(">>meet mount dir %s name %s depth %d\n", pathname, name, i);
-					next = p;
-				}
-				
-				/* 如果是最后一个目录路径就移除它 */
-				if(i == depth - 1){
-					if (childDir.type != BOFS_FILE_TYPE_MOUNT) {
-						/* 擦除目录项 */
-						/*if (BOFS_CreateNewDirEntry(sb, &parentDir, &childDir, name)) {
-							return 0;
-						}*/
-						printk("release dir entry %s\n",childDir.name);
+					//BOFS_DumpDirEntry(&childDir);
 
-						/* 先释放目录项，再同步目录项 */
-						BOFS_ReleaseDirEntry(sb, &childDir);
-						
-						printk("sync dir entry %s\n",childDir.name);
-						
-						if(BOFS_SyncDirEntry(&parentDir, &childDir, sb)){
-							return 0;
-						}
-					}  else {
-						printk("rmdir: can't remove mount dir %s\n", pathname);
+					if(BOFS_SyncDirEntry(&parentDir, &childDir, sb)){
+						/* 删除一个目录项之后，不用修改父目录的大小，因为我们只把
+						子目录设置成无效，这是为了以后能够恢复信息 */
+						return 0;
+					}
+				} else {
+					printk("rmdir: can't remove mount dir %s\n", pathname);
+					return -1;
+				}
+				
+			}else{
+				/*
+				还没有到最后一个目录，把子目录当做父目录，再次搜索
+				*/
+				memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
+				//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s not last path, continue!\n",i, pathname, name);
+				/* 遇到挂载目录，并且还没有到最后的路径，说明要删除的路径在挂载目录里面 */
+				if (next != NULL) {
+					//printk("remove under dir %s\n", next);
+					/* 挂载关联是否正确 */
+					if (!childDir.mount) {
+						printk("path %s mount link error!\n", pathname);
 						return -1;
 					}
-				}else{
-					memcpy(&parentDir, &childDir, sizeof(struct BOFS_DirEntry));	//childDir become parentDir
-					//printk("BOFS_SearchDirEntry:depth:%d path:%s name:%s not last path, continue!\n",depth, pathname, name);
-					/* 遇到挂载目录，并且还没有到最后的路径，说明要删除的路径在挂载目录里面 */
-					if (next != NULL) {
-						printk("remove under dir %s\n", next);
-						return BOFS_RemoveDirSub(next, (struct BOFS_SuperBlock *)childDir.mount);
-					}	
+					return BOFS_RemoveDirSub(next, (struct BOFS_SuperBlock *)childDir.mount);
 				}
-
-				
-			} else{
-				/* 没有找到，就会直接在后面返回 */
-				printk("BOFS_RemoveDir:depth:%d path:%s name:%s not exsit! not find\n",i, pathname, name);
 			}
+			
+		} else {
+			/* 没有找到，就会直接在后面返回 */
+			printk("BOFS_RemoveDir:depth:%d path:%s name:%s not exsit! not find\n",depth, pathname, name);
 		}
 	}
 	/*if dir has not exist, it will arrive here.*/
@@ -1152,9 +1183,122 @@ PUBLIC int BOFS_RemoveDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
  */
 PUBLIC int BOFS_RemoveDir(const char *pathname)
 {
-	printk("rmdir: The path is %s\n", pathname);
+	//printk("rmdir: The path is %s\n", pathname);
 	
     struct BOFS_SuperBlock *sb = masterSuperBlock;
 
 	return BOFS_RemoveDirSub(pathname, sb);
 }
+
+/**
+ * BOFS_ChangeCWD - 改变当前工作目录
+ * 
+ */
+PUBLIC int BOFS_ChangeCWD(const char *pathname)
+{
+	struct Task *cur = CurrentTask();
+	int ret = -1;
+	
+	char *path = (char *)pathname;
+
+	struct BOFS_SuperBlock *sb = masterSuperBlock;
+
+	/*root dir*/
+	if(path[0] == '/' && path[1] == 0){
+		memset(cur->cwd, 0, BOFS_PATH_LEN);
+		strcpy(cur->cwd, pathname);
+		ret = 0;
+	}else{
+		/*search dir*/
+		struct BOFS_DirSearchRecord record;  
+		memset(&record, 0, sizeof(struct BOFS_DirSearchRecord));
+		int found = BOFS_SearchDir(path, &record, sb);
+		//printk("bofs_chdir: %s is found!\n", path);
+		if (!found) {
+			//printk("bofs_chdir: %s is found!\n", path);
+			if(record.childDir->type == BOFS_FILE_TYPE_DIRECTORY){
+				
+				memset(cur->cwd, 0, BOFS_PATH_LEN);
+				strcpy(cur->cwd, pathname);
+				//printk("bofs_chdir: thread pwd %s \n", cur->cwd);
+				ret = 0;
+			}
+			BOFS_CloseDirEntry(record.childDir);
+		}else {	
+			printk("bofs chdir: %s isn't exist or not a directory!\n", pathname);
+		}
+		BOFS_CloseDirEntry(record.parentDir);
+	}
+	return ret;
+}
+
+PUBLIC int BOFS_GetCWD(char* buf, unsigned int size)
+{
+	struct Task *cur = CurrentTask();
+
+	if (size > BOFS_PATH_LEN)
+		size = BOFS_PATH_LEN;
+
+	memcpy(buf, cur->cwd, size);
+	return 0;
+}
+
+
+PUBLIC int BOFS_ResetName(const char *pathname, char *name)
+{
+	char *path = (char *)pathname;
+	struct BOFS_SuperBlock *sb = masterSuperBlock;
+
+	/*if dir is '/' */
+	if(!strcmp(path, "/")){
+		printk("rename: can't reset '/' name!\n");
+		return -1;
+	}
+	
+	char newPath[BOFS_PATH_LEN] = {0};
+	memset(newPath, 0, BOFS_PATH_LEN);
+	strcpy(newPath, pathname);
+	
+	int i;
+	/*从后往前寻找'/'*/
+	for(i = strlen(newPath)-1; i >= 0; i--){
+		if(newPath[i] == '/'){
+			break;
+		}
+	}
+	i++; /*跳过'/'*/
+	while(i < BOFS_PATH_LEN){
+		newPath[i] = 0;
+		i++;
+	}
+	
+	strcat(newPath, name);
+	
+	//printk("new path :%s\n", newPath);
+	/*check the name after rename*/
+	if(!BOFS_Access(newPath, BOFS_F_OK)){
+		printk("rename: the path name:%s has exist!\n", newPath);
+		return -1;
+	}
+	
+	int ret = -1;	// default -1
+	struct BOFS_DirSearchRecord record;
+	memset(&record, 0, sizeof(struct BOFS_DirSearchRecord));   // 记得初始化或清0,否则栈中信息不知道是什么
+	int found = BOFS_SearchDir(path, &record, sb);
+	if(!found){
+		//printk("rename: find dir entry %s.\n", record.childDir->name);
+		/*reset name*/
+		memset(record.childDir->name, 0, BOFS_NAME_LEN);
+		strcpy(record.childDir->name, name);
+		/*sync dir entry*/
+		if(BOFS_SyncDirEntry(record.parentDir, record.childDir, record.superBlock)){
+			ret = 0;
+		}
+		BOFS_CloseDirEntry(record.childDir);
+	} else {
+		printk("%s not exist!\n", pathname);
+	}
+	BOFS_CloseDirEntry(record.parentDir);
+	return ret;
+}
+

@@ -14,6 +14,10 @@
 ; uint32_t getpid();
 global getpid
 getpid:
+	
+
 	mov eax, SYS_GETPID
 	int INT_VECTOR_SYS_CALL
+	
+	
 	ret

@@ -23,7 +23,7 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 
 ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
-OBJS = 	vfs.o \
+OBJS = 	interface.o \
 		partition.o \
 		
 #First read here

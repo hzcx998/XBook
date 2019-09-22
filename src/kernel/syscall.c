@@ -10,8 +10,7 @@
 #include <book/task.h>
 #include <book/vmspace.h>
 #include <driver/clock.h>
-#include <book/vfs.h>
-
+#include <fs/interface.h>
 
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
@@ -32,4 +31,19 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysWrite,
     SysStat,
     SysLseek,
+    SysUnlink,
+    SysIoctl,
+    SysGetMode,
+    SysSetMode,
+    SysMakeDir,
+    SysRemoveDir,
+    SysMountDir,
+    SysUnmountDir,
+    SysGetCWD,
+    SysChangeCWD,
+    SysChangeName,
+    SysOpenDir,
+    SysCloseDir,
+    SysReadDir,
+    SysRewindDir,
 };

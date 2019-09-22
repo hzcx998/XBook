@@ -14,6 +14,10 @@ global fork
 
 ; int fork();
 fork:
+	;
+
 	mov eax, SYS_FORK
 	int INT_VECTOR_SYS_CALL
+	
+	;
 	ret

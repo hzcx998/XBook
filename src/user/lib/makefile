@@ -37,6 +37,7 @@ OBJS =  log.o \
 		brk.o \
 		malloc.o \
 		file.o \
+		dir.o \
 		
 #First read here
 .PHONY: all
