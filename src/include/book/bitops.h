@@ -10,6 +10,7 @@
 
 #include <share/types.h>
 #include <book/arch.h>
+#include <book/bitops.h>
 
 /**
  * SetBit - 设置位为1

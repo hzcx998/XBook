@@ -6,14 +6,21 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
 #include <fs/bofs/bitmap.h>
+#include <book/blk-buffer.h>
 
+/**
+ * BOFS_LoadBitmap - 加载位图
+ * @sb: 超级块
+ * 
+ * 把扇区位图和节点位图加载从磁盘到内存
+ * @return: 成功0，失败-1
+ */
 PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
 {
     /* 位图长度是格式化的时候就已经写入了的，这里不需要设定值，直接用就是了 */
@@ -26,12 +33,14 @@ PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
     //printk("sector bitmap %x len %x\n", sb->sectorBitmap.bits, sb->sectorBitmap.btmpBytesLen);
 	
     BitmapInit(&sb->sectorBitmap);
-	if (DeviceRead(sb->deviceID, sb->sectorBitmapLba, sb->sectorBitmap.bits,
-        sb->sectorBitmapSectors)) {
-        
-        printk(PART_ERROR "device read failed!\n");
-        return -1;
-    }
+
+	int i;
+	for (i = 0; i < sb->sectorBitmapSectors; i++) {
+		if (!BlockRead(sb->deviceID, sb->sectorBitmapLba + i, sb->sectorBitmap.bits + i * SECTOR_SIZE)) {
+			printk(PART_ERROR "device read failed!\n");
+			return -1;
+		}
+	}
 
 	sb->inodeBitmap.bits = (uint8 *)kmalloc(sb->inodeBitmap.btmpBytesLen,
         GFP_KERNEL);
@@ -43,15 +52,26 @@ PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
 	
 	BitmapInit(&sb->inodeBitmap);
 
-	if (DeviceRead(sb->deviceID, sb->inodeBitmapLba, sb->inodeBitmap.bits,
-        sb->inodeBitmapSectors)) {
-        
-        printk(PART_ERROR "device read failed!\n");
-        return -1;
-    }
+	for (i = 0; i < sb->sectorBitmapSectors; i++) {
+		if (!BlockRead(sb->deviceID, sb->inodeBitmapLba + i, sb->inodeBitmap.bits + i * SECTOR_SIZE)) {
+			
+			printk(PART_ERROR "device read failed!\n");
+			return -1;
+		}
+	}
+
+	
     return 0;
 }
 
+/**
+ * BOFS_AllocBitmap - 从位图中分配位
+ * @sb: 超级块
+ * @bmType: 位图类型
+ * @counts: 位的数量
+ * 
+ * @return 成功返回索引下标，失败返回-1
+ */
 PUBLIC int BOFS_AllocBitmap(struct BOFS_SuperBlock *sb,
     enum BOFS_BM_TYPE bmType, uint32 counts)
 {
@@ -85,6 +105,14 @@ PUBLIC int BOFS_AllocBitmap(struct BOFS_SuperBlock *sb,
 	return -1;
 }
 
+/**
+ * BOFS_FreeBitmap - 从位图中释放位
+ * @sb: 超级块
+ * @bmType: 位图类型
+ * @idx: 位的索引
+ * 
+ * @return 成功返回索引下标，失败返回-1
+ */
 PUBLIC int BOFS_FreeBitmap(struct BOFS_SuperBlock *sb,
     enum BOFS_BM_TYPE bmType, uint32 idx)
 {
@@ -107,6 +135,14 @@ PUBLIC int BOFS_FreeBitmap(struct BOFS_SuperBlock *sb,
 	return -1;
 }
 
+/**
+ * BOFS_SyncBitmap - 把索引对应的位同步到磁盘
+ * @sb: 超级块
+ * @bmType: 位图类型
+ * @idx: 位的索引
+ * 
+ * @return 成功返回索引下标，失败返回-1
+ */
 PUBLIC int BOFS_SyncBitmap(struct BOFS_SuperBlock *sb,
     enum BOFS_BM_TYPE bmType, uint32 idx)
 {
@@ -119,7 +155,7 @@ PUBLIC int BOFS_SyncBitmap(struct BOFS_SuperBlock *sb,
 		sectorLba = sb->sectorBitmapLba + offsetSector;
 		bitmapOffset = sb->sectorBitmap.bits + offsetSize;
 		
-		if (DeviceWrite(sb->deviceID, sectorLba, bitmapOffset, 1)) {
+		if (!BlockWrite(sb->deviceID, sectorLba, bitmapOffset, 0)) {
             printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
             return -1;
         }
@@ -129,7 +165,7 @@ PUBLIC int BOFS_SyncBitmap(struct BOFS_SuperBlock *sb,
 		sectorLba = sb->inodeBitmapLba + offsetSector;
 		bitmapOffset = sb->inodeBitmap.bits + offsetSize;
 		
-        if (DeviceWrite(sb->deviceID, sectorLba, bitmapOffset, 1)) {
+        if (!BlockWrite(sb->deviceID, sectorLba, bitmapOffset, 0)) {
             printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
             return -1;
         }

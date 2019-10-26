@@ -6,9 +6,8 @@
  */
 
 #include <book/config.h>
-#include <book/vmarea.h>
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
 #include <share/math.h>
@@ -435,14 +434,18 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
             (flags & VMS_RESOURCE && !(space->flags & VMS_STACK))) {
             
             //printk("space: start %x end %x\n", space->start, space->end);
-        
-            /* 对空间中的每一个页进行释放 */
-            while (space->start < space->end) {
-                PageUnlinkAddress(space->start);
-                space->start += PAGE_SIZE;
-            }
-        }
 
+            /* 由于VMS有合并机制，这就导致了不同的虚拟地址有了记录在同一个虚拟地址上，
+            但是他们的物理页却不是连续的，形成了许多片段，所以，这里用片段的方式来取消页
+            的映射。 */
+            UnmapPagesFragment(space->start, space->end - space->start);
+
+            /* 对空间中的每一个页进行释放 */
+            /*while (space->start < space->end) {
+                RemoveFromPageTable(space->start);
+                space->start += PAGE_SIZE;
+            }*/
+        }
         space = space->next;
     }
 

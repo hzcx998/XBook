@@ -11,10 +11,8 @@
 #include <share/string.h>
 #include <book/task.h>
 
-
 /* 导入主线程，也是idle线程 */
 EXTERN Task_t *mainThread;
-
 
 /** 
  * SwitchTo - 任务切换的核心
@@ -39,6 +37,7 @@ PUBLIC void Schedule()
     if (current->status == TASK_RUNNING) {      
         /* 时间片到了，加入就绪队列 */
         
+        //printk("-%s", current->name);
         // 检查链表情况
         // 保证不存在链表中
         ASSERT(!ListFind(&current->list, &taskReadyList));
@@ -48,9 +47,10 @@ PUBLIC void Schedule()
         // 更新信息
         current->ticks = current->priority;
         current->status = TASK_READY;
-        //printk("-prev %s-", current->name);
+        
     } else {
         /* 如果是需要某些事件后才能继续运行，不用加入队列，当前线程不在就绪队列中。*/
+        
     }
 
     // 队列为空，那么就尝试唤醒idle
@@ -66,7 +66,7 @@ PUBLIC void Schedule()
     Task_t* next = ListFirstOwner(&taskReadyList, Task_t, list);
     
     // 把next从就绪队列中删除
-    ListDelInit(&next->list);
+    ListDel(&next->list);
 
     // 设置成运行状态
     next->status = TASK_RUNNING;

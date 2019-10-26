@@ -189,7 +189,7 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 	
 	ConsolePrint("vec: %x\n", 
 			frame->vec_no);
-	Panic("expection");
+	//Panic("expection");
 	ConsolePrint("edi: %x esi: %x ebp: %x esp: %x\n", 
 			frame->edi, frame->esi, frame->ebp, frame->esp);
 	ConsolePrint("ebx: %x edx: %x ecx: %x eax: %x\n", 

@@ -6,10 +6,9 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
 #include <fs/bofs/super_block.h>
@@ -69,7 +68,7 @@ PUBLIC void BOFS_FreeSuperBlock(struct BOFS_SuperBlock *sb)
 PUBLIC void BOFS_DumpSuperBlock(struct BOFS_SuperBlock *sb)
 {
     printk(PART_TIP "----Super Block----\n");
-    printk(PART_TIP "device id:%d sectors:%d sector bitmap lba:%d sector bitmap sectors:%d\n", 
+    printk(PART_TIP "device id:%x sectors:%d sector bitmap lba:%d sector bitmap sectors:%d\n", 
         sb->deviceID, sb->totalSectors, sb->sectorBitmapLba, 
         sb->sectorBitmapSectors);
     printk(PART_TIP "inode bitmap lba:%d inode bitmap sectors:%d \

@@ -9,10 +9,12 @@
 #define _X86_MM_PAGE_H
 
 #include "pflags.h"
+#include "phymem.h"
+
 #include "../kernel/interrupt.h"
 #include <book/bitmap.h>
 #include <book/list.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <share/stdint.h>
 #include <share/stddef.h>
 #include <share/stddef.h>
@@ -44,8 +46,6 @@ typedef unsigned int pte_t;
 #define	 PAGE_US_S  	0	// 0000 U/S system level, cpl0,1,2
 #define	 PAGE_US_U  	4	// 0100 U/S user level, cpl3
 
-
-
 #define PAGE_SHIFT 12
 
 #define PAGE_SIZE (1U<<PAGE_SHIFT)  
@@ -53,7 +53,6 @@ typedef unsigned int pte_t;
 #define PAGE_MASK (~(PAGE_SIZE-1))  
 
 #define PAGE_INSIDE (PAGE_SIZE-1)  
-
 
 //一个页有多少项
 #define PAGE_ENTRY_NR 1024  
@@ -74,7 +73,7 @@ typedef unsigned int pte_t;
 #define PAGE_TO_ADDR(page, zone) (zone->physicStart + (page - zone->pageArray)*PAGE_SIZE)
 
 /* 地址或者是数字对齐操作 */
-#define ALIGN_WITH(addr, bits) ((addr + bits)&(~(bits-1)))
+#define ALIGN_WITH(x, y) ((x + y)&(~(y-1)))
 
 /* 一点内存中页的数量 */
 #define PAGE_NR_IN_1GB      (0X40000000/PAGE_SIZE)
@@ -112,55 +111,14 @@ typedef unsigned int pte_t;
 #define PAGE_ERR_USER               (1<<2)
 
 
-
-
-
-
-/* 物理页结构 */
-struct Page 
-{
-    struct List list;
-    flags_t flags;
-    address_t virtual;  // 虚拟地址
-    struct SlabCache *slabCache;   // slab cache
-    struct Slab *slab;      // slab
-};
-
-PUBLIC int InitPageEnvironment(unsigned int phyAddrStart, unsigned int physicAddrEnd);
-
-EXTERN struct Page *memoryPageTable;
-
-PUBLIC struct Page *PagesAlloc(unsigned int pages, unsigned int flags);
-PUBLIC unsigned int GetFreePages(unsigned int flags, unsigned int order);
-
-// 只获取一个页
-#define GetFreePage(flags) GetFreePages(flags, 0)
-
-PUBLIC void PagesFree(struct Page *page, unsigned int order);
-PUBLIC void FreePages(unsigned int addr, unsigned int order);
-
-// 只释放一个页
-#define PageFree(flags) PagesFree(flags, 0)
-#define FreePage(addr) FreePages(addr, 0)
-
-PUBLIC int PageLinkAddress(address_t virtualAddr, 
-		address_t physicAddr, flags_t flags, unsigned int prot);
-PUBLIC address_t PageUnlinkAddress(address_t virtualAddr);
-
 PUBLIC int DoPageFault(struct TrapFrame *frame);
-PUBLIC uint32_t PageAddrV2P(uint32_t vaddr);
 
-PUBLIC int MapPages(uint32_t start, uint32_t len, 
-		flags_t flags, unsigned int prot);
-PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
-
-PUBLIC int GetPagesOrder(uint32_t pages);
+PUBLIC unsigned int Vir2PhyByTable(unsigned int vaddr);
 
 PRIVATE INLINE pde_t *GetPageDirTable()
 {
     return (pde_t *)PAGE_DIR_VIR_ADDR;
 }
-
 
 /**
  * PageGetPde - 获取pde
@@ -189,4 +147,21 @@ PRIVATE INLINE pte_t *PageGetPte(address_t vaddr)
 	((vaddr & 0xffc00000) >> 10) + PTE_IDX(vaddr)*4);
 	return pte;
 }
+
+PUBLIC unsigned int AllocPages(unsigned int count);
+#define AllocPage() AllocPages(1);
+
+PUBLIC int FreePages(unsigned int page);
+#define FreePage(page) FreePages(page);
+
+PUBLIC int PageTableAdd(unsigned int virtualAddr,
+		unsigned int physicAddr,
+        unsigned int protect);
+PUBLIC int MapPages(unsigned int start,
+    unsigned int len, 
+    unsigned int protect);
+PUBLIC unsigned int RemoveFromPageTable(unsigned int virtualAddr);
+PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
+PUBLIC int UnmapPagesFragment(unsigned int vaddr, unsigned int len);
+
 #endif  /*_X86_MM_PAGE_H */

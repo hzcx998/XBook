@@ -1,5 +1,14 @@
 # Book-OS-X*(XBook) Finished task.  
 
+* flush keyboard driver
+* char device
+* ide driver
+* ramdisk driver
+* block device
+* new HAL define
+* memory cache
+* node phy memory management
+--2019.10.21--
 * keyboard driver
 * keyboard hal
 * work queue

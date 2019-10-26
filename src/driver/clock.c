@@ -9,7 +9,6 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <driver/clock.h>
-#include <hal/char/clock.h>
 #include <book/schedule.h>
 #include <book/task.h>
 #include <driver/timer.h>
@@ -94,7 +93,7 @@ PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 {
 	/* 改变系统时间 */
 	ClockChangeSystemDate();
-
+	
 	/* 更新定时器 */
 	UpdateTimerSystem();
 }
@@ -147,15 +146,21 @@ PUBLIC void SysMSleep(uint32_t msecond)
 	SleepByTicks(sleepTicks);
 }
 
+#define PIT_CTRL	0x0043 		//控制端口
+#define PIT_CNT0	0x0040		//数据端口
+#define TIMER_FREQ     1193180	//时钟的频率
+
 /**
  * InitClock - 初始化时钟管理
  */
-PUBLIC void InitClock()
+PUBLIC void InitClockDriver()
 {
 	PART_START("Clock driver");
 	
-	//打开时钟硬件抽象
-	HalOpen("clock");
+	//初始化时钟
+	Out8(PIT_CTRL, 0x34);
+	Out8(PIT_CNT0, (unsigned char) (TIMER_FREQ/HZ));
+	Out8(PIT_CNT0, (unsigned char) ((TIMER_FREQ/HZ) >> 8));
 
 	ticks = 0;
 

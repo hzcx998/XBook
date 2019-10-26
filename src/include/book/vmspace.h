@@ -13,7 +13,7 @@
 #include <book/list.h>
 #include <book/arch.h>
 
-#define USER_VM_SIZE        ZONE_VIR_ADDR_OFFSET
+#define USER_VM_SIZE        PAGE_OFFSET
 #define USER_STACK_TOP      USER_VM_SIZE
 
 #define VMS_UNMAPPED_BASE    (USER_VM_SIZE/2)

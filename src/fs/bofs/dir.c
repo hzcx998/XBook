@@ -6,9 +6,8 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
-#include <book/deviceio.h>
 #include <driver/ide.h>
 #include <driver/clock.h>
 #include <book/share.h>
@@ -20,9 +19,16 @@
 #include <fs/bofs/bitmap.h>
 #include <fs/bofs/super_block.h>
 #include <fs/bofs/file.h>
-/*
-get the name from path
-*/
+
+#include <book/blk-buffer.h>
+
+/**
+ * BOFS_PathToName - 解析出最终的名字
+ * @pathname: 路径名
+ * @namebuf: 储存名字的地方
+ * 
+ * @return: 成功返回0，失败返回-1
+ */
 PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf)
 {
 	char *p = (char *)pathname;
@@ -76,6 +82,12 @@ PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf)
 	return -1;
 }
 
+/**
+ * BOFS_ListDir - 列出目录下面的内容
+ * @pathname: 路径名
+ * @level: 显示等级，不同的等级显示的内容不一样
+ * 
+ */
 void BOFS_ListDir(const char *pathname, int level)
 {
 	//printk("List dir path: %s\n", pathname);
@@ -161,11 +173,21 @@ void BOFS_ListDir(const char *pathname, int level)
 	
 }
 
+/**
+ * BOFS_RewindDir - 重置目录游标位置
+ * @dir: 目录
+ */
 void BOFS_RewindDir(struct BOFS_Dir *dir)
 {
 	dir->pos = 0;
 }
 
+/**
+ * BOFS_ReadDir - 读取目录
+ * @dir: 目录
+ * 
+ * @return: 成功返回一个目录项，失败返回NULL
+ */
 PUBLIC struct BOFS_DirEntry *BOFS_ReadDir(struct BOFS_Dir *dir)
 {
 	if(dir == NULL){	
@@ -186,6 +208,10 @@ PUBLIC struct BOFS_DirEntry *BOFS_ReadDir(struct BOFS_Dir *dir)
 	return dirEntry;
 }
 
+/**
+ * BOFS_DumpDir - 调试目录
+ * @dir: 目录
+ */
 PUBLIC void BOFS_DumpDir(struct BOFS_Dir* dir)
 {
 	printk(PART_TIP "---- Dir ----\n");
@@ -211,6 +237,14 @@ void BOFS_CloseDir(struct BOFS_Dir* dir)
 	kfree(dir);
 }
 
+/**
+ * BOFS_OpenDirSub - 打开目录子函数
+ * @dirEntry: 目录项
+ * @sb: 超级块
+ * 
+ * 打开一个目录，创建一个目录结构，然后把目录内容读取到缓冲区中去
+ * @return: 成功返回打开的目录，失败返回NULL
+ */
 PRIVATE struct BOFS_Dir *BOFS_OpenDirSub(struct BOFS_DirEntry *dirEntry,
 	struct BOFS_SuperBlock *sb)
 {
@@ -256,7 +290,7 @@ PRIVATE struct BOFS_Dir *BOFS_OpenDirSub(struct BOFS_DirEntry *dirEntry,
 		BOFS_GetInodeData(&inode, blockID, &lba, sb);
 
 		/* 读取到buffer中去 */
-		if (DeviceRead(sb->deviceID, lba, buf, 1)) {
+		if (!BlockRead(sb->deviceID, lba, buf)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			goto ToFreeDir;
 		}
@@ -342,6 +376,15 @@ struct BOFS_Dir *BOFS_OpenDir(const char *pathname)
 	return dir;
 }
 
+/**
+ * BOFS_SearchDir - 搜索目录
+ * @pathname: 路径名
+ * @record: 搜索记录
+ * @sb: 超级块
+ * 
+ * 在路径中搜索目录，搜索到后就把搜索内容填充到搜索记录中
+ * @return: 成功返回1，失败返回0
+ */
 PUBLIC int BOFS_SearchDir(char* pathname,
 	struct BOFS_DirSearchRecord *record,
 	struct BOFS_SuperBlock *sb)
@@ -450,7 +493,7 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 			//printk("find\n");
 		}else{
 			printk("not found\n");
-
+			
 			//printk("search:error!\n");
 			record->parentDir = parentDir;
 			record->childDir = NULL;
@@ -464,6 +507,13 @@ PUBLIC int BOFS_SearchDir(char* pathname,
 	return -1;
 }
 
+/**
+ * BOFS_OpenRootDir - 打开根目录
+ * @sb: 超级块
+ * 
+ * 把根目录打开，加载目录的内容到内存
+ * @return: 成功返回0，失败返回-1
+ */
 PUBLIC int BOFS_OpenRootDir(struct BOFS_SuperBlock *sb)
 {	
 	//BOFS_DumpSuperBlock(sb);
@@ -486,7 +536,7 @@ PUBLIC int BOFS_OpenRootDir(struct BOFS_SuperBlock *sb)
     /* 获取根目录项信息 */
 	memset(sb->iobuf, 0, SECTOR_SIZE);
 	/* 读取根目录的数据 */
-	if (DeviceRead(sb->deviceID, sb->dataStartLba, sb->iobuf, 1)) {
+	if (!BlockRead(sb->deviceID, sb->dataStartLba, sb->iobuf)) {
         return -1;
     }
 	
@@ -509,6 +559,9 @@ PUBLIC int BOFS_OpenRootDir(struct BOFS_SuperBlock *sb)
  * @parentDir: 父目录
  * @childDir: 子目录
  * @name: 目录项的名字
+ * 
+ * 在父目录中创建一个新的目录项并保存到子目录项中
+ * @return: 成功返回-1，失败返回0
  */
 PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 	struct BOFS_DirEntry *parentDir,
@@ -599,10 +652,12 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 }
 
 /**
- * BOFS_MakeDir - 创建一个目录
+ * BOFS_MakeDirSub - 创建一个目录
  * @pathname: 路径名
+ * @sb: 超级块
  * 
  * 创建目录的时候，应该申请一个信号量，来正常竞争
+ * @return: 成功返回0，失败返回-1
  */
 PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 {
@@ -620,7 +675,6 @@ PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 	char name[BOFS_NAME_LEN];   
 	
 	struct BOFS_DirEntry parentDir, childDir;
-	
 
     /* 第一个必须是根目录符号 */
 	if(*p != '/'){
@@ -722,6 +776,9 @@ PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb)
 	return 0;
 }
 
+/**
+ * BOFS_MakeDir - 创建目录
+ */
 PUBLIC int BOFS_MakeDir(const char *pathname)
 {
 	//printk("mkdir: path is %s\n", pathname);
@@ -1019,19 +1076,19 @@ PUBLIC int BOFS_MountDir(const char *devpath, const char *pathname)
 
 	/* 获取设备对应得设备记录信息 */
 	
-	struct Device *device = GetDevice(name);
+	struct Device *device = GetDeviceByID(sb->deviceID);
 
 	if (device == NULL) {
 		printk("Get device failed!\n");
 		return -1;
 	}
 
-	if (device->pointer == NULL) {
+	if (device->private == NULL) {
 		printk("device %s pointer is null!\n", device->name);
 		return -1;
 	}
 
-	struct BOFS_SuperBlock *devsb = device->pointer;
+	struct BOFS_SuperBlock *devsb = device->private;
 	
 	struct BOFS_DirSearchRecord record;
 	

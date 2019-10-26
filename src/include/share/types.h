@@ -44,6 +44,9 @@
 #define INIT
 #endif
 
+#ifndef STATIC
+#define STATIC static
+#endif
 
 
 #endif  /*_SHARE_TYPES_H*/

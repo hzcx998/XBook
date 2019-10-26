@@ -9,6 +9,7 @@
 #include <book/debug.h>
 #include <book/arch.h>
 #include <book/iostream.h>
+#include <book/share.h>
 
 PUBLIC struct IoStream *CreateIoStream(char *name, size_t size)
 {

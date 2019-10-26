@@ -8,6 +8,7 @@
 #ifndef _FS_INTERFACE
 #define _FS_INTERFACE
 
+#include <share/const.h>
 #include <share/file.h>
 #include <share/dir.h>
 

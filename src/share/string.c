@@ -70,8 +70,9 @@ int atoi(const char *src)
 void *memset(void* src, uint8_t value, uint32_t size) 
 {
 	uint8_t* s = (uint8_t*)src;
-	while (size-- > 0){
+	while (size > 0){
 		*s++ = value;
+		--size;
 	}
 	return src;
 }

@@ -17,10 +17,7 @@ C_FLAGS	= -c -fno-builtin -nostdlib \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 
-OBJS =  display.o \
-		clock.o \
-		cpu.o \
-		keyboard.o \
+OBJS =  cpu.o \
 		ram.o \
 		
 #First read here

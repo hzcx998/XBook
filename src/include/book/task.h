@@ -76,7 +76,6 @@ typedef struct Task {
     unsigned int stackMagic;         /* 任务的魔数 */
 } Task_t;
 
-
 EXTERN struct List taskReadyList;
 EXTERN struct List taskGlobalList;
 
@@ -113,7 +112,8 @@ PUBLIC int SysExecv(const char *path, const char *argv[]);
 /* sleep_wakeup.c */
 PUBLIC void TaskSleep(uint32_t ticks);
 PUBLIC int SysSleep(uint32_t second);
-PUBLIC void TaskWakeup(struct Task *task);
+PUBLIC void TaskWakeUp(struct Task *task);
+PUBLIC void TaskSleepOn(struct Task *task);
 
 /* exit_wait.c */
 PUBLIC void SysExit(int status);

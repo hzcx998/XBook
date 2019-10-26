@@ -6,10 +6,9 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
 #include <book/device.h>
@@ -21,10 +20,18 @@
 #include <fs/bofs/super_block.h>
 #include <fs/bofs/bitmap.h>
 
+#include <book/blk-buffer.h>
+
 /**
+ * BOFS_MakeNewDevice - 创建一个设备文件
+ * @sb: 超级块
+ * @parentDir: 父母了
+ * @name: 名字
+ * @type: 类型
+ * @deviceID: 设备号
+ * 
  * 把设备纳入文件系统管理的范围
  */
-
 PRIVATE int BOFS_MakeNewDevice(struct BOFS_SuperBlock *sb,
     struct BOFS_DirEntry *parentDir,
     char *name,
@@ -96,11 +103,11 @@ PRIVATE int BOFS_MakeNewDevice(struct BOFS_SuperBlock *sb,
 PUBLIC int BOFS_MakeDevice(const char *path, char type, int deviceID)
 {
     
-
+/*
     if (DeviceCheckID_OK(deviceID)) {
         printk("device id error!\n");
         return -1;
-    }
+    }*/
 
     /* 获取文件名 */
 	char name[BOFS_NAME_LEN];

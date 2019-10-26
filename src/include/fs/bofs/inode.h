@@ -11,6 +11,7 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
+#include <book/device.h>
 
 /*default fs inode nr*/
 #define DEFAULT_MAX_INODE_NR 9182
@@ -42,7 +43,7 @@ we assume a inode is 64 bytes
 
 struct BOFS_Inode 
 {
-	devid_t deviceID;	/* 所在的设备ID */
+	dev_t deviceID;	/* 所在的设备ID */
 
 	unsigned int id;	/*inode id*/
 	
@@ -59,7 +60,7 @@ struct BOFS_Inode
 	
 	/* 如果是设备文件，
 	那么这个就指向表示的设备的ID */
-	devid_t otherDeviceID;
+	dev_t otherDeviceID;
 
 	uint32 block[BOFS_BLOCK_NR];	/*data block*/
 	
@@ -72,7 +73,7 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
     unsigned int flags,
-    devid_t deviceID);
+    dev_t deviceID);
 
 void BOFS_DumpInode(struct BOFS_Inode *inode);
 

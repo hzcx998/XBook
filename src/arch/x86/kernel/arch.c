@@ -9,11 +9,12 @@
 #include <segment.h>
 #include <gate.h>
 #include <cpu.h>
-#include <zone.h>
+#include <phymem.h>
 #include <bootmem.h>
+#include <pci.h>
 #include <book/debug.h>
 #include <book/hal.h>
-#include <hal/char/cpu.h>
+#include <hal/cpu.h>
 
 /*
  * 功能: 平台架构初始化入口
@@ -35,7 +36,7 @@ int InitArch()
 	PART_START("Arch");
 
 	// 查看cpu信息
-	CpuInit();
+	InitCpu();
 	// 初始化内核段描述符
 	InitSegmentDescriptor();
 	// 初始化内核门描述符
@@ -44,11 +45,15 @@ int InitArch()
 	// 初始化任务状态段
 	InitTss();
 
-	// 初始化引导内存分配器
-	InitBootMem();
-	// 初始化空间和分页内存管理
-	InitZone();
+	// 初始化物理内存管理
+	InitPhysicMemory();
+
+	/* 初始化平台总线 */
+	InitPci();
+
+	//Spin("a");
+
 	PART_END();
-	//while(1);
+
 	return 0;
 }

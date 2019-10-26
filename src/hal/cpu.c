@@ -7,16 +7,17 @@
 
 #include <book/debug.h>
 #include <share/stddef.h>
-#include <hal/char/cpu.h>
 #include <book/arch.h>
 #include <share/string.h>
 #include <share/math.h>
+#include <book/hal.h>
+
 /*
  * cpuid 分为2组信息，一组为基本信息和扩展信息，往eax输入0到3是基本信息，
  * 输入0x80000000到0x80000004返回扩展信息
  */
 
-PRIVATE struct CpuPrivate {
+PRIVATE struct Private {
 	char vendor[16];
 	char brand[50];
 	unsigned int family;	//系列
@@ -31,7 +32,7 @@ PRIVATE struct CpuPrivate {
 	char steerType;	//操作的类型：string 和 number
 	char *steerString;	//操作指向，用于获取cpu字符串信息
 	unsigned int steerNumber;	//操作指向，用于获取cpu数字信息
-}cpuPrivate;
+}private;
 
 /**CPU family*/
 char CpuFamily06H[] = "Pentium 4";
@@ -55,22 +56,6 @@ char CpuUnknownInfo[] = "Unknown";
 #define STEERING_TYPE_STRING 0
 #define STEERING_TYPE_NUMBER 1
 
-
-/*
-PRIVATE void CpiHalPrintInfo()
-{
-	printk("\n |- vendor:%s \n", cpuPrivate.vendor);
-	printk(" |- brand:%s \n", cpuPrivate.brand);
-	printk(" |- max Cpuid:%x externed:%x\n", cpuPrivate.maxCpuid, 
-			cpuPrivate.maxCpuidExt);
-
-	printk(" |- family:%s[%x]\n", cpuPrivate.familyString, cpuPrivate.family);
-	printk(" |- model:%s[%x]\n", cpuPrivate.modelString,cpuPrivate.model);
-	
-	printk(" |- type:%d \n", cpuPrivate.type);
-	printk(" |- stepping:%d \n", cpuPrivate.stepping);
-}*/
-
 PRIVATE void CpuHalIoctl(unsigned int cmd, unsigned int param)
 {
 	//根据类型设置不同的值
@@ -83,44 +68,44 @@ PRIVATE void CpuHalIoctl(unsigned int cmd, unsigned int param)
 	case CPU_HAL_IO_STEER:
 		if (param == CPU_HAL_VENDOR) {
 			//指向vendor
-			cpuPrivate.steerString = cpuPrivate.vendor;
+			private.steerString = private.vendor;
 
-			cpuPrivate.steerType = STEERING_TYPE_STRING;
+			private.steerType = STEERING_TYPE_STRING;
 		} else if (param == CPU_HAL_BRAND) {
 			//指向brand
-			cpuPrivate.steerString = cpuPrivate.brand;
+			private.steerString = private.brand;
 
-			cpuPrivate.steerType = STEERING_TYPE_STRING;
+			private.steerType = STEERING_TYPE_STRING;
 		} else if (param == CPU_HAL_FAMILY) {
 			//指向family
-			cpuPrivate.steerString = cpuPrivate.familyString;
+			private.steerString = private.familyString;
 
-			cpuPrivate.steerType = STEERING_TYPE_STRING;
+			private.steerType = STEERING_TYPE_STRING;
 		} else if (param == CPU_HAL_MODEL) {
 			//指向model
-			cpuPrivate.steerString = cpuPrivate.modelString;
+			private.steerString = private.modelString;
 
-			cpuPrivate.steerType = STEERING_TYPE_STRING;
+			private.steerType = STEERING_TYPE_STRING;
 		} else if (param == CPU_HAL_STEEPING) {
 			//指向model
-			cpuPrivate.steerNumber = cpuPrivate.stepping;
+			private.steerNumber = private.stepping;
 
-			cpuPrivate.steerType = STEERING_TYPE_NUMBER;
+			private.steerType = STEERING_TYPE_NUMBER;
 		} else if (param == CPU_HAL_MAX_CPUID) {
 			//指向model
-			cpuPrivate.steerNumber = cpuPrivate.maxCpuid;
+			private.steerNumber = private.maxCpuid;
 
-			cpuPrivate.steerType = STEERING_TYPE_NUMBER;
+			private.steerType = STEERING_TYPE_NUMBER;
 		} else if (param == CPU_HAL_MAX_CPUID_EXT) {
 			//指向model
-			cpuPrivate.steerNumber = cpuPrivate.maxCpuidExt;
+			private.steerNumber = private.maxCpuidExt;
 
-			cpuPrivate.steerType = STEERING_TYPE_NUMBER;
+			private.steerType = STEERING_TYPE_NUMBER;
 		} else if (param == CPU_HAL_TYPE) {
 			//指向model
-			cpuPrivate.steerNumber = cpuPrivate.type;
+			private.steerNumber = private.type;
 
-			cpuPrivate.steerType = STEERING_TYPE_NUMBER;
+			private.steerType = STEERING_TYPE_NUMBER;
 		}
 		break;
 	
@@ -139,12 +124,12 @@ PRIVATE void CpuHalIoctl(unsigned int cmd, unsigned int param)
  */
 PRIVATE int CpuHalRead(unsigned char *buffer, unsigned int count)
 {
-	if (cpuPrivate.steerType == STEERING_TYPE_STRING) {
+	if (private.steerType == STEERING_TYPE_STRING) {
 		//我们以短的字符为标准
-		unsigned int size = MIN(strlen(cpuPrivate.steerString), count);
+		unsigned int size = MIN(strlen(private.steerString), count);
 
 		//把数据复制过去
-		memcpy(buffer, cpuPrivate.steerString, size);
+		memcpy(buffer, private.steerString, size);
 		
 		//如果大于传递进来的count大小，那么我们需要把buffer最后一个字符修改'\0'
 		if (size >= count) {
@@ -156,14 +141,14 @@ PRIVATE int CpuHalRead(unsigned char *buffer, unsigned int count)
 
 		}
 		
-	} else if (cpuPrivate.steerType == STEERING_TYPE_NUMBER) {
+	} else if (private.steerType == STEERING_TYPE_NUMBER) {
 		//把数据复制过去
-		memcpy(buffer, &cpuPrivate.steerNumber, sizeof(cpuPrivate.steerNumber));
+		memcpy(buffer, &private.steerNumber, sizeof(private.steerNumber));
 	}
 	return 0;
 }
 
-PUBLIC void CpuHalInit()
+PRIVATE void CpuHalInit()
 {
 	PART_START("Cpu hal");
 
@@ -174,120 +159,120 @@ PUBLIC void CpuHalInit()
 	 * 返回：eax = Maximum input Value for Basic CPUID information
 	 */
 	X86Cpuid(0x00000000, &eax, &ebx, &ecx, &edx);
-	cpuPrivate.maxCpuid = eax;
+	private.maxCpuid = eax;
 	
-	memcpy(cpuPrivate.vendor    , &ebx, 4);
-	memcpy(cpuPrivate.vendor + 4, &edx, 4);
-	memcpy(cpuPrivate.vendor + 8, &ecx, 4);
-	cpuPrivate.vendor[12] = '\0';
+	memcpy(private.vendor    , &ebx, 4);
+	memcpy(private.vendor + 4, &edx, 4);
+	memcpy(private.vendor + 8, &ecx, 4);
+	private.vendor[12] = '\0';
 
 	/*
     * eax == 0x800000000
     * 如果CPU支持扩展信息，则在EAX中返 >= 0x80000001的值。
     */
 	X86Cpuid(0x80000000, &eax, &ebx, &ecx, &edx);
-	cpuPrivate.maxCpuidExt = eax;
+	private.maxCpuidExt = eax;
 
 	//先判断是哪种厂商
-	if (!strncmp(cpuPrivate.vendor, "GenuineIntel", 12)) {
+	if (!strncmp(private.vendor, "GenuineIntel", 12)) {
 		
 		//get version information
 		X86Cpuid(0x00000001, &eax, &ebx, &ecx, &edx);
 
-		cpuPrivate.family   = (((eax >> 20) & 0xFF) << 4)
+		private.family   = (((eax >> 20) & 0xFF) << 4)
 				+ ((eax >> 8) & 0xF);
 	
-		cpuPrivate.model    = (((eax >> 16) & 0xF) << 4)
+		private.model    = (((eax >> 16) & 0xF) << 4)
 				+ ((eax >> 4) & 0xF);
 		
 		//获取stepping和type
-		cpuPrivate.stepping = (eax >> 0) & 0xF;
-		cpuPrivate.type = (eax >> 12) & 0xF;	//只取2位
+		private.stepping = (eax >> 0) & 0xF;
+		private.type = (eax >> 12) & 0xF;	//只取2位
 		
 		/*
 		 * CPU family & model information
 		 * get family and model string.
 		 */
-		if (cpuPrivate.family == 0x06) {
-			cpuPrivate.familyString = CpuFamily06H;
+		if (private.family == 0x06) {
+			private.familyString = CpuFamily06H;
 
-			if (cpuPrivate.model == 0x2a) {
-				cpuPrivate.modelString = CpuModel06_2AH;
-			} else if (cpuPrivate.model == 0x0f) {
-				cpuPrivate.modelString = CpuModel06_0FH;
+			if (private.model == 0x2a) {
+				private.modelString = CpuModel06_2AH;
+			} else if (private.model == 0x0f) {
+				private.modelString = CpuModel06_0FH;
 			} else {
-				cpuPrivate.modelString = CpuModelUnknown;
+				private.modelString = CpuModelUnknown;
 			}
-		} else if (cpuPrivate.family == 0x0f) {
-			cpuPrivate.familyString = Cpufamily0FH;
-			cpuPrivate.modelString = CpuModelUnknown;
+		} else if (private.family == 0x0f) {
+			private.familyString = Cpufamily0FH;
+			private.modelString = CpuModelUnknown;
 		} else {
-			cpuPrivate.familyString = CpufamilyUnknown;
-			cpuPrivate.modelString = CpuModelUnknown;
+			private.familyString = CpufamilyUnknown;
+			private.modelString = CpuModelUnknown;
 		}
-	} else if (!strncmp(cpuPrivate.vendor, "AuthenticAMD", 12)) {
+	} else if (!strncmp(private.vendor, "AuthenticAMD", 12)) {
 
-		cpuPrivate.familyString = CpufamilyAMD;
-		cpuPrivate.modelString = CpuModelUnknown;
-	} else if (!strncmp(cpuPrivate.vendor, "AMDisbetter!", 12)) {
+		private.familyString = CpufamilyAMD;
+		private.modelString = CpuModelUnknown;
+	} else if (!strncmp(private.vendor, "AMDisbetter!", 12)) {
 
-		cpuPrivate.familyString = CpufamilyAMDK5;
-		cpuPrivate.modelString = CpuModelUnknown;
-	} else if (!strncmp(cpuPrivate.vendor, "SiS SiS SiS ", 12)) {
+		private.familyString = CpufamilyAMDK5;
+		private.modelString = CpuModelUnknown;
+	} else if (!strncmp(private.vendor, "SiS SiS SiS ", 12)) {
 
-		cpuPrivate.familyString = CpufamilySiS;
-		cpuPrivate.modelString = CpuModelUnknown;
-	} else if (!strncmp(cpuPrivate.vendor, "VIA VIA VIA ", 12)) {
+		private.familyString = CpufamilySiS;
+		private.modelString = CpuModelUnknown;
+	} else if (!strncmp(private.vendor, "VIA VIA VIA ", 12)) {
 
-		cpuPrivate.familyString = CpufamilyVIA;
-		cpuPrivate.modelString = CpuModelUnknown;
-	} else if (!strncmp(cpuPrivate.vendor, "Microsoft Hv", 12)) {
+		private.familyString = CpufamilyVIA;
+		private.modelString = CpuModelUnknown;
+	} else if (!strncmp(private.vendor, "Microsoft Hv", 12)) {
 
-		cpuPrivate.familyString = Cpufamilyvpc;
-		cpuPrivate.modelString = CpuModelUnknown;
-	} else if (!strncmp(cpuPrivate.vendor, "VMwareVMware", 12)) {
+		private.familyString = Cpufamilyvpc;
+		private.modelString = CpuModelUnknown;
+	} else if (!strncmp(private.vendor, "VMwareVMware", 12)) {
 
-		cpuPrivate.familyString = CpufamilyVMware;
-		cpuPrivate.modelString = CpuModelUnknown;
+		private.familyString = CpufamilyVMware;
+		private.modelString = CpuModelUnknown;
 	} else {
 
-		cpuPrivate.familyString = CpufamilyUnknown;
-		cpuPrivate.modelString = CpuModelUnknown;
+		private.familyString = CpufamilyUnknown;
+		private.modelString = CpuModelUnknown;
 	}
 
 	/*
     * 如果CPU支持Brand String，则在max cpu externed >= 0x80000004的值。
 	* 以下获取扩展商标
     */
-	if(cpuPrivate.maxCpuidExt >= 0x80000004){
+	if(private.maxCpuidExt >= 0x80000004){
 		X86Cpuid(0x80000002, &eax, &ebx, &ecx, &edx);
-		memcpy(cpuPrivate.brand      , &eax, 4);
-		memcpy(cpuPrivate.brand  +  4, &ebx, 4);
-		memcpy(cpuPrivate.brand  +  8, &ecx, 4);
-		memcpy(cpuPrivate.brand  + 12, &edx, 4);
+		memcpy(private.brand      , &eax, 4);
+		memcpy(private.brand  +  4, &ebx, 4);
+		memcpy(private.brand  +  8, &ecx, 4);
+		memcpy(private.brand  + 12, &edx, 4);
 		X86Cpuid(0x80000003, &eax, &ebx, &ecx, &edx);
-		memcpy(cpuPrivate.brand  + 16, &eax, 4);
-		memcpy(cpuPrivate.brand  + 20, &ebx, 4);
-		memcpy(cpuPrivate.brand  + 24, &ecx, 4);
-		memcpy(cpuPrivate.brand  + 28, &edx, 4);
+		memcpy(private.brand  + 16, &eax, 4);
+		memcpy(private.brand  + 20, &ebx, 4);
+		memcpy(private.brand  + 24, &ecx, 4);
+		memcpy(private.brand  + 28, &edx, 4);
 		X86Cpuid(0x80000004, &eax, &ebx, &ecx, &edx);
-		memcpy(cpuPrivate.brand  + 32, &eax, 4);
-		memcpy(cpuPrivate.brand  + 36, &ebx, 4);
-		memcpy(cpuPrivate.brand  + 40, &ecx, 4);
-		memcpy(cpuPrivate.brand  + 44, &edx, 4);
-		cpuPrivate.brand[49] = '\0';
+		memcpy(private.brand  + 32, &eax, 4);
+		memcpy(private.brand  + 36, &ebx, 4);
+		memcpy(private.brand  + 40, &ecx, 4);
+		memcpy(private.brand  + 44, &edx, 4);
+		private.brand[49] = '\0';
 		int i;
 		for (i = 0; i < 49; i++){
-			if (cpuPrivate.brand[i] > 0x20) {
+			if (private.brand[i] > 0x20) {
 				break;
 			}
 		}
 	}
 
 	//默认指向vendor
-	cpuPrivate.steerString = cpuPrivate.vendor;
+	private.steerString = private.vendor;
 	//默认是string
-	cpuPrivate.steerType = STEERING_TYPE_STRING;
+	private.steerType = STEERING_TYPE_STRING;
 
 	PART_END();
 }

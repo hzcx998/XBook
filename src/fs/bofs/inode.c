@@ -6,18 +6,22 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
 #include <fs/bofs/inode.h>
 #include <driver/clock.h>
 #include <fs/bofs/bitmap.h>
 #include <share/math.h>
+#include <book/blk-buffer.h>
 
-
+/**
+ * BOFS_CloseInode - 关闭一个节点
+ * @inode: 要关闭的节点
+ * 
+ */
 PUBLIC void BOFS_CloseInode(struct BOFS_Inode *inode)
 {
 	if(inode != NULL){
@@ -25,11 +29,21 @@ PUBLIC void BOFS_CloseInode(struct BOFS_Inode *inode)
 	}
 }
 
+/**
+ * BOFS_CreateInode - 创建一个节点
+ * @inode: 节点地址
+ * @id: 节点id
+ * @mode: 节点的模式
+ * @flags: 节点的标志
+ * @deviceID: 设备号（devno）
+ * 
+ * 在节点中填写基础数据
+ */
 void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
     unsigned int flags,
-    devid_t deviceID)
+    dev_t deviceID)
 {
 	memset(inode, 0, sizeof(struct BOFS_Inode));
 	inode->id = id;
@@ -53,6 +67,10 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
 	}
 }
 
+/**
+ * BOFS_DumpInode - 调试输出节点
+ * @inode: 要输出的节点
+ */
 void BOFS_DumpInode(struct BOFS_Inode *inode)
 {
     printk(PART_TIP "---- Inode ----\n");
@@ -70,6 +88,13 @@ void BOFS_DumpInode(struct BOFS_Inode *inode)
         DATA16_TO_TIME_SEC(inode->crttime));
 }
 
+/**
+ * BOFS_SyncInode - 把节点同步到磁盘
+ * @inode: 要同步的节点
+ * @sb: 节点所在的超级块
+ * 
+ * 成功返回0，失败返回-1
+ */
 PUBLIC int BOFS_SyncInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 {
 	uint32 sectorOffset = inode->id / sb->inodeNrInSector;
@@ -79,19 +104,26 @@ PUBLIC int BOFS_SyncInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 	//printk("BOFS sync inode: sec off:%d lba:%d buf off:%d\n", sectorOffset, lba, bufOffset);
 	
 	memset(sb->iobuf, 0, SECTOR_SIZE);
-    if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+    if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
         return -1;
     }
 	struct BOFS_Inode *inode2 = (struct BOFS_Inode *)sb->iobuf;
 	*(inode2 + bufOffset) = *inode;
 	
-    if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+    if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
         return -1;
     }
     return 0;
 }
 
-
+/**
+ * BOFS_EmptyInode - 清空节点的信息
+ * @inode: 节点
+ * @sb: 节点所在的超级块
+ * 
+ * 从磁盘上吧节点的所有信息清空
+ * 成功返回0，失败返回-1
+ */
 int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 {
 	uint32 sectorOffset = inode->id/sb->inodeNrInSector;
@@ -102,7 +134,7 @@ int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 	
 	memset(sb->iobuf, 0, SECTOR_SIZE);
 	
-	if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+	if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
 		return -1;
 	}
 
@@ -110,7 +142,7 @@ int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 
 	memset(&inodeBuf[bufOffset], 0, sizeof(struct BOFS_Inode));
 	
-	if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+	if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
 		return -1;
 	}
 
@@ -140,7 +172,7 @@ PUBLIC int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
 	//printk("BOFS inode nr in sector %d\n", sb->inodeNrInSector);
 	
 	memset(sb->iobuf, 0, SECTOR_SIZE);
-	if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+	if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
         return -1;
     }
 
@@ -150,6 +182,15 @@ PUBLIC int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
 	return 0;
 }
 
+/**
+ * BOFS_CopyInodeData - 复制节点的数据
+ * @dst: 目的节点
+ * @src: 源节点
+ * @sb: 超级块
+ * 
+ * 复制节点对应的数据，而不是节点
+ * 成功返回0，失败返回-1
+ */
 int BOFS_CopyInodeData(struct BOFS_Inode *dst,
 	struct BOFS_Inode *src,
 	struct BOFS_SuperBlock *sb)
@@ -173,13 +214,13 @@ int BOFS_CopyInodeData(struct BOFS_Inode *dst,
 		/*get a lba and read data*/
 		BOFS_GetInodeData(src, blockID, &srcLba, sb);
 		memset(iobuf, 0, SECTOR_SIZE);
-		if (DeviceRead(sb->deviceID, srcLba, iobuf, 1)) {
+		if (!BlockRead(sb->deviceID, srcLba, iobuf)) {
 			return -1;
 		}
 		
 		/*get a lba and write data*/
 		BOFS_GetInodeData(dst, blockID, &dstLba, sb);
-		if (DeviceWrite(sb->deviceID, dstLba, iobuf, 1)) {
+		if (!BlockWrite(sb->deviceID, dstLba, iobuf, 0)) {
 			return -1;
 		}
 		blockID++;
@@ -188,6 +229,14 @@ int BOFS_CopyInodeData(struct BOFS_Inode *dst,
 	return 0;
 }
 
+/**
+ * BOFS_CopyInode - 复制节点
+ * @dst: 目的节点
+ * @src: 源节点
+ * 
+ * 复制节点，而不是节点的数据
+ * 成功返回0，失败返回-1    
+ */
 PUBLIC void BOFS_CopyInode(struct BOFS_Inode *dst, struct BOFS_Inode *src)
 {
 	memset(dst, 0, sizeof(struct BOFS_Inode));
@@ -214,6 +263,18 @@ for data read or write, we should make a way to do it.
 in a inode, we can read max sectors below blocks, so we can get 
 sector use bofs_get_inode_data(); to get data lba
 */
+
+/**
+ * BOFS_GetInodeData - 获取节点的数据的的扇区位置
+ * @inode: 节点
+ * @blockID: 块id，就是说要获取哪个块
+ * @data: 把获取的块的扇区信息保存下来
+ * @sb: 超级块
+ * 
+ * 当我们需要读取或者写入一个块的时候，我们只要知道块的逻辑id，也就是0,1,2,3...
+ * 这种，我们就可以通过这个函数获取到它对应的扇区id
+ * @返回：成功返回0，失败返回-1
+ */
 int BOFS_GetInodeData(struct BOFS_Inode *inode,
  	uint32 blockID,
 	uint32 *data,
@@ -293,7 +354,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 		memset(sb->databuf[0], 0, SECTOR_SIZE);
 
 		//sector_read(indirect[0], sb->databuf[0], 1);
-		if (DeviceRead(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+		if (!BlockRead(sb->deviceID, indirect[0], sb->databuf[0])) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			return -1;
 		}
@@ -318,7 +379,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 			/*sync buf to save new data*/
 			
 			//sector_write(indirect[0], sb->databuf[0], 1);
-			if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+			if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 				printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -364,7 +425,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 		
 		memset(sb->databuf[0], 0, SECTOR_SIZE);
 		//sector_read(indirect[0], sb->databuf[0], 1);
-		if (DeviceRead(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+		if (!BlockRead(sb->deviceID, indirect[0], sb->databuf[0])) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			return -1;
 		}
@@ -386,7 +447,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 			indirect[1] = data_buf0[offset[0]] = lba;
 			/*sync buf to save new data*/
 			//sector_write(indirect[0], sb->databuf[0], 1);
-			if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+			if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 				printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -394,7 +455,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 		
 		memset(sb->databuf[1], 0, SECTOR_SIZE);
 		//sector_read(indirect[1], sb->databuf[1], 1);
-		if (DeviceRead(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+		if (!BlockRead(sb->deviceID, indirect[1], sb->databuf[1])) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			return -1;
 		}
@@ -417,7 +478,7 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 			/*sync buf to save new data*/
 			
 			//sector_write(indirect[1], sb->databuf[1], 1);
-			if (DeviceWrite(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+			if (!BlockWrite(sb->deviceID, indirect[1], sb->databuf[1], 0)) {
 				printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -427,6 +488,15 @@ int BOFS_GetInodeData(struct BOFS_Inode *inode,
 	return 0;
 }
 
+/**
+ * BOFS_FreeInodeData - 释放节点逻辑块对应的数据
+ * @sb: 超级块
+ * @inode: 节点
+ * @blockID: 块id
+ * 
+ * 把逻辑块id对应的扇区数据释放掉
+ * @return：成功返回0，失败返回-1
+ */
 int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 	struct BOFS_Inode *inode,
 	uint32 blockID)
@@ -448,7 +518,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 			//printk("have data:%d\n", indirect[0]);
 			memset(sb->databuf[0], 0, SECTOR_SIZE);
 			//sector_write(indirect[0], sb->databuf[0], 1);
-			if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+			if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 				printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -480,7 +550,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 			//printk("have indirect 0 data:%d\n", indirect[0]);
 			memset(sb->databuf[0], 0, SECTOR_SIZE);
 			//sector_read(indirect[0], sb->databuf[0], 1);
-			if (DeviceRead(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+			if (!BlockRead(sb->deviceID, indirect[0], sb->databuf[0])) {
 				printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -493,7 +563,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 				//printk("have indirect 1 data:%d\n", indirect[1]);
 				memset(sb->databuf[1], 0, SECTOR_SIZE);
 				//sector_write(indirect[1], sb->databuf[1], 1);
-				if (DeviceWrite(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+				if (!BlockWrite(sb->deviceID, indirect[1], sb->databuf[1], 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 					return -1;
 				}
@@ -509,7 +579,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 				we need write to disk to save this result.
 				*/
 				//sector_write(indirect[0], sb->databuf[0], 1);
-				if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+				if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 					return -1;
 				}
@@ -530,7 +600,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 					//printk("level 1 indirect 1 is empty!\n");
 					memset(sb->databuf[0], 0, SECTOR_SIZE);
 					//sector_write(indirect[0], sb->databuf[0], 1);
-					if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+					if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 						printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 						return -1;
 					}
@@ -573,7 +643,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 			
 			memset(sb->databuf[0], 0, SECTOR_SIZE);
 			//sector_read(indirect[0], sb->databuf[0], 1);
-			if (DeviceRead(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+			if (!BlockRead(sb->deviceID, indirect[0], sb->databuf[0])) {
 				printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 				return -1;
 			}
@@ -585,7 +655,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 				
 				memset(sb->databuf[1], 0, SECTOR_SIZE);
 				//sector_read(indirect[1], sb->databuf[1], 1);
-				if (DeviceRead(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+				if (!BlockRead(sb->deviceID, indirect[1], sb->databuf[1])) {
 					printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 					return -1;
 				}
@@ -596,7 +666,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 				if(indirect[2] != 0){
 					memset(sb->databuf[2], 0, SECTOR_SIZE);
 					//sector_write(indirect[2], sb->databuf[2], 1);
-					if (DeviceWrite(sb->deviceID, indirect[2], sb->databuf[2], 1)) {
+					if (!BlockWrite(sb->deviceID, indirect[2], sb->databuf[2], 0)) {
 						printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 						return -1;
 					}
@@ -612,7 +682,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 					we need write to disk to save this result.
 					*/
 					//sector_write(indirect[1], sb->databuf[1], 1);
-					if (DeviceWrite(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+					if (!BlockWrite(sb->deviceID, indirect[1], sb->databuf[1], 0)) {
 						printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 						return -1;
 					}
@@ -628,7 +698,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 					if(!flags){
 						memset(sb->databuf[1], 0, SECTOR_SIZE);
 						//sector_write(indirect[1], sb->databuf[1], 1);
-						if (DeviceWrite(sb->deviceID, indirect[1], sb->databuf[1], 1)) {
+						if (!BlockWrite(sb->deviceID, indirect[1], sb->databuf[1], 0)) {
 							printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 							return -1;
 						}
@@ -644,7 +714,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 						we need write to disk to save this result.
 						*/
 						//sector_write(indirect[0], sb->databuf[0], 1);
-						if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+						if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 							printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 							return -1;
 						}
@@ -662,7 +732,7 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 							
 							memset(sb->databuf[0], 0, SECTOR_SIZE);
 							//sector_write(indirect[0], sb->databuf[0], 1);
-							if (DeviceWrite(sb->deviceID, indirect[0], sb->databuf[0], 1)) {
+							if (!BlockWrite(sb->deviceID, indirect[0], sb->databuf[0], 0)) {
 								printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 								return -1;
 							}
@@ -687,9 +757,13 @@ int BOFS_FreeInodeData(struct BOFS_SuperBlock *sb,
 	return -1;
 }
 
-/*
-we need inode size to release data
-*/
+/**
+ * BOFS_ReleaseInodeData - 释放所有节点中的数据
+ * @sb: 超级块
+ * @inode: 节点
+ * 
+ * 把所有逻辑块id对应的数据释放掉
+ */
 void BOFS_ReleaseInodeData(struct BOFS_SuperBlock *sb,
 	struct BOFS_Inode *inode)
 {

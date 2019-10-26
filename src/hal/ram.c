@@ -7,13 +7,13 @@
 
 #include <book/debug.h>
 #include <share/stddef.h>
-#include <hal/block/ram.h>
 #include <book/arch.h>
 #include <share/string.h>
+#include <book/hal.h>
 
-PRIVATE struct RamPrivate {
+PRIVATE struct Private {
 	size_t memorySize;		//内存大小
-}ramPrivate;
+}private;
 
 PRIVATE void RamHalIoctl(unsigned int cmd, unsigned int param)
 {
@@ -21,19 +21,19 @@ PRIVATE void RamHalIoctl(unsigned int cmd, unsigned int param)
 	switch (cmd)
 	{
 	case RAM_HAL_IO_MEMSIZE:
-		*((unsigned int *)param) = ramPrivate.memorySize;
+		*((unsigned int *)param) = private.memorySize;
 		break;
 	default:
 		break;
 	}
 }
 
-PUBLIC void RamHalInit()
+PRIVATE void RamHalInit()
 {
 	PART_START("Ram hal");
 
-	ramPrivate.memorySize = InitArds();
-	printk(" |- ram memory size:%x\n", ramPrivate.memorySize);
+	private.memorySize = InitArds();
+	printk(" |- ram memory size:%x bytes %d MB\n", private.memorySize, private.memorySize / MB);
 	PART_END();
 }
 

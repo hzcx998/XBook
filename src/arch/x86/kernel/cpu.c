@@ -10,16 +10,17 @@
 #include <segment.h>
 #include <book/debug.h>
 #include <book/hal.h>
-#include <hal/char/cpu.h>
 #include <share/string.h>
 #include <book/task.h>
+
+
 /* tss对象 */
 Tss_t tss;
 
 /*
  * CpuInit - 初始化cpu并读取信息
  */
-PUBLIC void CpuInit()
+PUBLIC void InitCpu()
 {
 	PART_START("Cpu");
 

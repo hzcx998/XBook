@@ -21,8 +21,8 @@ OBJS =  clock.o \
 		console.o \
 		timer.o \
 		keyboard.o \
-		mouse.o \
 		ide.o \
+		ramdisk.o \
 
 #First read here
 .PHONY: all

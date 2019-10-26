@@ -16,8 +16,6 @@
 PUBLIC void MmuMemoryInfo();
 
 /* 导入内存管理相关头问题 */
-#include <book/slab.h>
 #include <book/vmspace.h>
-#include <book/vmarea.h>
 
 #endif   /*_BOOK_MMU_H*/

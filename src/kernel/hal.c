@@ -19,8 +19,6 @@ LIST_HEAD(halListHead);
  * 需要把hal的宿主导入此文件
  * ---------------------
  */
-HAL_EXTERN(halOfDisplay);
-HAL_EXTERN(halOfClock);
 HAL_EXTERN(halOfCpu);
 HAL_EXTERN(halOfRam);
 //HAL_EXTERN(halOfKeyboard);
@@ -44,9 +42,9 @@ PUBLIC void InitHalEnvironment()
  */
 PUBLIC void InitHalEarly()
 {
-   if (HalCreate(&halOfDisplay)) {
+   /*if (HalCreate(&halOfDisplay)) {
       while(1);
-   }
+   }*/
    // 初始化控制台，基于硬件抽象层
 	ConsoleInit();
 
@@ -60,7 +58,6 @@ PUBLIC void InitHalEarly()
       Panic("Register %s name samed!\n", halOfRam.halName);
       
    }
-
 }
 
 /*
@@ -70,10 +67,10 @@ PUBLIC void InitHalKernel()
 {
    //printk("-> Hal ");
    PART_START("Hal kernel");
-
+/*
    if (HalCreate(&halOfClock)) {
       Panic("Register %s name samed!\n", halOfClock.halName);
-   }
+   }*/
 /*
    if (HalCreate(&halOfKeyboard)) {
       Panic("Register %s name samed!\n", halOfKeyboard.halName);

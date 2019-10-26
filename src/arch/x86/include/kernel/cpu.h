@@ -51,7 +51,7 @@ typedef struct Tss
 
 EXTERN Tss_t tss;
 
-PUBLIC void CpuInit();
+PUBLIC void InitCpu();
 
 PUBLIC void InitTss();
 PUBLIC Tss_t *GetTss();

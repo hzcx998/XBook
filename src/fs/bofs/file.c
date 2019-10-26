@@ -6,10 +6,9 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <share/math.h>
 #include <driver/ide.h>
@@ -17,6 +16,7 @@
 #include <fs/bofs/file.h>
 #include <fs/bofs/bitmap.h>
 #include <book/device.h>
+#include <book/blk-buffer.h>
 
 struct BOFS_FileDescriptor BOFS_GlobalFdTable[BOFS_MAX_FD_NR];
 
@@ -674,7 +674,7 @@ int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
 		
 		if (firstWriteSector) {	//we need to keep first sector not
 			
-			if(DeviceRead(sb->deviceID, sectorLba, sb->iobuf, 1)) {
+			if(!BlockRead(sb->deviceID, sectorLba, sb->iobuf)) {
 				return -1;
 			}
 			
@@ -683,7 +683,7 @@ int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
 		}
 		memcpy(sb->iobuf + sectorOffsetBytes, src, chunkSize);
 		//sector_write(sectorLba, sb->iobuf, 1);
-		if(DeviceWrite(sb->deviceID, sectorLba, sb->iobuf, 1)) {
+		if(!BlockWrite(sb->deviceID, sectorLba, sb->iobuf, 0)) {
 			return -1;
 		}
 		src += chunkSize;   // set src to next pos
@@ -731,11 +731,15 @@ PUBLIC int BOFS_Write(int fd, void* buf, unsigned int count)
 				
 				unsigned int blocks = DIV_ROUND_UP(count, SECTOR_SIZE);
 				//printk("write blocks %d at %d\n", blocks, wrFile->pos);
-				if (!DeviceWrite(wrFile->inode->otherDeviceID, wrFile->pos, buf, blocks)) {
-					/* 写入成功 */
-					bytesWritten = blocks * SECTOR_SIZE;
-					wrFile->pos++;
-				}
+				/*int i;
+				for (i = 0; i < blocks; i++)
+					if (BlockWrite(wrFile->inode->otherDeviceID, wrFile->pos + i,
+						buf + i * SECTOR_SIZE, 0)) {
+					}
+				}*/
+				/* 写入成功 */
+				bytesWritten = blocks * SECTOR_SIZE;
+				wrFile->pos++;
 			} else if (wrFile->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
 				
 			}
@@ -767,7 +771,7 @@ PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg)
 		return -1;
 	} else if (file->dirEntry->type == BOFS_FILE_TYPE_BLOCK) {
 		/* 对块设备进行IOCTL */
-		if (DeviceIoctl(file->inode->otherDeviceID, cmd, arg, 0)) {
+		if (DeviceIoctl(file->inode->otherDeviceID, cmd, arg)) {
 			return -1;
 		}
 	} else if (file->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
@@ -843,7 +847,7 @@ int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
 		//clean buf and read data to buf
 		//memset(sb->iobuf, 0, SECTOR_SIZE);
 		//printk("read done!\n");
-		if(DeviceRead(sb->deviceID, sectorLba, sb->iobuf, 1)) {
+		if(!BlockRead(sb->deviceID, sectorLba, sb->iobuf)) {
 			return -1;
 		}
 		//printk("read done!\n");
@@ -893,12 +897,11 @@ PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count)
 				
 				unsigned int blocks = DIV_ROUND_UP(count, SECTOR_SIZE);
 				//printk("read blocks %d at %d\n", blocks, rdFile->pos);
-				if (!DeviceRead(rdFile->inode->otherDeviceID, rdFile->pos, buf, blocks)) {
-					/* 读取成功 */
-
+				/*if (BlockRead(rdFile->inode->otherDeviceID, rdFile->pos, buf, blocks)) {
+					
 					bytesRead = blocks * SECTOR_SIZE;
 					rdFile->pos++;
-				}
+				}*/
 			} else if (rdFile->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
 				//bytesRead = BOFS_FileRead(rdFile, buf, count);
 			}

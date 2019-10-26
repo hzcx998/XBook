@@ -12,13 +12,14 @@ CC			= gcc
 #The file path
 ARCH_KERNEL_PATH = ../include/kernel/
 ARCH_MM_PATH = ../include/mm/
+ARCH_BUS_PATH = ../include/bus/
 
 KERNEL_PATH = ../../../include/
 
 #flags
 ASM_FLAGS	= -I $(ARCH_KERNEL_PATH) -f elf
 C_FLAGS	= -c -fno-builtin -nostdlib \
-	-I $(ARCH_KERNEL_PATH) -I $(ARCH_MM_PATH) -I $(KERNEL_PATH) \
+	-I $(ARCH_KERNEL_PATH) -I $(ARCH_MM_PATH) -I $(ARCH_BUS_PATH) -I $(KERNEL_PATH) \
 	-Wall -Wunused \
 	-m32 -fno-stack-protector
 

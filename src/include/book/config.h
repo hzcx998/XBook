@@ -17,7 +17,6 @@
 //#define CONFIG_ARCH_64
 
 
-
 /* 调试配置 */
 //#define CONFI_SLAB_DEBUG
 
@@ -26,5 +25,11 @@
 
 /* 配置二元信号量（Binary semaphore） */
 //#define CONFIG_SEMAPHORE_B 
+
+
+/* 如果想要用kmalloc分配128KB~4MB之间大小的内存，就需要配置此项 */
+//#define CONFIG_LARGE_ALLOCS
+
+
 
 #endif   /*_BOOK_CONFIG_H*/

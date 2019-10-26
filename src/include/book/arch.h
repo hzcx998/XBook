@@ -21,8 +21,7 @@
    #include "../arch/x86/include/kernel/segment.h"
    #include "../arch/x86/include/kernel/cmos.h"
    #include "../arch/x86/include/mm/page.h"
-   #include "../arch/x86/include/mm/zone.h"
-   #include "../arch/x86/include/mm/area.h"
+   #include "../arch/x86/include/mm/phymem.h"
    
 #endif   /*_ARCH_X86_*/
 

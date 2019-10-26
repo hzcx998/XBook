@@ -73,32 +73,32 @@ SegmentLoad(struct IoStream *stream, uint32_t offset, uint32_t fileSize, uint32_
      */
 
     /* 为进程分配内存 */
-    uint32_t pageIdx = 0;
+    /*uint32_t pageIdx = 0;
     uint32_t vaddrPage = vaddrFirstPage;
     
     pde_t *pde;
     pte_t *pte;
-  
-    /* 在占用的页中进行内存分配 */
+    
+    
     while (pageIdx < occupyPages) {
-        /* 获取虚拟地址的页目录项和页表项 */
+        // 获取虚拟地址的页目录项和页表项
         pde = PageGetPde(vaddrPage);
         pte = PageGetPte(vaddrPage);
         
-        /* 如果pde不存在，或者pte不存在，那么就需要把这个地址进行映射
-        pde的判断要放在pte前面，不然会导致pde不存在而去查看pte的值，产生页故障 */
+        // 如果pde不存在，或者pte不存在，那么就需要把这个地址进行映射
+        pde的判断要放在pte前面，不然会导致pde不存在而去查看pte的值，产生页故障
         if (!(*pde & PAGE_P_1) || !(*pte & PAGE_P_1)) {
             //printk(PART_WARRING "addr %x not maped!\n");
-            /* 分配一个物理页 */
-            uint32_t page = GetFreePage(GFP_DYNAMIC);
+            // 分配一个物理页
+            uint32_t page = AllocPage();
             if (!page) {
                 printk(PART_ERROR "SegmentLoad: GetFreePage for link failed!\n");
 
                 return -1;
             }
-            /* 对地址进行链接，之后才能访问虚拟地址 */
-            if(PageLinkAddress(vaddrPage, page, GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W)) {
-                printk(PART_ERROR "SegmentLoad: PageLinkAddress failed!\n");
+            // 对地址进行链接，之后才能访问虚拟地址 
+            if(PageTableAdd(vaddrPage, page, PAGE_US_U | PAGE_RW_W)) {
+                printk(PART_ERROR "SegmentLoad: PageTableAdd failed!\n");
 
                 return -1;
             }
@@ -109,7 +109,13 @@ SegmentLoad(struct IoStream *stream, uint32_t offset, uint32_t fileSize, uint32_
         }
         vaddrPage += PAGE_SIZE;
         pageIdx++;
+    }*/
+
+    /* 映射内存空间 */
+    if (MapPages(vaddrFirstPage, occupyPages * PAGE_SIZE, PAGE_US_U | PAGE_RW_W)) {
+        return -1;
     }
+
     //printk(PART_TIP "addr %x link done!\n", vaddrFirstPage);
     // while (1);
     
@@ -230,7 +236,7 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
     /* 重新映射栈 */
 
     /* 先分配一个物理页 */
-    uint32_t paddr = GetFreePage(GFP_DYNAMIC);
+    uint32_t paddr = AllocPage();
     if (!paddr) {
         printk(PART_ERROR "SysExecv: GetFreePage for stack space failed!\n");
         
@@ -240,8 +246,8 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
     //printk(PART_TIP "stack alloc paddr %x\n", paddr);
     
     // 进行地址链接
-    if(PageLinkAddress(space->start, paddr, 
-            GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W) == -1) {
+    if(PageTableAdd(space->start, paddr, 
+             PAGE_US_U | PAGE_RW_W) == -1) {
         // 链接失败
         // 需要释放物理页
         goto ToFreePage;
@@ -334,14 +340,14 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
         *(uint32_t *)top = 0;
         top += sizeof(uint32_t);
     }
-
+    
     return 0;
 ToUnlinkAddr:
     // 取消页链接
-    PageUnlinkAddress(space->start);
+    RemoveFromPageTable(space->start);
 ToFreePage:
     // 释放物理页
-    FreePages(paddr, 0);
+    FreePages(paddr);
 ToFreeSpace:
     // 释放虚拟空间
     kfree(space);

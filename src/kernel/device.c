@@ -11,80 +11,13 @@
 #include <book/device.h>
 
 /* 设备链表 */
-LIST_HEAD(deviceListHead);
+LIST_HEAD(AllDeviceListHead);
 
-/**
- * CreateDevice - 创建一个设备
- * @name: 设备名
- * @pointer: 特殊指针
- */
-PUBLIC struct Device *CreateDevice(char *name, void *pointer, char type,
-    unsigned int deviceID)
-{
-    struct Device *device = kmalloc(sizeof(struct Device), GFP_KERNEL);
-    if (device == NULL)
-        return NULL;
 
-    INIT_LIST_HEAD(&device->list);
-
-    memset(device->name, 0, DEVICE_NAMELEN);
-    strcpy(device->name, name);
-
-    device->pointer = pointer;
-    device->deviceID = deviceID;
-    device->type = type;
-
-    return device;
-}
-
-/**
- * MakeDevice - 生成设备信息
- * @device: 要生成的设备
- * @name: 设备名
- * @pointer: 特殊指针
- */
-PUBLIC int MakeDevice(struct Device *device, char *name, void *pointer,
-    char type, unsigned int deviceID)
-{
-    INIT_LIST_HEAD(&device->list);
-
-    memset(device->name, 0, DEVICE_NAMELEN);
-    strcpy(device->name, name);
-
-    device->pointer = pointer;
-    device->deviceID = deviceID;
-    device->type = type;
-}
-
-/**
- * AddDevice - 添加一个设备
- * @device: 要添加的设备
- */
-PUBLIC int AddDevice(struct Device *device)
-{
-    /* 设备已经存在 */
-    if (ListFind(&device->list, &deviceListHead))
-        return -1;
-
-    /* 添加到链表 */
-    ListAddTail(&device->list, &deviceListHead);
-    return 0;
-}
-
-/**
- * DelDevice - 删除一个设备
- * @device: 要删除的设备
- */
-PUBLIC int DelDevice(struct Device *device)
-{
-    /* 设备不在链表中就返回 */
-    if (!ListFind(&device->list, &deviceListHead))
-        return -1;
-
-    /* 添加到链表 */
-    ListDel(&device->list);
-    return 0;
-}
+/*
+构建一个散列表，用来把设备号和结构进行对应，可以提高
+对设备的搜索速度
+*/
 
 /**
  * LookUpDevice - 查找一个设备
@@ -92,10 +25,10 @@ PUBLIC int DelDevice(struct Device *device)
  * 
  * 找到返回1，没有返回0
  */
-PUBLIC int LookUpDevice(char *name)
+PUBLIC int SearchDevice(char *name)
 {
     struct Device *device;
-    ListForEachOwner(device, &deviceListHead, list) {
+    ListForEachOwner(device, &AllDeviceListHead, list) {
         /* 如果名字相等就说明找到 */
         if (!strcmp(device->name, name)) {
             return 1;
@@ -105,31 +38,15 @@ PUBLIC int LookUpDevice(char *name)
 }
 
 /**
- * GetDevicePointer - 获取设备的指针
- * @name: 设备名
- */
-PUBLIC void *GetDevicePointer(char *name)
-{
-    struct Device *device;
-    ListForEachOwner(device, &deviceListHead, list) {
-        /* 如果名字相等就说明找到 */
-        if (!strcmp(device->name, name)) {
-            return device->pointer;
-        }
-    }
-    return NULL;
-}
-
-/**
- * GetDevice - 获取设备
+ * GetDeviceByName - 获取设备
  * @name: 设备名
  * 
  * 返回设备结构体
  */
-PUBLIC struct Device *GetDevice(char *name)
+PUBLIC struct Device *GetDeviceByName(char *name)
 {
     struct Device *device;
-    ListForEachOwner(device, &deviceListHead, list) {
+    ListForEachOwner(device, &AllDeviceListHead, list) {
         /* 如果名字相等就说明找到 */
         if (!strcmp(device->name, name)) {
             return device;
@@ -138,7 +55,14 @@ PUBLIC struct Device *GetDevice(char *name)
     return NULL;
 }
 
-
+PUBLIC void DumpDevice(struct Device *device)
+{
+    printk(PART_TIP "----Devices----\n");
+    printk(PART_TIP "name:%s devno:%x type:%d ops:%x\n",
+        device->name, device->devno, device->type, device->opSets);
+    printk(PART_TIP "private:%x ref:%d\n",
+        device->private, device->references);
+}
 
 /**
  * DumpDevices - 打印所有设备信息
@@ -147,8 +71,301 @@ PUBLIC void DumpDevices()
 {
     printk(PART_TIP "----Devices----\n");
     struct Device *device;
-    ListForEachOwner(device, &deviceListHead, list) {
-        printk(PART_TIP "name:%s pointer:%x\n", device->name, device->pointer);
-        //BOFS_DumpSuperBlock(device->pointer);
+    ListForEachOwner(device, &AllDeviceListHead, list) {
+        DumpDevice(device);
     }
+}
+
+/**
+ * IsBadDevice - 检测是否为错误的设备
+ * @devno: 设备的id
+ * 
+ * 如果是错误id就返回1，否则返回0
+ */
+PRIVATE int IsBadDevice(int devno)
+{
+    
+    return 0;
+}
+
+/**
+ * GetDeviceByIDEntry - 通过设备ID获取设备项
+ * devno: 设备id
+ * 
+ * 如果以后不用数组来转换，直接修改这里面就行了
+ */
+PUBLIC struct Device *GetDeviceByID(int devno)
+{
+    /* 先用散列表的形式搜索 */
+
+
+    /* 再用链表搜索的方式 */
+    struct Device *device;
+    ListForEachOwner(device, &AllDeviceListHead, list) {
+        if (device->devno == devno) {
+            return device;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * IoNull - 空的操作
+ * 
+ * 返回成功，表示啥也不做
+ */
+PUBLIC int IoNull()
+{
+    return 0;
+}
+
+/**
+ * IoError - 错误的操作
+ * 
+ * 返回失败
+ */
+PUBLIC int IoError()
+{
+    return -1;
+}
+
+/**
+ * DeviceRead - 设备的读取操作
+ * @devno: 设备id号
+ * @buffer: 缓冲区
+ * @count: 扇区数
+ */
+PUBLIC int DeviceRead(int devno, unsigned int lba, void *buffer, unsigned int count)
+{
+    struct Device *device;
+    int retval = -1;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+    
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+
+    /* 没有打开设备就直接返回 */
+    if (!AtomicGet(&device->references))
+        return -1;
+    if (device->opSets->read != NULL)
+        retval = (*device->opSets->read)(device, lba, buffer, count);
+
+    return retval;
+}
+
+/**
+ * DeviceWrite - 设备的写入操作
+ * @devno: 设备id号
+ * @buffer: 缓冲区
+ * @count: 字节数
+ */
+PUBLIC int DeviceWrite(int devno, unsigned int lba, void *buffer, unsigned int count)
+{
+    struct Device *device;
+    int retval = -1;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+    
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+    /* 没有打开设备就直接返回 */
+    if (!AtomicGet(&device->references))
+        return -1;
+    if (device->opSets->write != NULL)
+        retval = (*device->opSets->write)(device, lba, buffer, count);
+
+    return retval;
+}
+
+/**
+ * DeviceIoctl - 设备的控制操作
+ * @devno: 设备id号
+ * @cmd: 命令
+ * @arg1: 参数1
+ * @arg2: 参数2
+ * 
+ */
+PUBLIC int DeviceIoctl(int devno, int cmd, int arg)
+{
+    struct Device *device;
+    int retval = -1;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+    
+    /* 没有打开设备就直接返回 */
+    if (!AtomicGet(&device->references))
+        return -1;
+    if (device->opSets->ioctl != NULL)
+        retval = (*device->opSets->ioctl)(device, cmd, arg);
+
+    return retval;
+}
+
+/**
+ * DeviceOpen - 打开设备
+ * @devno: 设备id号
+ * @name: 设备名
+ * @mode: 模式
+ * 
+ */
+PUBLIC int DeviceOpen(int devno, unsigned int flags)
+{
+    struct Device *device;
+    int retval = 0;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+    
+    /* 增加引用 */
+    if (AtomicGet(&device->references) >= 0)
+        AtomicInc(&device->references);
+    else 
+        return -1;  /* 引用计数有错误 */
+
+    /* 是第一次引用才打开 */
+    if (AtomicGet(&device->references) == 1) {
+        if (device->opSets->open != NULL)
+            retval = (*device->opSets->open)(device, flags);
+        
+    }
+        
+    return retval;
+}
+
+
+/**
+ * DeviceClose - 关闭设备
+ */
+PUBLIC int DeviceClose(int devno)
+{
+    struct Device *device;
+    int retval = 0;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+    
+    /* 增加引用 */
+    if (AtomicGet(&device->references) > 0)
+        AtomicDec(&device->references);
+    else 
+        return -1;  /* 引用计数有错误 */
+
+    /* 是最后一次引用才关闭 */
+    if (AtomicGet(&device->references) == 0) {
+        if (device->opSets->close != NULL)
+            retval = (*device->opSets->close)(device);
+        
+    }
+     
+    return retval;
+}
+
+/**
+ * DeviceGetc - 设备获取一个字符
+ * @devno: 设备id号
+ */
+PUBLIC int DeviceGetc(int devno)
+{
+    struct Device *device;
+    int retval = -1;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+    
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+
+    /* 没有打开设备就直接返回 */
+    if (!AtomicGet(&device->references))
+        return -1;
+    if (device->opSets->getc != NULL)
+        retval = (*device->opSets->getc)(device);
+
+    return retval;
+}
+
+/**
+ * DevicePutc - 向设备输入一个字符
+ * @devno: 设备id号
+ * @ch: 字符
+ */
+PUBLIC int DevicePutc(int devno, unsigned int ch)
+{
+    struct Device *device;
+    int retval = -1;
+
+    /* 检测是否是坏设备 */
+    if (IsBadDevice(devno))
+        return -1;
+
+    device = GetDeviceByID(devno);
+    
+    if (device == NULL)
+        return -1;
+
+    /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
+    if (devno != device->devno)
+        return -1;
+    /* 没有打开设备就直接返回 */
+    if (!AtomicGet(&device->references))
+        return -1;
+    if (device->opSets->putc != NULL)
+        retval = (*device->opSets->putc)(device, ch);
+
+    return retval;
 }

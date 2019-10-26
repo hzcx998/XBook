@@ -92,7 +92,7 @@ PRIVATE INLINE void WaitQueueWakeUp(struct WaitQueue *waitQueue)
 		ListDel(&task->list);
 
 		/* 唤醒任务 */
-		TaskWakeup(task);
+		TaskWakeUp(task);
 	}
 	InterruptSetStatus(oldStatus);
 }

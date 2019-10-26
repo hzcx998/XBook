@@ -6,14 +6,13 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
-#include <book/device.h>
 #include <share/vsprintf.h>
+#include <share/const.h>
 
 #include <fs/partition.h>
 #include <fs/bofs/super_block.h>
@@ -23,6 +22,8 @@
 #include <fs/bofs/dir.h>
 #include <fs/bofs/file.h>
 #include <fs/bofs/device.h>
+
+EXTERN struct List AllDeviceListHead;
 
 /**
  * BOFS_MountMasterFS - 挂载主文件系统
@@ -60,10 +61,10 @@ PUBLIC struct BOFS_SuperBlock *BOFS_FormatFs(unsigned int deviceID,
     unsigned int totalSectors,
     unsigned int inodeNr)
 {
-    if (DeviceCheckID_OK(deviceID)) {
+    /*if (DeviceCheckID_OK(deviceID)) {
         printk(PART_ERROR "device %d not exist or not register!\n", deviceID);
         return NULL;
-    }
+    }*/
     /* 扇区数不足 */
     if (totalSectors <= 0) {
         printk(PART_ERROR "no enough disk sectors!\n");
@@ -323,7 +324,7 @@ PUBLIC void BOFS_Setup()
     char devpath[64];
     struct Device *device;
     char fsDeviceType;
-    ListForEachOwner(device, &deviceListHead, list) {
+    ListForEachOwner(device, &AllDeviceListHead, list) {
         memset(devpath, 0, 64);
     
         // 生成路径
@@ -333,13 +334,13 @@ PUBLIC void BOFS_Setup()
         /* 选择类型 */
         switch (device->type)
         {
-        case DEVICE_TYPE_BLOCK:
+        case DEV_TYPE_BLOCK:
             fsDeviceType = BOFS_FILE_TYPE_BLOCK;
             break;
-        case DEVICE_TYPE_CHAR:
+        case DEV_TYPE_CHAR:
             fsDeviceType = BOFS_FILE_TYPE_CHAR;
             break;
-        case DEVICE_TYPE_NET:
+        case DEV_TYPE_NET:
             fsDeviceType = BOFS_FILE_TYPE_NET;
             break;
         default:
@@ -349,7 +350,7 @@ PUBLIC void BOFS_Setup()
 
         //printk("device path: %s type %x device id %d\n", devpath, fsDeviceType, device->deviceID);
         /* 创建设备文件 */
-        if (BOFS_MakeDevice(devpath, fsDeviceType, device->deviceID)) {
+        if (BOFS_MakeDevice(devpath, fsDeviceType, device->devno)) {
             printk("make device failed!\n");
         }
         //BOFS_DumpSuperBlock(device->pointer);
@@ -668,9 +669,6 @@ PRIVATE void BOFS_Test()
     //BOFS_Unlink("/test2");
     BOFS_Unlink("/");
     */
-
-
-
 }
 
 PUBLIC int BOFS_Init()
@@ -681,7 +679,7 @@ PUBLIC int BOFS_Init()
     currentSuperBlock = NULL;
     
     /* 创建文件系统 */
-	unsigned int deviceID = DEVICE_HDD0;
+	unsigned int deviceID = DEV_HDA;
     int i;
 
 	for (i = 0; i < ideDiskFound; i++) {
@@ -697,23 +695,23 @@ PUBLIC int BOFS_Init()
 		
         char targe[4] = {'a', 'b', 'c', 'd'};
 
-		struct Device *device;
-		char name[DEVICE_NAMELEN];
+		//struct Device *device;
+		char name[DEVICE_NAME_LEN];
 		
         /* ----记录设备---- */
 
         sprintf(name, "hd%c", targe[i]);
         /* 如果不是分区设备，就把pointer设置成NULL，这样就不能挂载 */
-        device = CreateDevice(name, NULL, DEVICE_TYPE_BLOCK, deviceID);
+        /*device = CreateDevice(name, NULL, DEVICE_TYPE_BLOCK, deviceID);
 		if (device == NULL)
-			Panic("create device %s failed!\n", name);
+			Panic("create device %s failed!\n", name);*/
         /* 添加到设备信息记录管理器  */
-        AddDevice(device);
+        //AddDevice(device);
         /* ----记录设备分区---- */
 
         /* 创建块设备，并把块设备添加到块设备系统中 */
         /* 创建并挂载成一个主文件系统 */
-		struct BOFS_SuperBlock *sb = BOFS_MakeFS(&dptTable[i]->DPTE[0], deviceID);
+		/*struct BOFS_SuperBlock *sb = BOFS_MakeFS(&dptTable[i]->DPTE[0], deviceID);
 		
 		if (BOFS_MountMasterFS(sb) && i == 0) {
 			Panic("BOFS mount master failed!\n");
@@ -736,7 +734,7 @@ PUBLIC int BOFS_Init()
 		if (device == NULL)
 			Panic("create device hda0 failed!\n");
 		AddDevice(device);
-
+*/
 		/* 指向下一个设备 */
 		deviceID++;
 	}
@@ -746,7 +744,6 @@ PUBLIC int BOFS_Init()
     //Spin("test");
     /* 做一些重要的步骤 */
     BOFS_Setup();
-
 
     /* 做测试 */
     BOFS_Test();

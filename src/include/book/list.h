@@ -67,6 +67,44 @@ PRIVATE INLINE void ListAdd(struct List *new, struct List *head)
 }
 
 /*
+ * ListAddBefore - 把节点添加到一个节点前面
+ * @new： 要新添加的节点
+ * @head：比较的节点
+ * 
+ * 把一个新节点添加到一个节点前面。旧节点的前驱需要指向新节点，
+ * 旧节点的前驱指向新节点，新节点的前驱指向旧节点的前驱，后驱指向旧节点。
+ * 
+ */
+PRIVATE INLINE void ListAddBefore(struct List *new, struct List *node)
+{
+   node->prev->next = new;
+
+   new->prev = node->prev;
+   new->next = node;
+
+   node->prev = new;
+}
+
+/*
+ * ListAddAfter - 把节点添加到一个节点后面
+ * @new： 要新添加的节点
+ * @head：比较的节点
+ * 
+ * 把一个新节点添加到一个节点后面。旧节点的后驱需要指向新节点，
+ * 旧节点的后驱指向新节点，新节点的前驱指向旧节点，后驱指向旧节点的后驱。
+ * 
+ */
+PRIVATE INLINE void ListAddAfter(struct List *new, struct List *node)
+{
+   node->next->prev = new;
+
+   new->prev = node;
+   new->next = node->next;
+
+   node->next = new;
+}
+
+/*
  * ListAddTail - 添加一个新的节点到链表尾
  * @new： 要新添加的节点
  * @head：要添加到哪个链表头

@@ -6,16 +6,16 @@
  */
 
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 #include <share/string.h>
 #include <driver/ide.h>
 #include <fs/bofs/dir_entry.h>
 #include <fs/bofs/bitmap.h>
 #include <share/math.h>
 #include <driver/clock.h>
+#include <book/blk-buffer.h>
 
 PUBLIC void BOFS_CreateDirEntry(struct BOFS_DirEntry *dirEntry,
     unsigned int inode,
@@ -97,7 +97,7 @@ PUBLIC bool BOFS_SearchDirEntry(struct BOFS_SuperBlock *sb,
 		
 		memset(sb->iobuf, 0, SECTOR_SIZE);
 		//sector_read(lba, sb->iobuf, 1);
-		if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+		if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			return -1;
 		}
@@ -163,7 +163,7 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 		memset(sb->iobuf, 0, SECTOR_SIZE);
 		
 		//sector_read(lba, sb->iobuf, 1);
-		if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+		if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->deviceID);
 			return 0;
 		}
@@ -178,7 +178,7 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				*/
 				memcpy(&dirEntry[i], childDir, sizeof(struct BOFS_DirEntry));
 				//sector_write(lba, sb->iobuf, 1);
-				if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+				if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				}
 				/*printk("BOFS_SyncDirEntry: same dir entry, just change info\n");
@@ -195,7 +195,7 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				*/
 				memcpy(&dirEntry[i], childDir, sizeof(struct BOFS_DirEntry));
 				//sector_write(lba, sb->iobuf, 1);
-				if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+				if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				}
 				/*printk("BOFS_SyncDirEntry: same dir entry, but is invalid\n");
@@ -211,7 +211,7 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				*/
 				memcpy(&dirEntry[i], childDir, sizeof(struct BOFS_DirEntry));
 				//sector_write(lba, sb->iobuf, 1);
-				if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+				if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				}
 				printk("same dir entry but name different\n");
@@ -225,7 +225,7 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				*/
 				memcpy(&dirEntry[i], childDir, sizeof(struct BOFS_DirEntry));
 				//sector_write(lba, sb->iobuf, 1);
-				if (DeviceWrite(sb->deviceID, lba, sb->iobuf, 1)) {
+				if (!BlockWrite(sb->deviceID, lba, sb->iobuf, 0)) {
 					printk(PART_ERROR "device %d write failed!\n", sb->deviceID);
 				}
 				/*printk("empty dir entry\n");
@@ -314,7 +314,7 @@ bool BOFS_LoadDirEntry(struct BOFS_DirEntry *parentDir,
 		//printk("inode data: id:%d lba:%d\n", blockID, lba);
 		memset(sb->iobuf, 0, SECTOR_SIZE);
 		
-		if (DeviceRead(sb->deviceID, lba, sb->iobuf, 1)) {
+		if (!BlockRead(sb->deviceID, lba, sb->iobuf)) {
 			return -1;
 		}
 		

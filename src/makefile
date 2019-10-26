@@ -1,7 +1,7 @@
 #----
-#File:	makefile
-#Auther: Jason Hu
-#Time: 2019/6/1
+#File:		makefile
+#Auther: 	Jason Hu
+#Time: 		2019/6/1
 #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----
 
@@ -75,10 +75,11 @@ ARCH_KERNEL_OBJS = $(ARCH_KERNEL_DIR)entry.o \
 	
 #arch objs
 ARCH_OBJS = $(ARCH_KERNEL_OBJS) \
-			$(ARCH_DIR)mm/zone.o \
 			$(ARCH_DIR)mm/page.o \
 			$(ARCH_DIR)mm/bootmem.o \
 			$(ARCH_DIR)mm/ards.o \
+			$(ARCH_DIR)mm/phymem.o \
+			$(ARCH_DIR)bus/pci.o \
 
 #init objs
 INIT_OBJS = $(INIT_DIR)main.o \
@@ -99,17 +100,20 @@ KERNEL_OBJS = 	$(KERNEL_DIR)bitmap.o \
 				$(KERNEL_DIR)softirq.o \
 				$(KERNEL_DIR)workqueue.o \
 				$(KERNEL_DIR)ioqueue.o \
-				$(KERNEL_DIR)block.o \
-				$(KERNEL_DIR)deviceio.o \
 				$(KERNEL_DIR)device.o \
 				$(KERNEL_DIR)iostream.o \
-	
+				$(KERNEL_DIR)block/block.o \
+				$(KERNEL_DIR)block/blkdev.o \
+				$(KERNEL_DIR)block/buffer.o \
+				$(KERNEL_DIR)block/disk.o \
+				$(KERNEL_DIR)block/request.o \
+				$(KERNEL_DIR)block/elevator.o \
+				$(KERNEL_DIR)char/char.o \
+				$(KERNEL_DIR)char/chrdev.o \
+				
 #hal objs
-HAL_OBJS = 	$(HAL_DIR)display.o \
-			$(HAL_DIR)clock.o \
-			$(HAL_DIR)cpu.o \
+HAL_OBJS = 	$(HAL_DIR)cpu.o \
 			$(HAL_DIR)ram.o \
-			$(HAL_DIR)keyboard.o \
 
 #share objs
 SHARE_OBJS = 	$(SHARE_DIR)string.o \
@@ -122,17 +126,17 @@ DRIVER_OBJS = 	$(DRIVER_DIR)clock.o \
 				$(DRIVER_DIR)console.o \
 				$(DRIVER_DIR)timer.o \
 				$(DRIVER_DIR)keyboard.o \
-				$(DRIVER_DIR)mouse.o \
 				$(DRIVER_DIR)ide.o \
+				$(DRIVER_DIR)ramdisk.o \
 
 #mm objs
-MM_OBJS = 	$(MM_DIR)slab.o \
-			$(MM_DIR)vmarea.o \
-			$(MM_DIR)mmu.o \
+MM_OBJS = 	$(MM_DIR)mmu.o \
 			$(MM_DIR)vmspace.o \
 			$(MM_DIR)fork.o \
 			$(MM_DIR)exec.o \
-			$(MM_DIR)vmalloc.o \
+			$(MM_DIR)vmarea.o \
+			$(MM_DIR)memcache.o \
+			$(MM_DIR)dma.o \
 
 #fs objs
 FS_OBJS = 	$(FS_DIR)interface.o \
@@ -145,7 +149,7 @@ FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)bofs/dir.o \
 			$(FS_DIR)bofs/file.o \
 			$(FS_DIR)bofs/device.o \
-			
+						
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/fork.o \
@@ -195,7 +199,7 @@ compile:
 	cd $(MM_DIR) && $(MAKE)
 	cd $(FS_DIR) && $(MAKE)
 	cd $(USER_DIR) && $(MAKE)
-	
+
 
 link: $(KERNEL_ELF)
 
@@ -218,7 +222,7 @@ bochsdbg:
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
 	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
+	-hda $(HDA_IMG) -hdb $(HDB_IMG)\
 	-boot a
 
 #clean temporary files
@@ -232,4 +236,3 @@ clean:
 	cd $(MM_DIR) && $(MAKE) clean
 	cd $(FS_DIR) && $(MAKE) clean
 	cd $(USER_DIR) && $(MAKE) clean
-	

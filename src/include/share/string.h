@@ -22,6 +22,8 @@ void *memset16(void* src, uint16_t value, uint32_t size);
 void *memset32(void* src, uint32_t value, uint32_t size);
 void* memmove(void* dst,const void* src,uint32_t count);
 
+#define bzero(str, n) memset(str, 0, n) 
+
 char* strcpy(char* dst_, const char* src_);
 uint32_t strlen(const char* str);
 int8_t strcmp (const char *a, const char *b); 

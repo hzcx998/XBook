@@ -9,12 +9,6 @@
 #define _X86_MM_BOOTMEM_H
 
 #include <share/types.h>
-#include <zone.h>
-
-/*
-静态内存分配器的起始位置为静态内存的起始位置
-*/
-#define BOOTMEM_START_ADDR  ZONE_STATIC_ADDR
 
 /* 
 bootmem是用于初始化内核内存空间以及其数据结构的一个简单
@@ -25,10 +19,12 @@ struct BootMem
 {
     address_t startAddress;     // 记录从哪个地方开始进行分配
     address_t currentAddress;   // 当前分配到的位置的地址
+    unsigned int topAddress;         // 引导内存的界限
 };
 
-PUBLIC void InitBootMem();
+PUBLIC void InitBootMem(unsigned int start, unsigned int limit);
 PUBLIC void *BootMemAlloc(size_t size);
 PUBLIC unsigned int BootMemPosition();
 PUBLIC unsigned int BootMemSize();
+
 #endif  /*_X86_MM_BOOTMEM_H*/

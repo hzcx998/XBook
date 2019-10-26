@@ -19,13 +19,13 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 
 ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
-OBJS = 	slab.o \
-		vmarea.o \
-		mmu.o \
+OBJS = 	mmu.o \
 		vmspace.o \
 		fork.o \
 		exec.o \
-		vmalloc.o \
+		vmarea.o \
+		memcache.o \
+		dma.o \
 
 #First read here
 .PHONY: all

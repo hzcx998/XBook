@@ -16,6 +16,7 @@ Book File System (BOFS) -V0.2
 
 #include <share/types.h>
 #include <share/stdint.h>
+#include <share/const.h>
 
 #include <fs/partition.h>
 

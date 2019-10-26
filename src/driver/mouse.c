@@ -11,7 +11,6 @@
 #include <book/interrupt.h>
 #include <driver/mouse.h>
 #include <book/ioqueue.h>
-#include <hal/char/keyboard.h>
 #include <share/string.h>
 
 #define KEYCMD_SENDTO_MOUSE		0xd4
@@ -163,12 +162,11 @@ PRIVATE void MouseHnadler(unsigned int irq, unsigned int data)
 	/* 先从硬件获取按键数据 */
 	//HalRead("keyboard", (unsigned char *)&keyboardPrivate.rowData, 4);
 	//mousePrivate.rowData = KEYBOARD_HAL_GET_DATA();
-	mousePrivate.rowData = KEYBOARD_HAL_GET_DATA();
-
+	mousePrivate.rowData = 0;
+	
 	//printk("%x->", mousePrivate.rowData);
 	/* 调度任务协助 */
 	TaskAssistSchedule(&mouseAssist);
-
 }
 
 /**
@@ -198,13 +196,13 @@ PUBLIC void InitMouseDriver()
 	RegisterIRQ(IRQ12_MOUSE, &MouseHnadler, 0, "Mouseirq", "Mouse", 0);
 
 	/* 设置发送数据给鼠标 */
-	KeyboardControllerWait();
-	Out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
+	/*KeyboardControllerWait();
+	Out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);*/
 	//KeyboardControllerAck();
 	
 	/* 传递打开鼠标的数据 */
-	KeyboardControllerWait();
-	Out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+	/*KeyboardControllerWait();
+	Out8(PORT_KEYDAT, MOUSECMD_ENABLE);*/
 	//KeyboardControllerAck();
 	mousePrivate.phase = 0;
 	

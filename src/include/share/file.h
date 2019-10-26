@@ -8,26 +8,7 @@
 #ifndef _SHARE_FILE_H
 #define _SHARE_FILE_H
 
-
-/* file open 文件打开 */
-#define O_RDONLY 0x01
-#define O_WRONLY 0x02
-#define O_RDWR 0x04
-#define O_CREAT 0x08
-#define O_TRUNC 0x10
-#define O_APPEDN 0x20
-#define O_EXEC 0x80
-
-/* file seek */
-#define SEEK_SET 1
-#define SEEK_CUR 2
-#define SEEK_END 3
-
-/* file acesss 文件检测 */
-#define F_OK 1
-#define X_OK 2
-#define R_OK 3
-#define W_OK 4
+#include <share/unistd.h>
 
 struct stat {
     unsigned int st_type;

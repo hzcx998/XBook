@@ -10,7 +10,8 @@ CC			= gcc
 NASM		= nasm
 INCLUDE_PATH = ../include/
 
-
+BLOCK_PATH = block/
+CHAR_PATH = char/
 
 #flags
 C_FLAGS	= -c -I $(INCLUDE_PATH) \
@@ -19,7 +20,8 @@ C_FLAGS	= -c -I $(INCLUDE_PATH) \
 	-m32 -fno-stack-protector
 
 ASM_FLAGS = -I $(INCLUDE_PATH) -f elf
-OBJS = 	bitmap.o \
+
+OBJS = bitmap.o \
 		hal.o \
 		debug.o \
 		syscall.o \
@@ -34,8 +36,6 @@ OBJS = 	bitmap.o \
 		softirq.o \
 		workqueue.o \
 		ioqueue.o \
-		block.o \
-		deviceio.o \
 		device.o \
 		iostream.o \
 
@@ -46,11 +46,15 @@ all: compile
 
 #Compile files
 compile: $(OBJS)
-	
+	cd $(BLOCK_PATH) && make
+	cd $(CHAR_PATH) && make
+
 #Clean temporary files
 clean:
 	-rm *.o
 	-rm *.elf
+	cd $(BLOCK_PATH) && make clean
+	cd $(CHAR_PATH) && make clean
 
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<

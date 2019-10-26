@@ -36,6 +36,8 @@ struct BOFS_SuperBlock
 	uint32 rootInodeId;	/*root inode start at lba*/
 	uint32 inodeNrInSector;	/*how many inode a sector can store*/
 	
+	unsigned int maxInodes;	/* 最多有多少个节点 */
+
 	/*use in ram*/
 	struct Bitmap sectorBitmap;	/*sector manager bitmap*/
 	struct Bitmap inodeBitmap;		/*inode manager bitmap*/

@@ -10,7 +10,6 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/schedule.h>
-#include <book/vmarea.h>
 #include <book/sync_lock.h>
 #include <book/vmspace.h>
 #include <user/stdlib.h>
@@ -95,19 +94,19 @@ PUBLIC uint32_t *CreatePageDir()
             (void *)(PAGE_DIR_VIR_ADDR + 2048), 2048);
 
     /* 更新页目录表的页目录的物理地址，因为页目录表的最后一项时页目录表的物理地址 */
-    uint32_t paddr = PageAddrV2P((uint32_t )pageDirAddr);
+    uint32_t paddr = Vir2PhyByTable((uint32_t )pageDirAddr);
     /* 属性是 存在，系统，可写 */
     pageDirAddr[1023] = paddr | PAGE_P_1 | PAGE_US_S | PAGE_RW_W;
     return pageDirAddr;
 }
 
 /**
- * ThreadCreate - 创建一个线程
+ * MakeTaskStack - 创建一个线程
  * @thread: 线程结构体
  * @function: 要去执行的函数
  * @arg: 参数
  */
-PRIVATE void ThreadCreate(struct Task *thread, ThreadFunc function, void *arg)
+PRIVATE void MakeTaskStack(struct Task *thread, ThreadFunc function, void *arg)
 {
     /* 预留中断栈 */
     thread->kstack -= sizeof(struct TrapFrame);
@@ -192,18 +191,21 @@ PUBLIC void FreeTaskMemory(struct Task *task)
  */
 PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void *arg)
 {
+    
     // 创建一个新的线程结构体
     struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
+    
     if (!thread)
         return NULL;
+    
     // 初始化线程
     TaskInit(thread, name, priority);
     
     // TaskMemoryInit(thread);
-
+   
     //printk("alloc a thread at %x\n", thread);
     // 创建一个线程
-    ThreadCreate(thread, func, arg);
+    MakeTaskStack(thread, func, arg);
 
     /* 操作链表时关闭中断，结束后恢复之前状态 */
     enum InterruptStatus oldStatus = InterruptDisable();
@@ -380,7 +382,7 @@ PUBLIC void PageDirActive(struct Task *task)
     // 内核线程的页目录表是一样的，所以不会出现在pgdir里面
     if (task->pgdir != NULL) {
         // 获取转换后的地址
-        pageDirPhysicAddr = PageAddrV2P((uint32_t )task->pgdir);
+        pageDirPhysicAddr = Vir2PhyByTable((uint32_t )task->pgdir);
         //printk("task %s active pgdir\n", task->name);
     }
     // 修改cr3的值，切换页目录表    
@@ -433,7 +435,7 @@ PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
     
     //printk("alloc a thread at %x\n", thread);
     // 创建一个线程
-    ThreadCreate(thread, StartProcess, fileName);
+    MakeTaskStack(thread, StartProcess, fileName);
     
     /* 操作链表时关闭中断，结束后恢复之前状态 */
     enum InterruptStatus oldStatus = InterruptDisable();
@@ -497,8 +499,7 @@ PUBLIC void PrintTask()
     }
 
 }
-
-
+/*
 PRIVATE struct SyncLock consoleLock;
 
 PRIVATE void lockPrintk(char *buf)
@@ -507,12 +508,12 @@ PRIVATE void lockPrintk(char *buf)
     printk(buf);
 
     SyncLockRelease(&consoleLock);
-}
+}*/
 
 int testA = 0, testB = 0;
 void ThreadA(void *arg)
 {
-    char *par = arg;
+    //char *par = arg;
     int i = 0;
     while (1) {
         i++;
@@ -526,7 +527,7 @@ void ThreadA(void *arg)
 
 void ThreadB(void *arg)
 {
-    char *par = arg;
+    //char *par = arg;
     int i = 0;
     // log("hello\n");
     while (1) {
@@ -539,23 +540,6 @@ void ThreadB(void *arg)
     }
 }
 
-void TaskInitEntry()
-{
-    printf("in task init pid %d\n", getpid());
-    
-    while (1) {
-        testA++;
-    }
-}
-
-void TaskTestEntry()
-{
-    printf("in task init pid %d\n", getpid());
-    
-    while (1) {
-        testA++;
-    }
-}
 /**
  * InitTasks - 初始化多任务环境
  */
@@ -571,13 +555,14 @@ PUBLIC void InitTasks()
      */
     // TaskExecute(0, "init");
     
-    SyncLockInit(&consoleLock);
+    //SyncLockInit(&consoleLock);
     
     MakeMainThread();
-    
+   
     /* 有可能做测试阻塞main线程，那么就没有线程，
     在切换任务的时候就会出错，所以这里创建一个测试线程 */
     ThreadStart("test", 3, ThreadA, "NULL");
+    
     ThreadStart("test2", 3, ThreadB, "NULL");
     
 	// 在初始化多任务之后才初始化任务的虚拟空间

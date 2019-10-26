@@ -8,12 +8,6 @@
 #ifndef _SHARE_DIR_H
 #define _SHARE_DIR_H
 
-/* file acesss 文件检测 */
-#define F_OK 1
-#define X_OK 2
-#define R_OK 3
-#define W_OK 4
-
 /* 目录名长度 */
 #define NAME_MAX 255
 

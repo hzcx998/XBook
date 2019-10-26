@@ -16,9 +16,11 @@ compile:
 	cd boot && make
 	cd kernel && make
 	cd mm && make
+	cd bus && make
 
 #Clean temporary files
 clean:
 	cd boot && make clean
 	cd kernel && make clean
 	cd mm && make clean
+	cd bus && make clean

@@ -7,10 +7,9 @@
 
 #include <book/config.h>
 #include <book/arch.h>
-#include <book/slab.h>
+#include <book/memcache.h>
 #include <book/debug.h>
 #include <book/share.h>
-#include <book/deviceio.h>
 #include <fs/partition.h>
 #include <driver/ide.h>
 #include <fs/bofs/bofs.h>
@@ -49,10 +48,10 @@ PRIVATE void InitDPTE(struct DiskPartitionTableEntry *dpte,
  */
 PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable *dpt)
 {
-	if (DeviceCheckID_OK(deviceID)) {
+	/*if (DeviceCheckID_OK(deviceID)) {
         printk(PART_ERROR "device %d not exist or not register!\n", deviceID);
         return -1;
-    }
+    }*/
 
 	printk("create on device %d\n", deviceID);
 
@@ -76,7 +75,7 @@ PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable 
 
 	/* 获取磁盘扇区数 */
 	unsigned int diskSectors = 0;
-    DeviceIoctl(deviceID, ATA_IO_SECTORS, (int)&diskSectors, 0);
+    DeviceIoctl(deviceID, 1, (int)&diskSectors);
     printk("device %d sector size is %d\n", deviceID, diskSectors);
 
 	/* 填写第一个分区的信息 */
@@ -109,8 +108,8 @@ PUBLIC int CreateDiskPartition(unsigned int deviceID, struct DiskPartitionTable 
 PUBLIC void InitDiskPartiton()
 {
 	int i = 0;
-	int deviceID = DEVICE_HDD0;
-	
+	int deviceID = DEV_HDA;
+
 	if (ideDiskFound > DEBUG_MAX_DISK_NR)
 	{
 		ideDiskFound = DEBUG_MAX_DISK_NR;

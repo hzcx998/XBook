@@ -27,15 +27,6 @@
  * 约定：通过hal抽象的对象都要以对象名开头
  */
 
-struct Hal  {
-   struct HalOperate *halOperate;
-   char *halName;
-   char halType;
-   char isOpened;
-   //用链表把所有的hal链接起来。
-   struct List halList;
-};
-
 struct HalOperate  {
    void (*Init)();   //初始化函数
    void (*Open)();   //打开函数
@@ -44,6 +35,15 @@ struct HalOperate  {
    void (*Close)();    //关闭函数
    void (*Ioctl)(unsigned int , unsigned int ); //控制设置
    void (*Destruct)(); //析构函数
+};
+
+struct Hal  {
+   struct HalOperate *halOperate;
+   char *halName;
+   char halType;
+   char isOpened;
+   //用链表把所有的hal链接起来。
+   struct List halList;
 };
 
 PUBLIC void InitHalEnvironment();
@@ -72,14 +72,8 @@ PUBLIC void HalIoctl(char *name,unsigned int cmd, unsigned int param);
 
 #define HAL_EXTERN(hal) extern struct Hal (hal)
 
-
 /* 导入hal头文件 */
-#include <hal/char/clock.h>
-#include <hal/char/cpu.h>
-#include <hal/char/display.h>
-#include <hal/block/ram.h>
-#include <hal/char/keyboard.h>
-
-
+#include <hal/cpu.h>
+#include <hal/ram.h>
 
 #endif   /*_BOOK_HAL_H*/

@@ -18,12 +18,34 @@
  * TaskWakeup - 唤醒任务
  * @task: 需要唤醒的任务
  */
-PUBLIC void TaskWakeup(struct Task *task)
+PUBLIC void TaskWakeUp(struct Task *task)
 {
-    /* 唤醒任务就是解除任务的阻塞 */
-    TaskUnblock(task);
+    if (task->status == TASK_BLOCKED) {    
+        /* 唤醒任务就是解除任务的阻塞 */
+        TaskUnblock(task);
+    }
 }
 
+/**
+ * TaskSleepOn - 任务休眠
+ * @task: 需要休眠的任务
+ */
+PUBLIC void TaskSleepOn(struct Task *task)
+{
+    // 先关闭中断，并且保存中断状态
+    enum InterruptStatus oldStatus = InterruptDisable();
+    
+    //printk(PART_TIP "task %s blocked with status %d\n", current->name, state);
+    task->status = TASK_BLOCKED;
+    
+    /* 如果是当前任务就调度 */
+    if (task == CurrentTask()) {
+        Schedule();
+    }
+    
+    // 恢复之前的状态
+    InterruptSetStatus(oldStatus);
+}
 /**
  * TaskTimeout - 任务超时，就接触任务阻塞
  * @data: 超市的数据
@@ -31,7 +53,7 @@ PUBLIC void TaskWakeup(struct Task *task)
 PRIVATE void TaskTimeout(uint32_t data)
 {
     /* wakeup任务 */
-    TaskWakeup((struct Task *)data);
+    TaskWakeUp((struct Task *)data);
 } 
 
 /**

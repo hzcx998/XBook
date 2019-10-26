@@ -33,7 +33,7 @@ PUBLIC void SyncLockAcquire(struct SyncLock *lock)
 {
     // 自己没有锁才获取信号量
     if (lock->holder != CurrentTask()) {
-        printk("GET ");
+        //printk("GET ");
         /* 获取信号量，如果信号量已经被其它任务占用，那么自己就等待
         直到信号量被其它任务释放，自己才可以获取*/
         #ifdef CONFIG_SEMAPHORE_M
@@ -80,7 +80,7 @@ PUBLIC void SyncLockRelease(struct SyncLock *lock)
 
     // 到这儿的话，就可以真正释放信号量了，相当于到达最外层的锁释放
     ASSERT(lock->holderReaptCount == 1);
-    printk("PUT ");
+    //printk("PUT ");
         
     lock->holder = NULL;                // 没有锁的持有者，锁处于未持有状态
     lock->holderReaptCount = 0;         // 释放后没有任务持有锁，重复次数为0

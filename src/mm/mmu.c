@@ -7,9 +7,7 @@
 
 #include <book/config.h>
 #include <book/mmu.h>
-#include <book/vmarea.h>
 #include <book/arch.h>
-#include <book/slab.h>
 #include <book/debug.h>
 #include <share/string.h>
 #include <share/math.h>
@@ -21,7 +19,7 @@ PUBLIC void MmuMemoryInfo()
 {
 	PART_START("Memory Information");
 	// 获取页的使用情况
-	unsigned int totalPages = ZoneGetAllTotalPages();
+	/*unsigned int totalPages = ZoneGetAllTotalPages();
 	unsigned int unsingPages = ZoneGetAllUsingPages();
 	unsigned int freePages = totalPages - unsingPages;
 
@@ -45,6 +43,6 @@ PUBLIC void MmuMemoryInfo()
 	
 	printk(PART_TIP "Total pages %d, using pages %d free pages %d.\n", 
 		totalPages, unsingPages, freePages);
-
+*/
 	PART_END();
 }

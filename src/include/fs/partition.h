@@ -15,13 +15,12 @@
 #include <share/stdint.h>
 #include <share/types.h>
 #include <share/string.h>
-#include <book/deviceio.h>
 
 /* 每个分区表有4个分区表项 */
 #define NR_DPTE     4
 
 /* 每个磁盘有1个分区表，这里每个磁盘设备都有一个磁盘分区表 */
-#define NR_DPT      (DEVICE_HDD_NR + 0)
+#define NR_DPT      (4 + 0)
 
 #define BS_TRAIL_SIGN     0xaa55
 

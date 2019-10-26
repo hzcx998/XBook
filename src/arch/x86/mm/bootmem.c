@@ -6,7 +6,6 @@
  */
 
 #include <book/debug.h>
-#include <zone.h>
 #include <page.h>
 #include <ards.h>
 #include <bootmem.h>
@@ -20,10 +19,11 @@ PRIVATE struct BootMem bootMemAlloctor;
  * 
  * 初始化后就可以进行简单粗暴的内存分配了。
  */
-PUBLIC void InitBootMem()
+PUBLIC void InitBootMem(unsigned int start, unsigned int end)
 {
-    bootMemAlloctor.startAddress = BOOTMEM_START_ADDR;
+    bootMemAlloctor.startAddress = start;
     bootMemAlloctor.currentAddress = bootMemAlloctor.startAddress;
+    bootMemAlloctor.topAddress = end;
 }
 
 /*
@@ -41,7 +41,9 @@ PUBLIC void *BootMemAlloc(size_t size)
     bootMemAlloctor.currentAddress += size;
     //对地址进行对齐
     bootMemAlloctor.currentAddress = ALIGN_WITH(bootMemAlloctor.currentAddress, 32);
-
+    if (bootMemAlloctor.currentAddress >= bootMemAlloctor.topAddress) {
+        return NULL;
+    }
     return (void *)addr;
 }
 

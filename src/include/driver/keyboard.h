@@ -11,19 +11,7 @@
 #include <share/stdint.h>
 #include <share/types.h>
 
-#define FLAG_BREAK	0x0080		/* Break Code			*/
 #define FLAG_EXT	0x0100		/* Normal function keys		*/
-#define FLAG_SHIFT_L	0x0200		/* Shift key			*/
-#define FLAG_SHIFT_R	0x0400		/* Shift key			*/
-#define FLAG_CTRL_L	0x0800		/* Control key			*/
-#define FLAG_CTRL_R	0x1000		/* Control key			*/
-#define FLAG_ALT_L	0x2000		/* Alternate key		*/
-#define FLAG_ALT_R	0x4000		/* Alternate key		*/
-#define FLAG_PAD	0x8000		/* keys in num pad		*/
-
-#define MASK_RAW	0x01FF		/* raw key value = code passed to tty & MASK_RAW
-					   the value can be found either in the keymap column 0
-					   or in the list below */
 
 /* Special keys */
 #define ESC		(0x01 + FLAG_EXT)	/* Esc		*/
@@ -111,8 +99,7 @@
 #define PAD_DEL		PAD_DOT			/* Del		*/
 
 /* 按键码 */
-#define KEYCODE_NONE		-1			/* 没有按键 */
-
+#define KEYCODE_NONE		0			/* 没有按键 */
 
 /* 键盘命令模式 */
 #define KEYBOARD_CMD_MODE	1
@@ -123,7 +110,7 @@
 /* 键盘以异步模式工作 */
 #define KEYBOARD_MODE_ASYNC	1
 
-PUBLIC void InitKeyboardDriver();
+PUBLIC int InitKeyboardDriver();
 PUBLIC void ExitKeyboardDriver();
 
 #endif  /* _DRIVER_CHAR_KEYBOARD_H */

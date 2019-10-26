@@ -10,7 +10,14 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
-#include <hal/char/clock.h>
+
+/**
+ * 时间转换：
+ * 1秒（s） = 1000毫秒（ms）
+ * 1毫秒（ms） = 1000微秒（us）
+ * 1微秒（us）= 1000纳秒（ns）
+ * 1纳秒（ns）= 1000皮秒（ps）
+ */
 
 struct SystemDate
 {
@@ -27,7 +34,9 @@ struct SystemDate
 
 EXTERN struct SystemDate systemDate;
 
-#define HZ  CLOCK_HAL_HZ
+/* 时钟频率 */
+#define TIMER_QUICKEN     1		/* 如果切换过快，可能调度要忙坏。:(  */
+#define HZ             (100*TIMER_QUICKEN)	//1000 快速 100 普通0.001
 
 /* 1 ticks 对应的毫秒数 */
 #define MILLISECOND_PER_TICKS (1000/ HZ)
@@ -46,7 +55,7 @@ EXTERN struct SystemDate systemDate;
 #define DATA16_TO_DATE_MON(data) ((unsigned int)((data>>5)&0xf))
 #define DATA16_TO_DATE_DAY(data) ((unsigned int)(data&0x1f))
 
-PUBLIC void InitClock();
+PUBLIC void InitClockDriver();
 PUBLIC void SysMSleep(unsigned int msecond);
 
 PUBLIC void PrintSystemTime();

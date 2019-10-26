@@ -10,8 +10,7 @@
 #include <book/debug.h>
 #include <driver/clock.h>
 #include <share/string.h>
-#include <book/slab.h>
-#include <book/vmarea.h>
+#include <book/memcache.h>
 #include <user/conio.h>
 #include <book/task.h>
 #include <user/stdlib.h>
@@ -19,11 +18,15 @@
 #include <book/atomic.h>
 #include <driver/keyboard.h>
 #include <book/interrupt.h>
-#include <book/deviceio.h>
+#include <book/device.h>
 #include <driver/ide.h>
-#include <book/vmalloc.h>
+#include <book/vmarea.h>
 #include <fs/partition.h>
 #include <fs/interface.h>
+#include <driver/ramdisk.h>
+#include <book/block.h>
+#include <fs/super_block.h>
+#include <book/char.h>
 
 /*
  * 功能: 内核的主函数
@@ -38,13 +41,11 @@ int main()
 	//初始化硬件抽象层
 	InitHalKernel();
 
-	// 初始化slab缓冲区
-	InitSlabCacheManagement();
+	// 初始化内存缓存
+	InitMemCaches();
 
-	// 初始化虚拟内存区域
-	//InitVirtualMemoryArea();
-
-	InitVM_Area();
+	// 初始化内存区域
+	InitVMArea();
 
 	/* 初始化IRQ描述结构 */
 	InitIrqDescription();
@@ -59,45 +60,40 @@ int main()
 	InitWorkQueue();
 	
 	// 打开中断标志
-	InterruptEnable();
-	
-	/* 初始化设备I/O */
-	InitDeviceIO();
+	EnableInterrupt();
 	
 	//初始化时钟驱动
-	InitClock();
+	InitClockDriver();
+	
+	/* 初始化ramdisk */
+	//InitRamdiskDriver();
 
-	/* 初始化键盘驱动 */
-	InitKeyboardDriver();
-	
-	/* 初始化IDE硬盘驱动 */
-	InitIDE_Driver();
-	
-	/* 初始化磁盘分区 */
-	InitDiskPartiton();
+	/* 初始化块设备 */	
+	InitBlockDevice();
+
+	InitCharDevice();
+	/* 初始化文件系统 */
+	//InitFileSystem();
 	
 	/* 初始化文件系统 */
-	InitFileSystem();
+	//InitFileSystem();
 
 	//Spin("bofs test");
 	
 	/* 加载init进程 */
-	InitFirstProcess("/bin/init", "init");
-
-	int key = 0;
+	//InitFirstProcess("/bin/init", "init");
+	//BlockDeviceTest();
+	
 	/* main thread 就是idle线程 */
 	while (1) {
-		key = DeviceGetc(DEVICE_KEYBOARD);
-		if (key != KEYCODE_NONE)
-			printk("%c", key); 
-
+		
 		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
 		知道再次被阻塞 */
-		//TaskBlock(TASK_BLOCKED);
+		TaskBlock(TASK_BLOCKED);
 		/* 打开中断 */
-		//EnableInterrupt();
+		EnableInterrupt();
 		/* 执行cpu停机 */
-		//CpuHlt();
+		CpuHlt();
 	};
 	PART_END();
 	return 0;

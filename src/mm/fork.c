@@ -67,7 +67,7 @@ PRIVATE int CopyPageTable(struct Task *childTask, struct Task *parentTask)
 
             /* 3.映射虚拟地址 */
             // 分配一个物理页
-            paddr = GetFreePage(GFP_DYNAMIC);
+            paddr = AllocPage();
             if (!paddr) {
                 printk(PART_ERROR "CopyPageTable: GetFreePage for vaddr failed!\n");
         
@@ -76,7 +76,7 @@ PRIVATE int CopyPageTable(struct Task *childTask, struct Task *parentTask)
                 return -1;
             }
             // 页链接，从动态内存中分配一个页并且页保护是 用户，可写
-            PageLinkAddress(progVaddr, paddr, GFP_DYNAMIC, PAGE_US_U | PAGE_RW_W);
+            PageTableAdd(progVaddr, paddr, PAGE_US_U | PAGE_RW_W);
 
             /* 4.从内核复制数据到进程 */
             memcpy((void *)progVaddr, buf, PAGE_SIZE);

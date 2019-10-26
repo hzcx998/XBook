@@ -27,21 +27,8 @@
 
 /* GetFreePage-获取页的标志 */
 
-/* 静态空间的页 */
-#define ZONE_STATIC        0X01
-
-/* 动态空间的页 */
-#define ZONE_DYNAMIC       0X02
-
-/* 静态空间的页 */
-#define GFP_STATIC        ZONE_STATIC
-
-/* 动态空间的页 */
-#define GFP_DYNAMIC       ZONE_DYNAMIC
-
 /* 内核获取页的标志 */
-#define GFP_KERNEL       GFP_STATIC
-
-
+#define GFP_KERNEL      0x01
+#define GFP_DMA         0x02
 
 #endif  /*_X86_MM_PFLAGS_H */
