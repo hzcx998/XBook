@@ -102,13 +102,13 @@
 #define KEYCODE_NONE		0			/* 没有按键 */
 
 /* 键盘命令模式 */
-#define KEYBOARD_CMD_MODE	1
+#define KBD_IO_MODE	1
 
 /* 键盘以同步模式工作 */
-#define KEYBOARD_MODE_SYNC	0
+#define KBD_MODE_SYNC	0
 
 /* 键盘以异步模式工作 */
-#define KEYBOARD_MODE_ASYNC	1
+#define KBD_MODE_ASYNC	1
 
 PUBLIC int InitKeyboardDriver();
 PUBLIC void ExitKeyboardDriver();

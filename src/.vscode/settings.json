@@ -57,7 +57,10 @@
         "vsprintf.h": "c",
         "atomic.h": "c",
         "chr-dev.h": "c",
-        "char.h": "c"
+        "char.h": "c",
+        "iostream.h": "c",
+        "directory.h": "c",
+        "keyboard.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "C_Cpp.dimInactiveRegions": false

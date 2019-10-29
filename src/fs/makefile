@@ -25,6 +25,9 @@ ASM_FLAGS	= -I $(INCLUDE_PATH) -f elf
 
 OBJS = 	interface.o \
 		partition.o \
+		directory.o \
+		file.o \
+		flat.o \
 		
 #First read here
 .PHONY: all

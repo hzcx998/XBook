@@ -11,7 +11,7 @@
 #include <book/device.h>
 
 /* 设备链表 */
-LIST_HEAD(AllDeviceListHead);
+LIST_HEAD(allDeviceListHead);
 
 
 /*
@@ -28,7 +28,7 @@ LIST_HEAD(AllDeviceListHead);
 PUBLIC int SearchDevice(char *name)
 {
     struct Device *device;
-    ListForEachOwner(device, &AllDeviceListHead, list) {
+    ListForEachOwner(device, &allDeviceListHead, list) {
         /* 如果名字相等就说明找到 */
         if (!strcmp(device->name, name)) {
             return 1;
@@ -46,7 +46,7 @@ PUBLIC int SearchDevice(char *name)
 PUBLIC struct Device *GetDeviceByName(char *name)
 {
     struct Device *device;
-    ListForEachOwner(device, &AllDeviceListHead, list) {
+    ListForEachOwner(device, &allDeviceListHead, list) {
         /* 如果名字相等就说明找到 */
         if (!strcmp(device->name, name)) {
             return device;
@@ -71,7 +71,7 @@ PUBLIC void DumpDevices()
 {
     printk(PART_TIP "----Devices----\n");
     struct Device *device;
-    ListForEachOwner(device, &AllDeviceListHead, list) {
+    ListForEachOwner(device, &allDeviceListHead, list) {
         DumpDevice(device);
     }
 }
@@ -101,7 +101,7 @@ PUBLIC struct Device *GetDeviceByID(int devno)
 
     /* 再用链表搜索的方式 */
     struct Device *device;
-    ListForEachOwner(device, &AllDeviceListHead, list) {
+    ListForEachOwner(device, &allDeviceListHead, list) {
         if (device->devno == devno) {
             return device;
         }
@@ -198,8 +198,7 @@ PUBLIC int DeviceWrite(int devno, unsigned int lba, void *buffer, unsigned int c
  * DeviceIoctl - 设备的控制操作
  * @devno: 设备id号
  * @cmd: 命令
- * @arg1: 参数1
- * @arg2: 参数2
+ * @arg: 参数1
  * 
  */
 PUBLIC int DeviceIoctl(int devno, int cmd, int arg)

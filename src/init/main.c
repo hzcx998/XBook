@@ -27,6 +27,7 @@
 #include <book/block.h>
 #include <fs/super_block.h>
 #include <book/char.h>
+#include <fs/flat.h>
 
 /*
  * 功能: 内核的主函数
@@ -68,10 +69,15 @@ int main()
 	/* 初始化ramdisk */
 	//InitRamdiskDriver();
 
+	/* 初始化字符设备 */	
+	InitCharDevice();
+
 	/* 初始化块设备 */	
 	InitBlockDevice();
 
-	InitCharDevice();
+	InitFlatFileSystem();
+	
+
 	/* 初始化文件系统 */
 	//InitFileSystem();
 	

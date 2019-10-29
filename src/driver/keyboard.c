@@ -99,7 +99,7 @@ PRIVATE void SetKeyData(unsigned int key)
 PRIVATE unsigned int GetKeyData()
 {
 	unsigned int data = keyboardPrivate.keyData;
-	keyboardPrivate.keyData = 0;
+	keyboardPrivate.keyData = KEYCODE_NONE;
 	return data;
 }
 
@@ -520,21 +520,22 @@ PRIVATE void KeyboardHandler(unsigned int irq, unsigned int data)
 }
 
 /**
- * KeyboardGetc - 获取字符
+ * KeyboardRead - 键盘读取
  * @device: 设备项
  * 
  * 获取字符有2中模式
  * 1.同步：获取字符，有数据就返回数据，不然就休眠
  * 2.异步：获取字符，有数据就返回数据，没有数据就直接诶返回
  * 
- * 成功返回键码，失败返回0（KEYCODE_NONE）
+ * 成功返回0，失败返回-1
  */
-PRIVATE int KeyboardGetc(struct Device *device)
+PRIVATE int KeyboardRead(struct Device *device, unsigned int lba, void *buffer, unsigned int count)
 {
 	struct Task *current = CurrentTask();
 	int ret = KEYCODE_NONE;
 	int keyData;
-	if (keyboardPrivate.workMode == KEYBOARD_MODE_SYNC) {
+	char *_buf = buffer;
+	if (keyboardPrivate.workMode == KBD_MODE_SYNC) {
 		/* 查看是否已经有数据了 */
 		keyData = GetKeyData();
 		/* 有效的数据 */
@@ -549,13 +550,26 @@ PRIVATE int KeyboardGetc(struct Device *device)
 			/* 唤醒后获取一个数据并返回 */
 			keyData = GetKeyData();
 		}
-		ret = keyData;
-	} else if (keyboardPrivate.workMode == KEYBOARD_MODE_ASYNC) {
+		/* 复制按键信息 */
+		*_buf = keyData;
+		//memcpy(_buf, data, count);
+
+
+		ret = 0;
+	} else if (keyboardPrivate.workMode == KBD_MODE_ASYNC) {
 		/* 直接获取并返回 */
 		keyData = GetKeyData();
-		ret = keyData;
-	}
+		
+		/* 复制按键信息 */
+		*_buf = keyData;
+		//memcpy(_buf, data, count);
 
+		if (keyData == KEYCODE_NONE)
+			ret = -1;
+		else 
+			ret = 0;
+	}
+	
 	return ret;
 }
 
@@ -573,9 +587,9 @@ PRIVATE int KeyboardIoctl(struct Device *device, int cmd, int arg)
 	int retval = 0;
 	switch (cmd)
 	{
-	case KEYBOARD_CMD_MODE:
+	case KBD_IO_MODE:
 		/* 如果是模式命令就设置模式 */
-		if (arg == KEYBOARD_MODE_SYNC || arg == KEYBOARD_MODE_ASYNC)
+		if (arg == KBD_MODE_SYNC || arg == KBD_MODE_ASYNC)
 			keyboardPrivate.workMode = arg;
 		else 
 			retval = -1;	/* 失败 */
@@ -591,8 +605,8 @@ PRIVATE int KeyboardIoctl(struct Device *device, int cmd, int arg)
 }
 
 PRIVATE struct DeviceOperations keyboardOpSets = {
-	.getc = KeyboardGetc, 
 	.ioctl = KeyboardIoctl, 
+	.read = KeyboardRead,
 };
 
 /**
@@ -630,7 +644,7 @@ PUBLIC int InitKeyboardDriver()
 	keyboardPrivate.keyData = 0;
 	keyboardPrivate.rowData = 0;
 
-	keyboardPrivate.workMode = KEYBOARD_MODE_SYNC;
+	keyboardPrivate.workMode = KBD_MODE_SYNC;
 	WaitQueueInit(&keyboardPrivate.callerWaitQueue, NULL);
 
 	/* 初始化键盘控制器 */

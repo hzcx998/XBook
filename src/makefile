@@ -149,7 +149,10 @@ FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)bofs/dir.o \
 			$(FS_DIR)bofs/file.o \
 			$(FS_DIR)bofs/device.o \
-						
+			$(FS_DIR)directory.o \
+			$(FS_DIR)file.o \
+			$(FS_DIR)flat.o \
+			
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
 			$(USER_DIR)lib/fork.o \

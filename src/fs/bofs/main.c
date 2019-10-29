@@ -23,7 +23,7 @@
 #include <fs/bofs/file.h>
 #include <fs/bofs/device.h>
 
-EXTERN struct List AllDeviceListHead;
+EXTERN struct List allDeviceListHead;
 
 /**
  * BOFS_MountMasterFS - 挂载主文件系统
@@ -324,7 +324,7 @@ PUBLIC void BOFS_Setup()
     char devpath[64];
     struct Device *device;
     char fsDeviceType;
-    ListForEachOwner(device, &AllDeviceListHead, list) {
+    ListForEachOwner(device, &allDeviceListHead, list) {
         memset(devpath, 0, 64);
     
         // 生成路径

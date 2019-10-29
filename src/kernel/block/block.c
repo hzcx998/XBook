@@ -5,6 +5,7 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
+#include <book/config.h>
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/block.h>
@@ -189,15 +190,19 @@ PUBLIC void InitBlockDevice()
     /* 创建一个线程来同步磁盘 */
     ThreadStart("dflush", 3, ThreadDiskFlush, "NULL");
 
+    #ifdef CONFIG_DRV_RAMDISK
     /* 初始化ramdisk驱动 */
     if (InitRamdiskDriver()) {
 		Panic("init ramdisk failed!\n");	
 	}
+    #endif
     
+    #ifdef CONFIG_DRV_IDE
     /* 初始化ide驱动 */
-    /*if (InitIdeDriver()) {
+    if (InitIdeDriver()) {
 		Panic("init ide failed!\n");	
-	}*/
+	}
+    #endif
 
     DeviceOpen(DEV_RDA, 0);
 

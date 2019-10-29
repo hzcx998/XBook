@@ -12,7 +12,7 @@
 #include <book/memcache.h>
 #include <book/arch.h>
 
-EXTERN struct List AllDeviceListHead;
+EXTERN struct List allDeviceListHead;
 
 /* 所有字符设备的队列 */
 LIST_HEAD(allCharDeviceList);
@@ -103,7 +103,7 @@ PUBLIC void AddCharDevice(struct CharDevice *chrdev)
     ListAddTail(&chrdev->list, &allCharDeviceList);
 
     /* 添加到设备队列的最后面 */
-    ListAddTail(&chrdev->super.list, &AllDeviceListHead);
+    ListAddTail(&chrdev->super.list, &allDeviceListHead);
 
     return;
 }

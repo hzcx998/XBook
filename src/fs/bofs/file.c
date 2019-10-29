@@ -755,7 +755,6 @@ PUBLIC int BOFS_Write(int fd, void* buf, unsigned int count)
 	return -1;
 }
 
-
 PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg)
 {
 	if (fd < 0 || fd >= BOFS_MAX_FD_NR) {

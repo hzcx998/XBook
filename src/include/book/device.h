@@ -103,4 +103,8 @@ PUBLIC int DeviceRead(int devno, unsigned int lba, void *buffer, unsigned int co
 PUBLIC int DeviceGetc(int devno);
 PUBLIC int DevicePutc(int devno, unsigned int ch);
 
+EXTERN struct List allDeviceListHead;
+
+
+
 #endif   /* _BOOK_DEVICE_H */

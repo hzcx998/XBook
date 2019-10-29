@@ -11,7 +11,7 @@
 
 #include <book/blk-dev.h>
 
-EXTERN struct List AllDeviceListHead;
+EXTERN struct List allDeviceListHead;
 
 /* 所有块设备的队列 */
 LIST_HEAD(allBlockDeviceList);
@@ -130,7 +130,7 @@ PUBLIC void AddBlockDevice(struct BlockDevice *blkdev)
     ListAddTail(&blkdev->list, &allBlockDeviceList);
 
     /* 添加到设备队列的最后面 */
-    ListAddTail(&blkdev->super.list, &AllDeviceListHead);
+    ListAddTail(&blkdev->super.list, &allDeviceListHead);
 
     return;
 }

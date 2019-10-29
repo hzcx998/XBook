@@ -5,6 +5,7 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
+#include <book/config.h>
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/device.h>
@@ -12,7 +13,7 @@
 
 #include <driver/keyboard.h>
 
-#define _DEBUG_TEST
+//#define _DEBUG_TEST
 
 EXTERN struct List allCharDeviceList;
 
@@ -25,7 +26,6 @@ PUBLIC void CharDeviceTest()
     PART_START("Test");
     #ifdef _DEBUG_TEST
     
-    
 	int key = 0;
 
 	DeviceOpen(DEV_KEYBOARD, 0);
@@ -33,10 +33,10 @@ PUBLIC void CharDeviceTest()
 	DeviceIoctl(DEV_KEYBOARD, KEYBOARD_CMD_MODE, KEYBOARD_MODE_SYNC);
 
 	while (1) {
-		
-		key = DeviceGetc(DEV_KEYBOARD);
-		if (key != KEYCODE_NONE)
+		key = 0;
+		if (!DeviceRead(DEV_KEYBOARD, 0, &key, 1)) {
 			printk("%c", key); 
+		}
 	};
 
 
@@ -51,13 +51,13 @@ PUBLIC void InitCharDevice()
 {
     PART_START("CharDevice");
     
+	#ifdef CONFIG_DRV_KEYBOARD
 	/* 初始化键盘驱动 */
 	if (InitKeyboardDriver()) {
         return;
     }
+	#endif
 	
-
-
     CharDeviceTest();
     
     PART_END();
