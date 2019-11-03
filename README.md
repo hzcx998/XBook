@@ -3,12 +3,18 @@ Xbook是[BookOS]( https://github.com/huzichengdevelop/Book-OS)新内核的代号
 # 编译、运行
 操作指令 command in makefile  
 ```sh
-make #compile, link（编译并且链接）  
-make all #compile, link and run os in vm（编译链接写入磁盘并且在虚拟机中运行）  
-make qemu	#run in qemu（直接在qemu虚拟机中运行）  
-make bochs	#run in bochs（直接在bochs虚拟机中运行）  
-make bochsdbg	#run in bochsdbg（运行bochsdbg调试器）  
-make clean	#clean all .o, .bin, .elf file（删除所有产生的临时文件）  
+ #compile, link（编译并且链接）
+ make
+#compile, link and run os in vm（编译链接写入磁盘并且在虚拟机中运行）
+make all
+#run in qemu（直接在qemu虚拟机中运行）
+make qemu
+#run in bochs（直接在bochs虚拟机中运行）
+make bochs
+#run in bochsdbg（运行bochsdbg调试器）
+make bochsdbg
+#clean all .o, .bin, .elf file（删除所有产生的临时文件）
+make clean
 ```
 Enjoy it!  
 尽情享受吧！  
