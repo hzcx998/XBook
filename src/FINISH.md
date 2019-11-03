@@ -1,6 +1,7 @@
 # Book-OS-X*(XBook) Finished task.  
 
-* flush keyboard driver
+* flat file system of device file
+* new keyboard driver
 * char device
 * ide driver
 * ramdisk driver

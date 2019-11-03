@@ -15,8 +15,6 @@
 #include <book/blk-request.h>
 #include <book/blk-dev.h>
 
-#include <fs/bofs/super_block.h>
-
 #include <fs/file.h>
 
 #define DISK_NAME_LEN 32
@@ -30,7 +28,6 @@ struct DiskPartition {
     struct Disk *disk;
     Atomic_t ref;       /* 引用计数 */
 
-    /* 文件系统相关 */
     struct BOFS_SuperBlock *sb;
 
 };

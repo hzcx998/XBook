@@ -177,6 +177,27 @@ PUBLIC void BlockDeviceTest()
     DumpBH(wbh);
 
     printk("data:%x-%x-%x-%x\n", wbh->data[0], wbh->data[511], wbh->data[512], wbh->data[1023]);
+
+     char *buf = kmalloc(SECTOR_SIZE * 2, GFP_KERNEL);
+    if (buf == NULL) {
+        return;
+    }
+
+    buf[0] = 0x11;
+    buf[511] = 0x55;
+    buf[512] = 0xaa;
+    buf[1023] = 0xff;
+    DeviceWrite(DEV_RDA, 0, buf, 2);
+    memset(buf, 0, 1024);
+
+    DeviceRead(DEV_RDA, 0, buf, 2);
+
+    printk("buf:%x %x %x %x\n", buf[0], buf[511], buf[512], buf[1023]);
+    
+    DeviceOpen(DEV_RDA, 0);
+
+    DeviceIoctl(DEV_RDA, RAMDISK_IO_CLEAN, 10);
+
     #endif
 }
 
@@ -204,26 +225,7 @@ PUBLIC void InitBlockDevice()
 	}
     #endif
 
-    DeviceOpen(DEV_RDA, 0);
-
-    DeviceIoctl(DEV_RDA, RAMDISK_IO_CLEAN, 10);
-
-    char *buf = kmalloc(SECTOR_SIZE * 2, GFP_KERNEL);
-    if (buf == NULL) {
-        return;
-    }
-
-    buf[0] = 0x11;
-    buf[511] = 0x55;
-    buf[512] = 0xaa;
-    buf[1023] = 0xff;
-    DeviceWrite(DEV_RDA, 0, buf, 2);
-    memset(buf, 0, 1024);
-
-    DeviceRead(DEV_RDA, 0, buf, 2);
-
-    printk("buf:%x %x %x %x\n", buf[0], buf[511], buf[512], buf[1023]);
-    
+   
     BlockDeviceTest();
     
     /* 打印磁盘，并打印分区 */

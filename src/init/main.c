@@ -77,7 +77,6 @@ int main()
 
 	InitFlatFileSystem();
 	
-
 	/* 初始化文件系统 */
 	//InitFileSystem();
 	

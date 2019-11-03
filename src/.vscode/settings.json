@@ -60,7 +60,8 @@
         "char.h": "c",
         "iostream.h": "c",
         "directory.h": "c",
-        "keyboard.h": "c"
+        "keyboard.h": "c",
+        "flat.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "C_Cpp.dimInactiveRegions": false

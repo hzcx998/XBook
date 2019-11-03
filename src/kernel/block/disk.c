@@ -68,7 +68,6 @@ PUBLIC void AddPartition(struct Disk *disk, int partno, sector_t start, sector_t
     part->startSector = start;
     part->sectorCounts = count;
     part->disk = disk;
-    part->sb = NULL;
     
     AtomicSet(&part->ref, 0);
 }
