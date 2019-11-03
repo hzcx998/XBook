@@ -36,6 +36,9 @@
 /* IDE设备最多的磁盘数量 */
 #define MAX_IDE_DISK_NR			4
 
+/* IDE设备1个块的大小 */
+#define IDE_BLOCK_SIZE			(SECTOR_SIZE * 2)
+
 /* IDE磁盘数在BIOS阶段可以储存到这个地址，直接从里面或取就可以了 */
 #define IDE_DISK_NR_ADDR		0X80000475
 
@@ -1306,7 +1309,7 @@ PRIVATE int IdeBlockDeviceCreate(struct IdeDevice *dev, int major, int idx)
 	if (blkdev == NULL) {
 		return -1;
 	}
-	BlockDeviceInit(blkdev, dev->disk, -1, SECTOR_SIZE, dev);
+	BlockDeviceInit(blkdev, dev->disk, -1, IDE_BLOCK_SIZE, dev);
 	BlockDeviceSetup(blkdev, &opSets);
 	/* 名字和磁盘名字一样 */
 	BlockDeviceSetName(blkdev, name);
@@ -1328,7 +1331,7 @@ PRIVATE int IdeBlockDeviceCreate(struct IdeDevice *dev, int major, int idx)
 		// 添加分区
 		AddPartition(dev->disk, i, i * (dev->size / 2), dev->size / 2);
 		
-		BlockDeviceInit(blkdev, dev->disk, i, SECTOR_SIZE, dev);
+		BlockDeviceInit(blkdev, dev->disk, i, IDE_BLOCK_SIZE, dev);
 		BlockDeviceSetup(blkdev, &opSets);
 
 		memset(name, 0, DEVICE_NAME_LEN);
@@ -1569,25 +1572,26 @@ PUBLIC int InitIdeDriver()
 	 */
 	ideDiskFound = *((unsigned char *)IDE_DISK_NR_ADDR);
 	printk(PART_TIP "Ide disks are %d\n", ideDiskFound);
-	ASSERT(ideDiskFound > 0);
+	/* 有磁盘才初始化磁盘 */
+	if (ideDiskFound > 0) {
+		/* 驱动本身的初始化 */
+		IdeProbe(ideDiskFound);
 
-	/* 驱动本身的初始化 */
-	IdeProbe(ideDiskFound);
-
-	int status;
-	/* 块设备的初始化 */
-	int i;
-	for (i = 0; i < ideDiskFound; i++) {
-		status = IdeBlockDeviceCreate(&devices[i], IDE_MAJOR, i);
-		if (status < 0) {
-			return status;
+		int status;
+		/* 块设备的初始化 */
+		int i;
+		for (i = 0; i < ideDiskFound; i++) {
+			status = IdeBlockDeviceCreate(&devices[i], IDE_MAJOR, i);
+			if (status < 0) {
+				return status;
+			}
 		}
+		/* 执行测试 */
+		IdeTest();
+		//ResetDriver(&devices[0]);
+		//Spin("");
+		
 	}
-	/* 执行测试 */
-	IdeTest();
-	//ResetDriver(&devices[0]);
-	//Spin("");
-	
     PART_END();
 	return 0;
 }

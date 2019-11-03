@@ -28,6 +28,8 @@ OBJS = 	interface.o \
 		directory.o \
 		file.o \
 		flat.o \
+		bitmap.o \
+		node.o \
 		
 #First read here
 .PHONY: all

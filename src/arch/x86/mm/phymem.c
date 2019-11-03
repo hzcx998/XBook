@@ -228,8 +228,8 @@ PUBLIC int InitPhysicMemory()
     if (memNodeTable == NULL) {
         Panic(PART_ERROR "boot mem alloc for mem node table failed!\n");
     }
-
-    printk(PART_TIP "mem node table at %x size:%x %d MB\n", memNodeTable, memNodeTableSize, memNodeTableSize/MB);
+    
+    //printk(PART_TIP "mem node table at %x size:%x %d MB\n", memNodeTable, memNodeTableSize, memNodeTableSize/MB);
     
     memset(memNodeTable, 0, memNodeTableSize);
 

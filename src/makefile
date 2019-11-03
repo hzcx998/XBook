@@ -152,6 +152,8 @@ FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)directory.o \
 			$(FS_DIR)file.o \
 			$(FS_DIR)flat.o \
+			$(FS_DIR)bitmap.o \
+			$(FS_DIR)node.o \
 			
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
@@ -225,7 +227,7 @@ bochsdbg:
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
 	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG)\
+	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
 	-boot a
 
 #clean temporary files

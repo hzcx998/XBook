@@ -10,7 +10,7 @@
 #include <x86.h>
 #include <book/debug.h>
 
-#define _DEBUG_PCI
+//#define _DEBUG_PCI
 
 struct PciDevice pciDeviceTable[PCI_MAX_DEVICE_NR];	/*device table*/
 	

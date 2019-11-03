@@ -12,6 +12,10 @@
 #include <book/list.h>
 #include <fs/flat.h>
 
+#include <book/blk-dev.h>
+#include <book/bitmap.h>
+
+
 enum {
     DIR_TYPE_DEVICE = 1,
     DIR_TYPE_MOUNT,
@@ -26,9 +30,12 @@ struct Directory {
     char type;                      /* 目录的类型，设备目录和挂载目录 */
 
     /* 设备目录的信息 */
-    struct List deviceListHead;         /* 如果是设备目录，那么就用一个链表来管理所有设备文件 */
+    struct List deviceListHead;     /* 如果是设备目录，那么就用一个链表来管理所有设备文件 */
 
     /* 挂载目录的信息 */ 
+    dev_t devno;                    /* 目录对应的设备号 */
+    struct BlockDevice *blkdev;     /* 挂载目录对应的块设备指针 */
+    struct SuperBlock *sb;          /* 挂载后文件系统对应的超级块 */
     
 };
 #define SIZEOF_DIRECTORY sizeof(struct Directory)
@@ -39,5 +46,7 @@ PUBLIC int DestoryDirectory(char *name);
 PUBLIC struct Directory *GetDirectoryByName(char *name);
 PUBLIC void DumpDirectory(struct Directory *dir);
 PUBLIC void ListDirectory();
+
+PUBLIC int MountDirectory(char *devpath, char *mntname);
 
 #endif  /* _FS_DIRECTORY */

@@ -103,7 +103,7 @@ PUBLIC void DumpDeviceFile(struct DeviceFile *devfile)
 }
 
 /**
- * CreateDirectory - 创建目录
+ * CreateFile - 创建目录
  * @name: 目录名
  * @type: 目录类型（设备目录和挂载目录）
  * @attr: 属性
@@ -119,8 +119,8 @@ PUBLIC struct File *CreateFile(char *name, char type, char attr)
 	case FILE_TYPE_DEVICE:
 		size = SIZEOF_DEVICE_FILE;
 		break;
-	case FILE_TYPE_DATA:
-		size = SIZEOF_DATA_FILE;
+	case FILE_TYPE_NODE:
+		size = SIZEOF_NODE_FILE;
 		break;
 	default:
 		printk("CreateFile: Unknown file type");
@@ -136,6 +136,7 @@ PUBLIC struct File *CreateFile(char *name, char type, char attr)
 
 	file->type = type;
 	file->attr = attr;
+	file->size = 0;
 	/* 设置不同类型文件的数据 */
 
 	return file;
@@ -212,7 +213,7 @@ PRIVATE int CloseFile(struct FileDescriptor *pfd)
 	if (pfd->file != NULL) {
 		if (pfd->file->type == FILE_TYPE_DEVICE) {
 			pfd->file = NULL;
-		} else if (pfd->file->type == FILE_TYPE_DATA) {
+		} else if (pfd->file->type == FILE_TYPE_NODE) {
 			/* 释放文件信息 */
 
 			pfd->file = NULL;
@@ -362,7 +363,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 				printk("open: device can not open with O_CREAT!\n");
 				return -1;
 			}
-		} else if (file->type == FILE_TYPE_DATA) {
+		} else if (file->type == FILE_TYPE_NODE) {
 			printk("data file found!\n");
 
 			/* 数据文件有创建标志，并且以及找到 */
@@ -414,7 +415,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		printk("open device file %s\n", fname);
 		fd = OpenDeviceFile(dir, fname, flags);
 		
-	} else if (file->type == FILE_TYPE_DATA) {
+	} else if (file->type == FILE_TYPE_NODE) {
 		/* 打开文件 */
 		//fd = OpenDataFile(dir, fname, flags);
 		
@@ -539,7 +540,7 @@ PUBLIC int FlatWrite(int fd, void* buf, size_t count)
 			/* 根据不同的类型调用不同的写入方法 */
 			if (pfd->file->type == FILE_TYPE_DEVICE) {
 				written = DeviceFileWrite(pfd, buf, count);
-			} else if (pfd->file->type == FILE_TYPE_DATA) {
+			} else if (pfd->file->type == FILE_TYPE_NODE) {
 				
 			}
 			return written;
@@ -664,7 +665,7 @@ PUBLIC int FlatRead(int fd, void* buf, size_t count)
 			/* 根据不同的类型调用不同的写入方法 */
 			if (pfd->file->type == FILE_TYPE_DEVICE) {
 				read = DeviceFileRead(pfd, buf, count);
-			} else if (pfd->file->type == FILE_TYPE_DATA) {
+			} else if (pfd->file->type == FILE_TYPE_NODE) {
 				
 			}
 			return read;
@@ -710,7 +711,7 @@ PUBLIC off_t FlatLseek(int fd, off_t offset, char whence)
 			/* 字符设备不需要Seek */
 			return -1;
 		}
-	} else if (pfd->file->type == FILE_TYPE_DATA) {
+	} else if (pfd->file->type == FILE_TYPE_NODE) {
 
 	}
 	//printk("size is %d\n", fileSize);
@@ -730,7 +731,7 @@ PUBLIC off_t FlatLseek(int fd, off_t offset, char whence)
 			break;
 	}
 
-	if (pfd->file->type == FILE_TYPE_DATA) {
+	if (pfd->file->type == FILE_TYPE_NODE) {
 		/* 文件范围之内才可以 */
 		if (newPos < 0 || newPos > fileSize) {	 
 			return -1;
@@ -774,7 +775,7 @@ PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg)
 				}
 			}
 			
-		} else if (pfd->file->type == FILE_TYPE_DATA) {
+		} else if (pfd->file->type == FILE_TYPE_NODE) {
 			
 		}
 	}
