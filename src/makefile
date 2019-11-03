@@ -225,7 +225,7 @@ bochsdbg:
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu:
 	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG)\
+	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
 	-boot a
 
 #clean temporary files
