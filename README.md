@@ -11,6 +11,7 @@ Enjoy it!
 官网 Website: www.book-os.org  
 
 版本发布 Update:
+    v0.6.0 2019/10/31  
     v0.5.2 2019/8/22  
     v0.5.1 2019/8/12  
     v0.5 2019/8/11  
