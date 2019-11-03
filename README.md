@@ -23,7 +23,7 @@ Enjoy it!
     
 操作指令 command in makefile  
 make		-compile, link（编译并且链接）  
-make all 	-compile, link and run os in vm（编译链接写入磁盘并且在虚拟机中运行）  
+make run 	-compile, link and run os in vm（编译链接写入磁盘并且在虚拟机中运行）  
 make qemu	-run in qemu（直接在qemu虚拟机中运行）  
 make bochs	-run in bochs（直接在bochs虚拟机中运行）  
 make bochsdbg	-run in bochsdbg（运行bochsdbg调试器）  
