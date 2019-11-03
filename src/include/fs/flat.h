@@ -46,13 +46,16 @@ struct SuperBlock {
 	sector_t nodeTableLba;	    /* 节点表起始位置 */
 	sector_t nodeTableBlocks;	/* 节点表占用块数 */
 	
-	sector_t dataStartLba;        /* 数据区域起始地址 */
+	sector_t dataStartLba;      /* 数据区域起始地址 */
 	
 	char inodeNrInBlock;	    /* 一个扇区可以容纳多少个节点 */
 	
-	size_t maxInodes;	    /* 最多有多少个节点 */
-    size_t blockSize;	    /* 一个块的大小 */
+	size_t maxInodes;	    	/* 最多有多少个节点 */
+    size_t blockSize;	    	/* 一个块的大小 */
     
+	size_t files;				/* 文件数 */
+
+
     struct Bitmap blockBitmap;	    /* 块位图 */
 	struct Bitmap nodeBitmap;		/* 节点位图 */
 	
@@ -72,5 +75,6 @@ PUBLIC struct SuperBlock *BuildFS(dev_t devno,
 	size_t blockSize,
 	size_t nodeNr);
 PUBLIC void DumpSuperBlock(struct SuperBlock *sb);
+PUBLIC int SyncSuperBlock(struct SuperBlock *sb);
 
 #endif  /* _FS_FLAT */

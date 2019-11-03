@@ -99,6 +99,20 @@ PUBLIC int ParseFileName(char *path, char *buf)
 }
 
 /**
+ * SyncSuperBlock - 把超级块同步到磁盘
+ * @sb: 超级块
+ * 
+ */
+PUBLIC int SyncSuperBlock(struct SuperBlock *sb)
+{
+	if (!BlockWrite(sb->devno, sb->superBlockLba, sb, 0)) {
+		printk("Sync Super Block Failed!\n");
+		return 0;
+	}
+	return 1;
+}
+
+/**
  * BuildFS - 构建一个文件系统
  * @blkdev: 块设备
  * 
@@ -132,7 +146,7 @@ PUBLIC struct SuperBlock *BuildFS(dev_t devno,
 	}
 
 	/* 如果没有文件系统，就格式化一个的分区 */
-	if (sb->magic != FLAT_MAGIC) {
+	if (sb->magic != 1) {
   		printk("will format a file system on partiton.\n");
 
 		sb->magic = FLAT_MAGIC;

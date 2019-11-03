@@ -183,3 +183,48 @@ PUBLIC void Copynode(struct NodeFile *dst, struct NodeFile *src)
 	memset(dst, 0, sizeof(struct NodeFile));
 	memcpy(dst, src, sizeof(struct NodeFile));
 }
+
+int CreateNodeFile(struct Directory *dir, char *name,
+	char attr, struct SuperBlock *sb)
+{
+	/* 分配节点和节点id, 创建节点 */
+	
+	/* 创建一个节点文件 */
+	struct File *file = CreateFile(name, FILE_TYPE_NODE, attr);
+
+	if (file == NULL) {
+		kfree(dir);
+		return -1;
+	}
+
+	/* 为节点分配内存 */
+	struct NodeFile *node = (struct NodeFile *)file;
+	
+	/* 分配节点位图 */
+	unsigned int nodeID = FlatAllocBitmap(sb, FLAT_BMT_NODE, 1); 
+	if (nodeID == -1) {
+		printk(PART_ERROR "alloc node bitmap failed!\n");
+		kfree(node);
+		return -1;
+	}
+	/* 把节点id同步到磁盘 */
+	FlatSyncBitmap(sb, FLAT_BMT_NODE, nodeID);
+    
+	/* 初始化节点的信息 */
+	NodeFileInit(node, sb->devno, nodeID);
+
+	/* 同步节点信息 */
+	SyncNodeFile(node, sb);
+
+	/* 文件数变多 */
+	sb->files++;
+
+	/* 同步超级块 */
+	SyncSuperBlock(sb);
+
+	/* 打开文件 */
+
+
+}
+
+
