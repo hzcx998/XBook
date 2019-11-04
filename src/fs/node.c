@@ -16,6 +16,10 @@
 #include <share/math.h>
 #include <fs/file.h>
 #include <book/blk-buffer.h>
+#include <fs/directory.h>
+#include <fs/super_block.h>
+#include <fs/node.h>
+
 
 /**
  * CloseNodeFile - 关闭一个节点
@@ -43,13 +47,19 @@ void NodeFileInit(struct NodeFile *node,
 	dev_t devno,
     unsigned int id)
 {
-	memset(node, 0, SIZEOF_NODE_FILE);
 	node->devno = devno;
 	node->id = id;
 
 	/* 设置时间信息 */
 	node->crttime = SystemDateToData();
 	node->acstime = node->mdftime = node->crttime;
+
+	/* 设置数据为0 */
+	int i;
+	for (i = 0; i < NODE_FILE_BLOCK_PRT_NR; i++) {
+		node->block[i] = 0;
+	}
+
 }
 
 /**
@@ -90,19 +100,31 @@ PUBLIC int SyncNodeFile(struct NodeFile *node, struct SuperBlock *sb)
 	unsigned int lba = sb->nodeTableLba + blockOffset;
 	off_t bufOffset = node->id % sb->inodeNrInBlock;
 	
-	//printk("BOFS sync node: sec off:%d lba:%d buf off:%d\n", sectorOffset, lba, bufOffset);
+	printk("sync node: block off:%d lba:%d buf off:%d\n", blockOffset, lba, bufOffset);
 	
-	memset(sb->iobuf, 0, sb->blockSize);
+	unsigned char *buf = kmalloc(sb->blockSize, GFP_KERNEL);
+	if (buf == NULL) {
+		printk("kmalloc for sync node file failed!\n");
+		return -1;
+	}
 
-    if (!BlockRead(sb->devno, lba, sb->iobuf)) {
+	//DumpNodeFile(node);
+
+	memset(buf, 0, sb->blockSize);
+
+    if (!BlockRead(sb->devno, lba, buf)) {
+		kfree(buf);
         return -1;
     }
-	struct NodeFile *node2 = (struct NodeFile *)sb->iobuf;
+	struct NodeFile *node2 = (struct NodeFile *)buf;
 	*(node2 + bufOffset) = *node;
-	
-    if (!BlockWrite(sb->devno, lba, sb->iobuf, 0)) {
+	//DumpNodeFile(node2 + bufOffset);
+
+    if (!BlockWrite(sb->devno, lba, buf, 0)) {
+		kfree(buf);
         return -1;
     }
+	kfree(buf);
     return 0;
 }
 
@@ -184,7 +206,7 @@ PUBLIC void Copynode(struct NodeFile *dst, struct NodeFile *src)
 	memcpy(dst, src, sizeof(struct NodeFile));
 }
 
-int CreateNodeFile(struct Directory *dir, char *name,
+struct NodeFile *CreateNodeFile(char *name,
 	char attr, struct SuperBlock *sb)
 {
 	/* 分配节点和节点id, 创建节点 */
@@ -193,38 +215,111 @@ int CreateNodeFile(struct Directory *dir, char *name,
 	struct File *file = CreateFile(name, FILE_TYPE_NODE, attr);
 
 	if (file == NULL) {
-		kfree(dir);
-		return -1;
+		return NULL;
 	}
-
+	//printk("create file!\n");
 	/* 为节点分配内存 */
 	struct NodeFile *node = (struct NodeFile *)file;
-	
+
 	/* 分配节点位图 */
 	unsigned int nodeID = FlatAllocBitmap(sb, FLAT_BMT_NODE, 1); 
 	if (nodeID == -1) {
 		printk(PART_ERROR "alloc node bitmap failed!\n");
 		kfree(node);
-		return -1;
+		return NULL;
 	}
+	/* 保存节点id */
+
+	//printk("alloc node %d!\n", nodeID);
+	
 	/* 把节点id同步到磁盘 */
 	FlatSyncBitmap(sb, FLAT_BMT_NODE, nodeID);
     
 	/* 初始化节点的信息 */
 	NodeFileInit(node, sb->devno, nodeID);
 
+	//printk("init node!\n");
+	
 	/* 同步节点信息 */
 	SyncNodeFile(node, sb);
-
+	//printk("sync node!\n");
+	
 	/* 文件数变多 */
 	sb->files++;
+	if (sb->files > sb->highestFiles) {
+		sb->highestFiles++;
+	}
 
 	/* 同步超级块 */
 	SyncSuperBlock(sb);
-
-	/* 打开文件 */
-
-
+	//printk("sync sb!\n");
+	
+	return node;
 }
 
+/**
+ * GetNodeFileByName - 从磁盘中读取节点文件
+ * 
+ */
+struct NodeFile *GetNodeFileByName(struct Directory *dir, char *name)
+{
+	unsigned int blockID = 0;
+	int i;
 
+	struct SuperBlock *sb = dir->sb;
+	sector_t lba = sb->nodeTableLba;
+
+	struct NodeFile *nodeFile = kmalloc(SIZEOF_NODE_FILE, GFP_KERNEL);
+	if (nodeFile == NULL) {
+		printk(PART_ERROR "kmalloc for node file failed!\n");
+		return NULL;
+	}
+
+	bbuf_t iobuf = kmalloc(sb->blockSize, GFP_KERNEL);
+	if (iobuf == NULL) {
+		printk(PART_ERROR "kmalloc for io buf failed!\n");
+		kfree(nodeFile);
+		return NULL;
+	}
+
+	size_t blocks = DIV_ROUND_UP(sb->highestFiles, sb->blockSize);
+	while (blockID < blocks) {
+		/* 读取块 */
+		memset(iobuf, 0, sb->blockSize);
+		if (!BlockRead(sb->devno, lba, iobuf)) {
+			printk(PART_ERROR "device %d read failed!\n", sb->devno);
+
+			/* 搜索失败 */
+			goto ToFailed;
+		}
+		
+		struct NodeFile *node = (struct NodeFile *)iobuf;
+
+		/*scan a sector*/
+		for(i = 0; i < sb->inodeNrInBlock; i++){
+			/* 有名字才进行检测 */
+			if(node[i].super.name[0] != '\0'){
+				printk("node file name ->%s , search for dir entry ->%s\n", node[i].super.name, dir->name);
+				if(!strcmp(node[i].super.name, name) && node[i].super.type != FILE_TYPE_INVALID){
+					/* 找到相同名字的文件 */
+					memcpy(nodeFile, &node[i], SIZEOF_NODE_FILE);
+
+					/* 释放io缓冲 */
+					kfree(iobuf);
+					return nodeFile;
+				}
+			} else {
+				/* 搜索失败 */
+				goto ToFailed;
+			}
+		}
+		blockID++;
+		lba++;
+	}
+ToFailed:
+	/* 释放io缓冲 */
+	kfree(iobuf);
+	kfree(nodeFile);
+
+	return NULL;
+}

@@ -12,7 +12,7 @@
 #include <share/string.h>
 #include <fs/bitmap.h>
 #include <book/blk-buffer.h>
-
+#include <fs/super_block.h>
 /**
  * LoadSuperBlockBitmap - 加载超级块中的位图
  * @sb: 超级块
@@ -77,9 +77,6 @@ PUBLIC int LoadSuperBlockBitmap(struct SuperBlock *sb)
 		return -1;
 	}
 
-	
-
-	DumpSuperBlock(sb);
 	return 0;
 }
 

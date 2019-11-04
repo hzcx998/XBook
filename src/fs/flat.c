@@ -14,30 +14,9 @@
 #include <fs/directory.h>
 #include <driver/keyboard.h>
 #include <driver/ide.h>
-
-PUBLIC void DumpSuperBlock(struct SuperBlock *sb)
-{
-	printk(PART_TIP "----Super Block----\n");
-	printk(PART_TIP "magic:%x devno:%x total blocks:%d inodes:%d block size:%d inodes in block:%d\n",
-		sb->magic, sb->devno, sb->totalBlocks, sb->maxInodes, sb->blockSize, sb->inodeNrInBlock);
-	
-	printk(PART_TIP "super block lba:%d data start lba:%d\n",
-		sb->superBlockLba, sb->dataStartLba);
-	
-	printk(PART_TIP "block bitmap lba:%d block bitmap blocks:%d\n",
-		sb->blockBitmapLba, sb->blockBitmapBlocks);
-	
-	printk(PART_TIP "node bitmap lba:%d node bitmap blocks:%d\n",
-		sb->nodeBitmapLba, sb->nodeBitmapBlocks);
-	
-	printk(PART_TIP "node table lba:%d node table blocks:%d\n",
-		sb->nodeTableLba, sb->nodeTableBlocks);
-	
-	printk(PART_TIP "block bitmap:%x len:%d node bitmap:%x len:%d\n",
-		sb->blockBitmap.bits, sb->blockBitmap.btmpBytesLen, sb->nodeBitmap.bits, sb->nodeBitmap.btmpBytesLen);
-	
-}
-
+#include <fs/super_block.h>
+#include <fs/node.h>
+#include <fs/device.h>
 
 /**
  * ParseDirectoryName - 解析目录名
@@ -99,20 +78,6 @@ PUBLIC int ParseFileName(char *path, char *buf)
 }
 
 /**
- * SyncSuperBlock - 把超级块同步到磁盘
- * @sb: 超级块
- * 
- */
-PUBLIC int SyncSuperBlock(struct SuperBlock *sb)
-{
-	if (!BlockWrite(sb->devno, sb->superBlockLba, sb, 0)) {
-		printk("Sync Super Block Failed!\n");
-		return 0;
-	}
-	return 1;
-}
-
-/**
  * BuildFS - 构建一个文件系统
  * @blkdev: 块设备
  * 
@@ -158,30 +123,30 @@ PUBLIC struct SuperBlock *BuildFS(dev_t devno,
 		/* 超级块位于引导扇区之后 */
 		sb->superBlockLba = start + 1;
 
+		/* 设置位图长度 */
+		sb->blockBitmap.btmpBytesLen = sb->totalBlocks / 8;
+		sb->nodeBitmap.btmpBytesLen = nodeNr / 8;
+
 		/* 扇区位图信息 */
 		sb->blockBitmapLba = sb->superBlockLba + 1;
 		/* 1字节可以表示8个扇区的状态 */
-		sb->blockBitmapBlocks = count / (8 * blockSize);
+		sb->blockBitmapBlocks = DIV_ROUND_UP(sb->blockBitmap.btmpBytesLen, blockSize);
 		
 		/* 节点位图信息 */
 		sb->nodeBitmapLba = sb->blockBitmapLba + sb->blockBitmapBlocks;
 		/* 1字节可以表示8个节点的状态 */
-		sb->nodeBitmapBlocks = nodeNr / (8 * blockSize);
+		sb->nodeBitmapBlocks = DIV_ROUND_UP(sb->nodeBitmap.btmpBytesLen, blockSize);
 		
 		/* 节点位图信息 */
 		sb->nodeTableLba = sb->nodeBitmapLba + sb->nodeBitmapBlocks;
 		/* 1字节可以表示8个节点的状态 */
-		sb->nodeTableBlocks = (nodeNr * SIZEOF_NODE_FILE) / (8 * blockSize);
+		sb->nodeTableBlocks = DIV_ROUND_UP(nodeNr * SIZEOF_NODE_FILE, 8 * blockSize);
 		
 		/* 数据区开始 */
 		sb->dataStartLba = sb->nodeTableLba + sb->nodeTableBlocks;
 
 		/* 一个块可以容纳多少个节点 */
 		sb->inodeNrInBlock = blockSize / SIZEOF_NODE_FILE;
-
-		/* 设置位图长度 */
-		sb->blockBitmap.btmpBytesLen = sb->totalBlocks;
-		sb->nodeBitmap.btmpBytesLen = nodeNr;
 
 		/* 把使用的块从扇区管理中去掉 */
 		sector_t usedBlocks = sb->dataStartLba - start;
@@ -270,8 +235,35 @@ PUBLIC int InitFlatFileSystem()
 	
 	ListDirectory();
 	MountDirectory("dev:hda0", "root");
+	
 	ListDirectory();
+	//Spin("test");
 
+	//Spin("test");
+	int fd = FlatOpen("root:test5", O_CREAT | O_RDWR);
+	if (fd < 0) {
+		printk("file open failed!\n");
+	}
+	DumpFileDescriptor(fd);
+
+	FlatClose(fd);
+	
+	fd = FlatOpen("dev:hda0", O_RDWR);
+	if (fd < 0) {
+		printk("file open failed!\n");
+	}
+	DumpFileDescriptor(fd);
+
+	FlatClose(fd);
+	
+	fd = FlatOpen("dev:sda", O_CREAT | O_RDWR);
+	if (fd < 0) {
+		printk("file open failed!\n");
+	}
+	DumpFileDescriptor(fd);
+
+	FlatClose(fd);
+	
 	/*
 	int fd = FlatOpen("dev:hda", O_RDWR);
 	if (fd < 0) {

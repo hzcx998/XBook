@@ -16,6 +16,8 @@
 #include <fs/file.h>
 #include <fs/directory.h>
 #include <fs/bitmap.h>
+#include <fs/device.h>
+#include <fs/node.h>
 
 #include <book/blk-disk.h>
 #include <book/device.h>
@@ -234,6 +236,8 @@ PUBLIC int MountDirectory(char *devpath, char *mntname)
 		return -1;
 	}
 
+	
+	DumpSuperBlock(mntdir->sb);
 	/* 挂载成功 */
 	return 0;
 }

@@ -61,7 +61,9 @@
         "iostream.h": "c",
         "directory.h": "c",
         "keyboard.h": "c",
-        "flat.h": "c"
+        "flat.h": "c",
+        "node.h": "c",
+        "unistd.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "C_Cpp.dimInactiveRegions": false

@@ -30,6 +30,8 @@ OBJS = 	interface.o \
 		flat.o \
 		bitmap.o \
 		node.o \
+		device.o \
+		super_block.o \
 		
 #First read here
 .PHONY: all

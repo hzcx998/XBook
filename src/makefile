@@ -154,6 +154,8 @@ FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)flat.o \
 			$(FS_DIR)bitmap.o \
 			$(FS_DIR)node.o \
+			$(FS_DIR)device.o \
+			$(FS_DIR)super_block.o \
 			
 #user objs
 USER_OBJS = $(USER_DIR)lib/log.o \
