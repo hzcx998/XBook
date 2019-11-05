@@ -212,7 +212,6 @@ PUBLIC struct SuperBlock *BuildFS(dev_t devno,
 	return sb;
 }
 
-
 /**
  * InitFlatFileSystem - 初始化平坦文件系统
  */
@@ -238,7 +237,7 @@ PUBLIC int InitFlatFileSystem()
 	
 	ListDirectory();
 	//Spin("test");
-
+	
 	//Spin("test");
 	int fd = FlatOpen("root:test5", O_CREAT | O_RDWR);
 	if (fd < 0) {
@@ -255,14 +254,21 @@ PUBLIC int InitFlatFileSystem()
 	DumpFileDescriptor(fd);
 
 	FlatClose(fd);
+
+	if (FlatRemove("dev:hda0"))
+		printk("file remove failed!\n");
 	
+	if (FlatRemove("root:test5"))
+		printk("file remove failed!\n");
+	
+	/*
 	fd = FlatOpen("dev:sda", O_CREAT | O_RDWR);
 	if (fd < 0) {
 		printk("file open failed!\n");
 	}
 	DumpFileDescriptor(fd);
 
-	FlatClose(fd);
+	FlatClose(fd);*/
 	
 	/*
 	int fd = FlatOpen("dev:hda", O_RDWR);

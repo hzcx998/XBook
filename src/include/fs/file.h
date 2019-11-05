@@ -41,6 +41,10 @@ struct File {
 #define MAX_OPEN_FILE_NR    64 
 
 PUBLIC struct File *CreateFile(char *name, char type, char attr);
+PUBLIC int IsFileEqual(struct File *file1, struct File *file2);
+
+/* 最高位置1 */
+#define FILE_FLAGS_USNING    (1 << 31)
 
 /**
  * 文件描述符
@@ -54,6 +58,7 @@ struct FileDescriptor {
 };
 
 PUBLIC void InitFileDescriptor();
+void DumpFileDescriptor(int fd);
 
 PUBLIC int FlatOpen(const char *path, int flags);
 PUBLIC int FlatClose(int fd);
@@ -61,7 +66,6 @@ PUBLIC int FlatWrite(int fd, void* buf, size_t count);
 PUBLIC int FlatRead(int fd, void* buf, size_t count);
 PUBLIC off_t FlatLseek(int fd, off_t offset, char whence);
 PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg);
-
-void DumpFileDescriptor(int fd);
+PUBLIC int FlatRemove(const char *path);
 
 #endif  /* _FS_FILE */

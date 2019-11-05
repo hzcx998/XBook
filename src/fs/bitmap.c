@@ -145,7 +145,7 @@ PUBLIC int FlatFreeBitmap(struct SuperBlock *sb,
 			printk(PART_ERROR "free node bitmap failed!\n");
 			return -1;
 		}
-		BitmapSet(&sb->blockBitmap, idx, 0);
+		BitmapSet(&sb->nodeBitmap, idx, 0);
 		return idx;
 	}
 	return -1;

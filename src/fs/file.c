@@ -20,6 +20,7 @@
 #include <book/blk-dev.h>
 #include <share/unistd.h>
 
+
 struct FileDescriptor fileDescriptorTable[MAX_OPEN_FILE_NR];
 
 PUBLIC void InitFileDescriptor()
@@ -38,7 +39,7 @@ int GetFileDescriptor()
 	int i = 0;
 	while (i < MAX_OPEN_FILE_NR) {
 		if (fileDescriptorTable[i].flags == 0) {
-			fileDescriptorTable[i].flags = 0x80;
+			fileDescriptorTable[i].flags = FILE_FLAGS_USNING;
 			return i;
 		}
 		i++;
@@ -58,6 +59,28 @@ void FreeFileDescriptor(int fd)
 	fileDescriptorTable[fd].file = NULL;
 	fileDescriptorTable[fd].flags = 0;
 	fileDescriptorTable[fd].pos = 0;
+}
+/**
+ * IsFileDescriptorUsing - 检测文件对应的描述符是否处于使用中
+ * @file: 文件
+ * 
+ * 如果文件处于使用中，返回1，否则返回0
+ */
+PRIVATE int IsFileDescriptorUsing(struct File *file)
+{
+	int fd = 0;
+	while (fd < MAX_OPEN_FILE_NR) {
+		/* 如果文件描述符处于使用中才进行检测 */
+		if (fileDescriptorTable[fd].flags & FILE_FLAGS_USNING) {
+			/* 如果文件指针相同，说明找到了使用中的文件 */
+			if (IsFileEqual(fileDescriptorTable[fd].file, file)) {
+				return 1;
+			}
+		}
+		fd++;
+	}
+	/* 没有找到 */
+	return 0;
 }
 
 void DumpFileDescriptor(int fd)
@@ -141,8 +164,8 @@ PRIVATE int CloseFile(struct FileDescriptor *pfd)
 			}
 			pfd->file = NULL;
 		} else if (pfd->file->type == FILE_TYPE_NODE) {
-			/* 释放文件在内存中的信息 */
-			kfree(pfd->file);
+			/* 关闭节点文件 */
+			CloseNodeFile((struct NodeFile *)pfd->file);
 
 			pfd->file = NULL;
 		} 
@@ -547,4 +570,175 @@ PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg)
 	}
 	
 	return -1;
+}
+
+/**
+ * FlatRemove - 删除一个文件
+ */
+PUBLIC int FlatRemove(const char *path)
+{
+	/* 
+		1.解析出目录和文件
+		2.检测文件是否存在
+		3.检测文件类型
+		4.从磁盘上删除文件
+		5.修改超级块信息
+		6.删除成功
+	 */
+
+	printk("remove: %s\n", path);
+
+	/* 解析目录和文件，并查看目录是否存在 */
+	char dname[DIR_NAME_LEN];
+	bzero(dname, DIR_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseDirectoryName((char *)path, dname)) {
+		printk("remove: path %s bad dir name, please check it!\n", path);
+		return -1;
+	}
+	printk("dir name is %s\n", dname);
+
+	/* 获取目录 */
+	struct Directory *dir = GetDirectoryByName(dname);
+	if (dir == NULL) {
+		printk("remove: dir %s not exist!\n", dname);
+		return -1;
+	}
+
+	char fname[FILE_NAME_LEN];
+	bzero(fname, FILE_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseFileName((char *)path, fname)) {
+		printk("remove: path %s bad file name, please check it!\n", path);
+		return -1;
+	}
+	printk("file name is %s\n", fname);
+
+	/* 文件存在标志 */
+	char found = 0;
+
+	/* 文件类 */
+	struct File *file = NULL;
+	
+	/* 具体的文件 */
+	struct DeviceFile *devfile = NULL;
+	struct NodeFile *nodefile = NULL;
+	
+	/* 搜索文件 */
+	if (dir->type == DIR_TYPE_DEVICE) {		/* 设备目录 */
+
+		/* 获取设备文件 */
+		devfile = GetDeviceFileByName(&dir->deviceListHead, fname);
+		
+		/* 设备文件不存在 */
+		if (devfile == NULL) {
+			printk("remove: device file %s not exist!\n", fname);
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)devfile;
+			
+			printk("remove: search device file.\n");
+		}
+		
+	} else if (dir->type == DIR_TYPE_MOUNT) { /* 挂载目录 */
+		
+		/* 获取节点文件 */
+		nodefile = GetNodeFileByName(dir, fname);
+		
+		/* 节点文件不存在 */
+		if (nodefile == NULL) {
+			printk("remove: node file %s not exist!\n", fname);
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)nodefile;
+			
+			printk("remove: search node file.\n");
+		}
+		
+	}
+
+	/* 没有找到文件 */
+	if (!found) {
+		printk("file not found!\n");
+
+		return -1;
+	}
+
+	/* 文件不能处于使用中 */
+	if (IsFileDescriptorUsing(file)) {
+		printk("remove: can't remove a unsing file %s!\n", fname);
+		return -1;
+	}
+
+	/* 找到文件 */
+	if (file->type == FILE_TYPE_DEVICE) {
+		printk("can not remove device file!\n");
+		return -1;
+	} else if (file->type == FILE_TYPE_NODE) {
+		/* 使节点失效 */
+		if (LoseNodeFile(nodefile, dir->sb, 0)) {
+			printk(PART_ERROR "remove: lose node failed!\n");
+			return -1;
+		}
+
+		/* 释放节点在内存中的数据 */
+		CloseNodeFile(nodefile);
+	}
+
+	return 0;
+}
+
+/**
+ * IsFileEqual - 判断文件是否一样
+ * @file1: 文件1
+ * @file2: 文件2
+ * 
+ * 文件一样返回1，不一样返回0
+ */
+PUBLIC int IsFileEqual(struct File *file1, struct File *file2)
+{
+	/* 文件指针有误 */
+	if(file1 == NULL || file2 == NULL){
+		return 0;
+	}
+
+	/* 文件内容不一样，说明不相等 */
+	if (strcmp(file1->name, file2->name) != 0 || 
+		file1->type != file2->type || 
+		file1->attr != file2->attr || 
+		file1->size != file2->size) 
+	{
+		return 0;
+	}
+
+	/* 如果是设备文件，就比较设备文件信息 */
+	if (file1->type == FILE_TYPE_DEVICE) {
+		struct DeviceFile *dev1 = (struct DeviceFile *)file1;
+		struct DeviceFile *dev2 = (struct DeviceFile *)file2;
+		
+		/* 设备信息不一样说明不相等 */
+		if (dev1->directory != dev2->directory ||
+			dev1->device != dev2->device)
+		{
+			return 0;
+		}
+	} else if (file1->type == FILE_TYPE_NODE) {
+		struct NodeFile *node1 = (struct NodeFile *)file1;
+		struct NodeFile *node2 = (struct NodeFile *)file2;
+		
+		/* 节点信息不一样说明不相等 */
+		if (node1->devno != node2->devno ||
+			node1->id != node2->id ||
+			node1->crttime != node2->crttime)
+		{
+			return 0;
+		}
+	}
+
+	/* 信息都一样，说明相等 */
+	return 1;
 }

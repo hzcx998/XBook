@@ -51,6 +51,8 @@ void DumpNodeFile(struct NodeFile *node);
 struct NodeFile *CreateNodeFile(char *name,
 	char attr, struct SuperBlock *sb);
 struct NodeFile *GetNodeFileByName(struct Directory *dir, char *name);
+PUBLIC int LoseNodeFile(struct NodeFile *node, struct SuperBlock *sb, char depth);
+PUBLIC void CloseNodeFile(struct NodeFile *node);
 
 #endif	/* _FS_NODE_H */
 

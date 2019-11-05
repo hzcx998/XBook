@@ -206,6 +206,24 @@ PUBLIC void Copynode(struct NodeFile *dst, struct NodeFile *src)
 	memcpy(dst, src, sizeof(struct NodeFile));
 }
 
+/**
+ * CreateNodeFile - 创建一个节点文件
+ * @name: 文件名
+ * @attr: 属性
+ * @sb: 超级块
+ * 
+ * 创建过程如下：
+ * 如果磁盘上文件节点是下面这样分布的
+ * 0	test1	node
+ * 1	test1	invalid
+ * 
+ * 如果要创建test，那么当遇到0的时候，名字是test1，属性是node，其对应的位图一定是使用中的
+ * 那么就会继续向后扫描，遇到1的时候，名字是test1，类型是invlaid，那么对应的位图就是空闲的
+ * 就会把1的这个节点分配，并且修改节点信息以及节点属性，即1，test，node。如下：
+ * 0	test1	node
+ * 1	test	node
+ * 
+ */
 struct NodeFile *CreateNodeFile(char *name,
 	char attr, struct SuperBlock *sb)
 {
@@ -259,7 +277,21 @@ struct NodeFile *CreateNodeFile(char *name,
 
 /**
  * GetNodeFileByName - 从磁盘中读取节点文件
+ * @dir: 目录
+ * @name: 文件名字
  * 
+ * 搜索过程如下：
+ * 如果磁盘上文件节点是下面这样分布的
+ * 0	test1	node
+ * 1	test1	invalid
+ * 2	test2	node
+ * 3	test3	invalid
+ * 4	test3	node
+ * 
+ * 如果要搜索test3，那么当遇到3的时候，名字相等，但是类型是invalid无效的
+ * 那么就会继续向后搜索，遇到4的时候，名字相等，类型也是node，那么就满足
+ * 
+ * 成功返回文件节点指针，失败返回NULL
  */
 struct NodeFile *GetNodeFileByName(struct Directory *dir, char *name)
 {
@@ -322,4 +354,44 @@ ToFailed:
 	kfree(nodeFile);
 
 	return NULL;
+}
+
+/**
+ * LoseNodeFile - 丢失一个节点文件
+ * @node: 节点
+ * @sb: 节点所在的超级块
+ * @depth: 丢失深度 (0表示只使节点失效，1表示还要使删除节点对应的数据
+ * 
+ * 让节点id对应的节点文件变成无效，如果深度为1，还会回收文件数据内容
+ * 成功返回0，失败返回-1
+ */
+PUBLIC int LoseNodeFile(struct NodeFile *node, struct SuperBlock *sb, char depth)
+{
+	switch (depth)
+	{
+	case 1: /* 删除节点对应的数据 */
+		
+	case 0: /* 使节点无效 */
+		node->super.type = FILE_TYPE_INVALID;
+		break;
+	default:
+		break;
+	}
+
+	/* 同步回磁盘 */
+	if (SyncNodeFile(node, sb)) {
+		return -1;
+	}
+
+	/* 回收节点位图 */
+	FlatFreeBitmap(sb, FLAT_BMT_NODE, node->id);
+	FlatSyncBitmap(sb, FLAT_BMT_NODE, node->id);
+    
+	/* 文件数变少 */
+	sb->files--;
+
+	/* 同步超级块 */
+	SyncSuperBlock(sb);
+
+	return 0;
 }

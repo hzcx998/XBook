@@ -120,6 +120,9 @@ PUBLIC void ListDirectory()
 				printk("    " PART_TIP "file name:%s type:%d ", devfile->super.name, devfile->super.type);
 				printk("dir:%x device:%x\n", devfile->directory, devfile->device);
 			}
+		} else if (dir->type == DIR_TYPE_MOUNT) {
+			/* 是挂在目录 */
+			
 		}
 	}
 }
