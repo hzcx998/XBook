@@ -11,12 +11,15 @@
 
 #include <fs/file.h>
 #include <fs/directory.h>
+#include <fs/node.h>
+#include <fs/device.h>
 
 #include <book/memcache.h>
 #include <book/arch.h>
 #include <book/block.h>
 #include <book/blk-dev.h>
 #include <share/unistd.h>
+
 
 struct FileDescriptor fileDescriptorTable[MAX_OPEN_FILE_NR];
 
@@ -36,7 +39,7 @@ int GetFileDescriptor()
 	int i = 0;
 	while (i < MAX_OPEN_FILE_NR) {
 		if (fileDescriptorTable[i].flags == 0) {
-			fileDescriptorTable[i].flags = 0x80;
+			fileDescriptorTable[i].flags = FILE_FLAGS_USNING;
 			return i;
 		}
 		i++;
@@ -57,6 +60,28 @@ void FreeFileDescriptor(int fd)
 	fileDescriptorTable[fd].flags = 0;
 	fileDescriptorTable[fd].pos = 0;
 }
+/**
+ * IsFileDescriptorUsing - 检测文件对应的描述符是否处于使用中
+ * @file: 文件
+ * 
+ * 如果文件处于使用中，返回1，否则返回0
+ */
+PRIVATE int IsFileDescriptorUsing(struct File *file)
+{
+	int fd = 0;
+	while (fd < MAX_OPEN_FILE_NR) {
+		/* 如果文件描述符处于使用中才进行检测 */
+		if (fileDescriptorTable[fd].flags & FILE_FLAGS_USNING) {
+			/* 如果文件指针相同，说明找到了使用中的文件 */
+			if (IsFileEqual(fileDescriptorTable[fd].file, file)) {
+				return 1;
+			}
+		}
+		fd++;
+	}
+	/* 没有找到 */
+	return 0;
+}
 
 void DumpFileDescriptor(int fd)
 {
@@ -68,39 +93,11 @@ void DumpFileDescriptor(int fd)
 	struct FileDescriptor *pfd = &fileDescriptorTable[fd];
 
 	printk(PART_TIP "----File Descriptor----\n");
-	printk(PART_TIP "file %x dir %x pos %d flags %x\n",
-		pfd->file, pfd->dir, pfd->pos, pfd->flags);
+	printk(PART_TIP "id %d file %x dir %x pos %d flags %x\n",
+		fd, pfd->file, pfd->dir, pfd->pos, pfd->flags);
 	
 }
 
-
-/**
- * GetDeviceFileByName - 通过名字获取一个设备文件
- * @dirList: 目录链表
- * @name: 文件名
- * 
- * @return: 成功返回目录，失败返回NULL
- */
-PUBLIC struct DeviceFile *GetDeviceFileByName(struct List *deviceList, char *name)
-{
-	struct DeviceFile *devfile;
-	ListForEachOwner(devfile, deviceList, list) {
-		if (strcmp(devfile->super.name, name) == 0) {
-			return devfile;
-		}
-	}
-	return NULL;
-}
-
-
-PUBLIC void DumpDeviceFile(struct DeviceFile *devfile)
-{
-	printk(PART_TIP "----Device File----\n");
-	printk(PART_TIP "name %s type %d attr %x\n",
-		devfile->super.name, devfile->super.type, devfile->super.attr);
-	printk(PART_TIP "dir %x device %x\n",
-		devfile->directory, devfile->device);
-}
 
 /**
  * CreateFile - 创建目录
@@ -131,7 +128,7 @@ PUBLIC struct File *CreateFile(char *name, char type, char attr)
 	if (file == NULL)
 		return NULL;
 	
-	memset(file->name, 0, DIR_NAME_LEN);
+	memset(file->name, 0, FILE_NAME_LEN);
 	strcpy(file->name, name);
 
 	file->type = type;
@@ -143,63 +140,10 @@ PUBLIC struct File *CreateFile(char *name, char type, char attr)
 }
 
 /**
- * MakeDeviceFile - 创建一个设备文件
- * @path: 路径名
- * @type: 文件的类型
- * @device: 设备指针
+ * CloseFile - 关闭一个文件
+ * @pfd: 文件描述符指针
  * 
- * @return: 成功返回目录，失败返回NULL
  */
-PUBLIC int MakeDeviceFile(char *dname,
-	char *fname,
-	char type,
-	struct Device *device)
-{
-	/* 如果名字为空就返回 */
-	if (dname == NULL || fname == NULL)
-		return -1;
-
-	printk("MakeDeviceFile: dir name %s file name %s\n", dname, fname);
-
-	/* 搜索目录 */
-	struct Directory *dir = GetDirectoryByName(dname);
-	if (dir == NULL) {
-		printk("dir %s not exist!\n", dname);
-		return -1;
-	}
-	
-	DumpDirectory(dir);
-
-	/* 检测是否已经存在 */
-	if (GetDeviceFileByName(&dir->deviceListHead, fname) != NULL) {
-		printk("file %s in dir %s has exist!\n", fname, dname);
-		return -1;
-	}
-	
-	/* 创建一个设备文件 */
-	struct File *file = CreateFile(fname, FILE_TYPE_DEVICE,
-		FILE_ATTR_R | FILE_ATTR_W);
-
-	if (file == NULL) {
-		kfree(dir);
-		return -1;
-	}
-
-	/* 由于设备文件继承了文件，所以可以直接转换 */
-	struct DeviceFile *devfile = (struct DeviceFile *)file;
-	
-	/* 填写设备文件的信息 */
-	devfile->device = device;
-	
-	/* 添加到目录中去 */
-	devfile->directory = dir;
-
-	/* 设备文件添加到目录设备中 */
-	ListAddTail(&devfile->list, &dir->deviceListHead);
-
-	return 0;
-}
-
 PRIVATE int CloseFile(struct FileDescriptor *pfd)
 {
 	if(pfd == NULL) {
@@ -212,9 +156,16 @@ PRIVATE int CloseFile(struct FileDescriptor *pfd)
 	
 	if (pfd->file != NULL) {
 		if (pfd->file->type == FILE_TYPE_DEVICE) {
+			struct DeviceFile *devfile = (struct DeviceFile *)pfd->file;
+
+			if (devfile->device != NULL) {
+				/* 关闭设备 */
+				DeviceClose(devfile->device->devno);
+			}
 			pfd->file = NULL;
 		} else if (pfd->file->type == FILE_TYPE_NODE) {
-			/* 释放文件信息 */
+			/* 关闭节点文件 */
+			CloseNodeFile((struct NodeFile *)pfd->file);
 
 			pfd->file = NULL;
 		} 
@@ -236,24 +187,16 @@ PUBLIC int FlatClose(int fd)
 	return ret;
 }
 
-PRIVATE int OpenDeviceFile(struct Directory *dir, char *name, int flags)
+/**
+ * OpenFileWithFD - 打开一个文件描述符
+ * @dir: 文件所在目录
+ * @file: 文件类
+ * @flags: 标志
+ * 
+ * 成功返回fd，失败返回-1
+ */
+PRIVATE int OpenFileWithFD(struct Directory *dir, struct File *file, int flags)
 {
-	struct DeviceFile *devfile;
-
-	struct DeviceFile *found = NULL;
-	
-	ListForEachOwner(devfile, &dir->deviceListHead, list) {
-		if (!strcmp(devfile->super.name, name)) {
-			found = devfile;
-			break;
-		}
-	}
-
-	if (found == NULL) {
-		Panic("device file %s not found when open!\n", name);
-	}
-
-
 	int fd = GetFileDescriptor();
 	if (fd < 0) {
 		printk("Get a file descriptor failed!\n");
@@ -263,16 +206,9 @@ PRIVATE int OpenDeviceFile(struct Directory *dir, char *name, int flags)
 	struct FileDescriptor *pfd = &fileDescriptorTable[fd];
 
 	pfd->dir = dir;
-	pfd->file = &devfile->super;
+	pfd->file = file;
 	pfd->flags |= flags;	/* 原来已经有使用标志，这里用或运算 */
 	pfd->pos = 0;
-
-	/* 执行设备打开操作 */
-	if (DeviceOpen(devfile->device->devno, flags)) {
-		/* 打开失败 */
-		FreeFileDescriptor(fd);
-		return -1;
-	}
 
 	return fd;
 }
@@ -318,30 +254,48 @@ PUBLIC int FlatOpen(const char *path, int flags)
 
 	/* 文件存在标志 */
 	char found = 0;
-	/* 已经存在的文件的重新打开 */
-	char reopen = 0;
 
+	/* 文件类 */
 	struct File *file = NULL;
 	
+	/* 具体的文件 */
+	struct DeviceFile *devfile = NULL;
+	struct NodeFile *nodefile = NULL;
+	
 	/* 搜索文件 */
-	if (dir->type == DIR_TYPE_DEVICE) {
+	if (dir->type == DIR_TYPE_DEVICE) {		/* 设备目录 */
 
 		/* 获取设备文件 */
-		struct DeviceFile *devfile = GetDeviceFileByName(&dir->deviceListHead, fname);
+		devfile = GetDeviceFileByName(&dir->deviceListHead, fname);
 		
+		/* 设备文件不存在，可以创建 */
 		if (devfile == NULL) {
 			printk("open: device file %s not exist!\n", fname);
-			return -1;
+			
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)devfile;
+			
+			printk("open: search device file.\n");
 		}
-		/* 设备文件存在 */
-		found = 1;
-		file = (struct File *)devfile;
 		
-		printk("open: search device file.\n");
-	} else {
-		/* 挂载目录 */
-
-
+	} else if (dir->type == DIR_TYPE_MOUNT) { /* 挂载目录 */
+		
+		/* 获取节点文件 */
+		nodefile = GetNodeFileByName(dir, fname);
+		
+		/* 节点文件不存在，可以创建 */
+		if (nodefile == NULL) {
+			printk("open: node file %s not exist!\n", fname);
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)nodefile;
+			
+			printk("open: search node file.\n");
+		}
+		
 	}
 
 	/* 普通没有找到文件 */
@@ -351,6 +305,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		/* 也不是创建创建 */
 		if (!(flags & O_CREAT)) {
 			printk("open: file not exist and without O_CREAT!\n");
+
 			return -1;
 		}
 	} else {
@@ -358,37 +313,20 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		/* 找到文件 */
 		if (file->type == FILE_TYPE_DEVICE) {
 			printk("device file found!\n");
-
+			/*
 			if (flags & O_CREAT) {
 				printk("open: device can not open with O_CREAT!\n");
 				return -1;
-			}
+			}*/
 		} else if (file->type == FILE_TYPE_NODE) {
-			printk("data file found!\n");
-
-			/* 数据文件有创建标志，并且以及找到 */
-			if (flags & O_CREAT) {
-				/* 要有其它标志才可以打开 */
-				if ((flags & O_RDONLY) || (flags & O_WRONLY) || (flags & O_RDWR)) {
-					reopen = 1;
-				} else {
-					printk("open: path %s has exist, can't create it alone!\n", path);
-					return -1;
-				}
-			}
+			printk("node file found!\n");
 		}
-	}
-
-	/* 如果没有读写标志，就退出 */
-	if (!(flags & O_RDONLY) && !(flags & O_WRONLY) && !(flags & O_RDWR)) {
-		printk("open: without READ and WRITE flags!\n");
-		return -1;
 	}
 
 	int fd = -1;
 
 	/* 不是重新打开，就是创建一个新文件 */
-	if ((flags & O_CREAT) && !reopen) {
+	if ((flags & O_CREAT) && !found) {
 		/* 要生成的文件的属性 */
 		char attr;
 
@@ -403,119 +341,60 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		if (flags & O_EXEC) {
 			attr |= FILE_ATTR_X;
 		}
-		
-		printk("create file with attr %x\n", attr);
-		/* 创建文件 */
 
-
+		/* 根据不同的目录类型创建不同的文件 */
+		if (dir->type == DIR_TYPE_DEVICE) {		
+			printk("create device with attr %x\n", attr);
+			/* 创建设备文件，不指向任何设备 */
+			devfile = CreateDeviceFile(fname, attr, dir, NULL);
+			if (devfile == NULL) {
+				printk(PART_ERROR "create device file failed!\n");
+				return -1;
+			}
+			/* 修改文件指针 */
+			file = (struct File *)devfile;
+		} else if (dir->type == DIR_TYPE_MOUNT) {		
+			printk("create file with attr %x\n", attr);
+			/* 创建文件 */
+			nodefile = CreateNodeFile(fname, attr, dir->sb);
+			if (nodefile == NULL) {
+				printk(PART_ERROR "create node file failed!\n");
+				return -1;
+			}
+			/* 修改文件指针 */
+			file = (struct File *)nodefile;
+		}
 	}
 
-	/* 打开文件 */
+	/* 打开一个文件到系统中 */
+	fd = OpenFileWithFD(dir, file, flags);
+	
+	/* 其它操作 */
 	if (file->type == FILE_TYPE_DEVICE) {
 		printk("open device file %s\n", fname);
-		fd = OpenDeviceFile(dir, fname, flags);
+		
+		/* 有设备指针才可以打开 */
+		if (devfile->device != NULL) {
+			/* 执行设备打开操作 */
+			if (DeviceOpen(devfile->device->devno, flags)) {
+				/* 打开失败 */
+				FreeFileDescriptor(fd);
+				return -1;
+			}
+		}
 		
 	} else if (file->type == FILE_TYPE_NODE) {
-		/* 打开文件 */
-		//fd = OpenDataFile(dir, fname, flags);
+		printk("open node file %s\n", fname);
 		
 		if (fd > 0) {
 			/* 是否有追加标志 */
 			if (flags & O_APPEDN) {
 				/* seek 到文件最后 */
-
+				FlatLseek(fd, 0, SEEK_END);
 			}
 		}
 	}
 	return fd;
-}
-
-PRIVATE int DeviceFileWrite( struct FileDescriptor *fdptr,
-	void* buf,
-	unsigned int count)
-{
-	if (count <= 0) {
-		printk("device file write count zero!\n");
-		return -1;
-	}
-
-	if (fdptr->file) {
-		/* 设备的写 */
-		struct DeviceFile *devfile = (struct DeviceFile *)fdptr->file;
-		
-		//DumpDeviceFile(devfile);
-
-		/* 调用设备的写操作 */
-		if (devfile->device) {
-			/* 块设备 */
-			if (devfile->device->type == DEV_TYPE_BLOCK) {
-				
-				sector_t todo, done = 0;
-
-				char *_buf = buf;
-
-				/* 需要对数量进行判断，如果是块设备，一次最多运行256个扇区操作 */
-				while (done < count) {
-					/* 获取要去操作的扇区数这里用10作为分界 */
-					if ((done + 256) <= count) {
-						todo = 256;
-					} else {
-						todo = count - done;
-					}
-
-					/* 创建一个临时缓冲，因为用户态的缓冲区不能直接用来使用，需要转换成内核的缓冲才行 */
-					char *buffer = kmalloc(SECTOR_SIZE *todo, GFP_KERNEL);
-					if (!buffer) {
-						printk("kmalloc for device write buffer failed!\n");
-						return -1;
-					}
-
-					/* 复制缓冲区数据 */
-					memcpy(buffer, _buf, todo * SECTOR_SIZE);
-
-					/* 写入失败就准备返回 */
-					if(DeviceWrite(devfile->device->devno, fdptr->pos, buffer, todo)) {		
-						printk("device write failed!\n");				
-						kfree(buffer);
-						return -1;
-					}
-
-					fdptr->pos += todo;
-
-					_buf += todo * SECTOR_SIZE;
-
-					done += todo;
-					kfree(buffer);
-				}
-				/* 返回完成的数据量 */
-				return done;
-				
-			} else if (devfile->device->type == DEV_TYPE_CHAR) {
-				/* 字符设备 */
-				
-				/* 创建一个临时缓冲，因为用户态的缓冲区不能直接用来使用，需要转换成内核的缓冲才行 */
-				char *buffer = kmalloc(count, GFP_KERNEL);
-				if (!buffer) {
-					printk("kmalloc for device write buffer failed!\n");
-					return -1;
-				}
-
-				/* 复制缓冲区数据 */
-				memcpy(buffer, buf, count);
-
-				/* 写入失败就准备返回 */
-				if(DeviceWrite(devfile->device->devno, 0, buffer, count)) {		
-					//printk("device write failed!\n");
-					kfree(buffer);
-					return -1;
-				}
-				kfree(buffer);
-				return count;
-			}
-		}
-	}
-	printk("device write error!\n");
-	return -1;
 }
 
 PUBLIC int FlatWrite(int fd, void* buf, size_t count)
@@ -554,95 +433,6 @@ PUBLIC int FlatWrite(int fd, void* buf, size_t count)
 	return -1;
 }
 
-PRIVATE int DeviceFileRead( struct FileDescriptor *fdptr,
-	void* buf,
-	unsigned int count)
-{
-	if (count <= 0) {
-		printk("device file read count zero!\n");
-		return -1;
-	}
-
-	if (fdptr->file) {
-		/* 设备的读取 */
-		struct DeviceFile *devfile = (struct DeviceFile *)fdptr->file;
-		
-		//DumpDeviceFile(devfile);
-
-		/* 调用设备的写操作 */
-		if (devfile->device) {
-			/* 块设备 */
-			if (devfile->device->type == DEV_TYPE_BLOCK) {
-				
-				sector_t todo, done = 0;
-
-				/* 需要对数量进行判断，如果是块设备，一次最多运行256个扇区操作 */
-				while (done < count) {
-					/* 获取要去操作的扇区数这里用10作为分界 */
-					if ((done + 256) <= count) {
-						todo = 256;
-					} else {
-						todo = count - done;
-					}
-
-					/* 创建一个临时缓冲，因为用户态的缓冲区不能直接用来使用，需要转换成内核的缓冲才行 */
-					char *buffer = kmalloc(SECTOR_SIZE *todo, GFP_KERNEL);
-					if (!buffer) {
-						printk("kmalloc for device read buffer failed!\n");
-						return -1;
-					}
-
-					memset(buffer, 0, todo * SECTOR_SIZE);
-					
-					/* 读取失败就准备返回 */
-					if(DeviceRead(devfile->device->devno, fdptr->pos, buffer, todo)) {		
-						printk("device read failed!\n");				
-						kfree(buffer);
-						return -1;
-					}
-
-					/* 复制缓冲区数据 */
-					memcpy(buf, buffer, todo * SECTOR_SIZE);
-
-					fdptr->pos += todo;
-
-					buf += todo * SECTOR_SIZE;
-
-					done += todo;
-					kfree(buffer);
-				}
-				/* 返回完成的数据量 */
-				return done;
-				
-			} else if (devfile->device->type == DEV_TYPE_CHAR) {
-				/* 创建一个临时缓冲，因为用户态的缓冲区不能直接用来使用，需要转换成内核的缓冲才行 */
-				char *buffer = kmalloc(count, GFP_KERNEL);
-				if (!buffer) {
-					printk("kmalloc for device read buffer failed!\n");
-					return -1;
-				}
-				memset(buffer, 0, count);
-				/* 字符设备 */
-				/* 读取失败就准备返回 */
-				if(DeviceRead(devfile->device->devno, 0, buffer, count)) {		
-					//printk("device read failed!\n");				
-					kfree(buffer);
-					return -1;
-				}
-				
-				/* 复制缓冲区数据 */
-				memcpy(buf, buffer, count);
-
-				kfree(buffer);
-
-				return count;
-			}
-		}
-	}
-	printk("device read error!\n");
-	return -1;
-}
-
 PUBLIC int FlatRead(int fd, void* buf, size_t count)
 {
 	if (fd < 0 || fd >= MAX_OPEN_FILE_NR) {
@@ -678,7 +468,6 @@ PUBLIC int FlatRead(int fd, void* buf, size_t count)
 	printk("read: no read privilege!\n");
 	return -1;
 }
-
 
 PUBLIC off_t FlatLseek(int fd, off_t offset, char whence)
 {
@@ -768,7 +557,7 @@ PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg)
 		if (pfd->file->type == FILE_TYPE_DEVICE) {
 			struct DeviceFile *devfile = (struct DeviceFile *)pfd->file;
 			
-			if (devfile->device) {
+			if (devfile->device != NULL) {
 				/* 执行IOCTL命令 */
 				if (!DeviceIoctl(devfile->device->devno, cmd, arg)) {
 					return 0;
@@ -781,4 +570,175 @@ PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg)
 	}
 	
 	return -1;
+}
+
+/**
+ * FlatRemove - 删除一个文件
+ */
+PUBLIC int FlatRemove(const char *path)
+{
+	/* 
+		1.解析出目录和文件
+		2.检测文件是否存在
+		3.检测文件类型
+		4.从磁盘上删除文件
+		5.修改超级块信息
+		6.删除成功
+	 */
+
+	printk("remove: %s\n", path);
+
+	/* 解析目录和文件，并查看目录是否存在 */
+	char dname[DIR_NAME_LEN];
+	bzero(dname, DIR_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseDirectoryName((char *)path, dname)) {
+		printk("remove: path %s bad dir name, please check it!\n", path);
+		return -1;
+	}
+	printk("dir name is %s\n", dname);
+
+	/* 获取目录 */
+	struct Directory *dir = GetDirectoryByName(dname);
+	if (dir == NULL) {
+		printk("remove: dir %s not exist!\n", dname);
+		return -1;
+	}
+
+	char fname[FILE_NAME_LEN];
+	bzero(fname, FILE_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseFileName((char *)path, fname)) {
+		printk("remove: path %s bad file name, please check it!\n", path);
+		return -1;
+	}
+	printk("file name is %s\n", fname);
+
+	/* 文件存在标志 */
+	char found = 0;
+
+	/* 文件类 */
+	struct File *file = NULL;
+	
+	/* 具体的文件 */
+	struct DeviceFile *devfile = NULL;
+	struct NodeFile *nodefile = NULL;
+	
+	/* 搜索文件 */
+	if (dir->type == DIR_TYPE_DEVICE) {		/* 设备目录 */
+
+		/* 获取设备文件 */
+		devfile = GetDeviceFileByName(&dir->deviceListHead, fname);
+		
+		/* 设备文件不存在 */
+		if (devfile == NULL) {
+			printk("remove: device file %s not exist!\n", fname);
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)devfile;
+			
+			printk("remove: search device file.\n");
+		}
+		
+	} else if (dir->type == DIR_TYPE_MOUNT) { /* 挂载目录 */
+		
+		/* 获取节点文件 */
+		nodefile = GetNodeFileByName(dir, fname);
+		
+		/* 节点文件不存在 */
+		if (nodefile == NULL) {
+			printk("remove: node file %s not exist!\n", fname);
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)nodefile;
+			
+			printk("remove: search node file.\n");
+		}
+		
+	}
+
+	/* 没有找到文件 */
+	if (!found) {
+		printk("file not found!\n");
+
+		return -1;
+	}
+
+	/* 文件不能处于使用中 */
+	if (IsFileDescriptorUsing(file)) {
+		printk("remove: can't remove a unsing file %s!\n", fname);
+		return -1;
+	}
+
+	/* 找到文件 */
+	if (file->type == FILE_TYPE_DEVICE) {
+		printk("can not remove device file!\n");
+		return -1;
+	} else if (file->type == FILE_TYPE_NODE) {
+		/* 使节点失效 */
+		if (LoseNodeFile(nodefile, dir->sb, 0)) {
+			printk(PART_ERROR "remove: lose node failed!\n");
+			return -1;
+		}
+
+		/* 释放节点在内存中的数据 */
+		CloseNodeFile(nodefile);
+	}
+
+	return 0;
+}
+
+/**
+ * IsFileEqual - 判断文件是否一样
+ * @file1: 文件1
+ * @file2: 文件2
+ * 
+ * 文件一样返回1，不一样返回0
+ */
+PUBLIC int IsFileEqual(struct File *file1, struct File *file2)
+{
+	/* 文件指针有误 */
+	if(file1 == NULL || file2 == NULL){
+		return 0;
+	}
+
+	/* 文件内容不一样，说明不相等 */
+	if (strcmp(file1->name, file2->name) != 0 || 
+		file1->type != file2->type || 
+		file1->attr != file2->attr || 
+		file1->size != file2->size) 
+	{
+		return 0;
+	}
+
+	/* 如果是设备文件，就比较设备文件信息 */
+	if (file1->type == FILE_TYPE_DEVICE) {
+		struct DeviceFile *dev1 = (struct DeviceFile *)file1;
+		struct DeviceFile *dev2 = (struct DeviceFile *)file2;
+		
+		/* 设备信息不一样说明不相等 */
+		if (dev1->directory != dev2->directory ||
+			dev1->device != dev2->device)
+		{
+			return 0;
+		}
+	} else if (file1->type == FILE_TYPE_NODE) {
+		struct NodeFile *node1 = (struct NodeFile *)file1;
+		struct NodeFile *node2 = (struct NodeFile *)file2;
+		
+		/* 节点信息不一样说明不相等 */
+		if (node1->devno != node2->devno ||
+			node1->id != node2->id ||
+			node1->crttime != node2->crttime)
+		{
+			return 0;
+		}
+	}
+
+	/* 信息都一样，说明相等 */
+	return 1;
 }

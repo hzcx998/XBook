@@ -122,7 +122,7 @@ int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 		kfree(dirEntry);
 		return -1;
 	}
-
+	
 	/* 分配节点 */
 	unsigned int inodeID = BOFS_AllocBitmap(sb, BOFS_BMT_INODE, 1); 
 	if (inodeID == -1) {

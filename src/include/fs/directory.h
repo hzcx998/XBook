@@ -5,7 +5,6 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
-
 #ifndef _FS_DIRECTORY
 #define _FS_DIRECTORY
 

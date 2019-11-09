@@ -30,37 +30,6 @@ FFS，平坦文件系统（Flat File System）
 /* 目录名长度，-1是减去':'占用的空间 */
 #define DIR_NAME_LEN    (PATH_NAME_LEN - FILE_NAME_LEN - 1)
 
-struct SuperBlock {
-	unsigned int magic;     /* 魔数，用于标记是否已经安装了文件系统 */
-	dev_t devno;		    /* 所在的磁盘的设备号 */
-	sector_t totalBlocks;	/* 这个文件系统占用多少块 */
-	
-	sector_t superBlockLba;   /* 超级块的起始块 */
-	
-	sector_t blockBitmapLba;	/* 块位图起始地址 */
-	sector_t blockBitmapBlocks;	/* 块位图块数 */
-	
-	sector_t nodeBitmapLba;	    /* 节点文件位图起始地址 */
-	sector_t nodeBitmapBlocks;	/* 节点文件位图块数 */
-	
-	sector_t nodeTableLba;	    /* 节点表起始位置 */
-	sector_t nodeTableBlocks;	/* 节点表占用块数 */
-	
-	sector_t dataStartLba;        /* 数据区域起始地址 */
-	
-	char inodeNrInBlock;	    /* 一个扇区可以容纳多少个节点 */
-	
-	size_t maxInodes;	    /* 最多有多少个节点 */
-    size_t blockSize;	    /* 一个块的大小 */
-    
-    struct Bitmap blockBitmap;	    /* 块位图 */
-	struct Bitmap nodeBitmap;		/* 节点位图 */
-	
-	unsigned char *iobuf;			/* io时用的缓冲区 */
-}__attribute__ ((packed));;
-
-
-
 PUBLIC int InitFlatFileSystem();
 
 /* 路径解析 */
@@ -71,6 +40,5 @@ PUBLIC struct SuperBlock *BuildFS(dev_t devno,
 	sector_t count,
 	size_t blockSize,
 	size_t nodeNr);
-PUBLIC void DumpSuperBlock(struct SuperBlock *sb);
 
 #endif  /* _FS_FLAT */

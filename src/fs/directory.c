@@ -16,6 +16,8 @@
 #include <fs/file.h>
 #include <fs/directory.h>
 #include <fs/bitmap.h>
+#include <fs/device.h>
+#include <fs/node.h>
 
 #include <book/blk-disk.h>
 #include <book/device.h>
@@ -118,6 +120,9 @@ PUBLIC void ListDirectory()
 				printk("    " PART_TIP "file name:%s type:%d ", devfile->super.name, devfile->super.type);
 				printk("dir:%x device:%x\n", devfile->directory, devfile->device);
 			}
+		} else if (dir->type == DIR_TYPE_MOUNT) {
+			/* 是挂在目录 */
+			
 		}
 	}
 }
@@ -234,6 +239,8 @@ PUBLIC int MountDirectory(char *devpath, char *mntname)
 		return -1;
 	}
 
+	
+	DumpSuperBlock(mntdir->sb);
 	/* 挂载成功 */
 	return 0;
 }

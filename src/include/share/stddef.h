@@ -28,6 +28,8 @@ typedef unsigned long register_t;
 typedef unsigned long address_t;
  */
 
+typedef unsigned char * bbuf_t;     //字节类型的缓冲区
+
 /*
  *这里是define类型的
  */

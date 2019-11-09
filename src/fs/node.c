@@ -16,6 +16,10 @@
 #include <share/math.h>
 #include <fs/file.h>
 #include <book/blk-buffer.h>
+#include <fs/directory.h>
+#include <fs/super_block.h>
+#include <fs/node.h>
+
 
 /**
  * CloseNodeFile - 关闭一个节点
@@ -43,13 +47,19 @@ void NodeFileInit(struct NodeFile *node,
 	dev_t devno,
     unsigned int id)
 {
-	memset(node, 0, SIZEOF_NODE_FILE);
 	node->devno = devno;
 	node->id = id;
 
 	/* 设置时间信息 */
 	node->crttime = SystemDateToData();
 	node->acstime = node->mdftime = node->crttime;
+
+	/* 设置数据为0 */
+	int i;
+	for (i = 0; i < NODE_FILE_BLOCK_PRT_NR; i++) {
+		node->block[i] = 0;
+	}
+
 }
 
 /**
@@ -90,19 +100,31 @@ PUBLIC int SyncNodeFile(struct NodeFile *node, struct SuperBlock *sb)
 	unsigned int lba = sb->nodeTableLba + blockOffset;
 	off_t bufOffset = node->id % sb->inodeNrInBlock;
 	
-	//printk("BOFS sync node: sec off:%d lba:%d buf off:%d\n", sectorOffset, lba, bufOffset);
+	printk("sync node: block off:%d lba:%d buf off:%d\n", blockOffset, lba, bufOffset);
 	
-	memset(sb->iobuf, 0, sb->blockSize);
+	unsigned char *buf = kmalloc(sb->blockSize, GFP_KERNEL);
+	if (buf == NULL) {
+		printk("kmalloc for sync node file failed!\n");
+		return -1;
+	}
 
-    if (!BlockRead(sb->devno, lba, sb->iobuf)) {
+	//DumpNodeFile(node);
+
+	memset(buf, 0, sb->blockSize);
+
+    if (!BlockRead(sb->devno, lba, buf)) {
+		kfree(buf);
         return -1;
     }
-	struct NodeFile *node2 = (struct NodeFile *)sb->iobuf;
+	struct NodeFile *node2 = (struct NodeFile *)buf;
 	*(node2 + bufOffset) = *node;
-	
-    if (!BlockWrite(sb->devno, lba, sb->iobuf, 0)) {
+	//DumpNodeFile(node2 + bufOffset);
+
+    if (!BlockWrite(sb->devno, lba, buf, 0)) {
+		kfree(buf);
         return -1;
     }
+	kfree(buf);
     return 0;
 }
 
@@ -182,4 +204,194 @@ PUBLIC void Copynode(struct NodeFile *dst, struct NodeFile *src)
 {
 	memset(dst, 0, sizeof(struct NodeFile));
 	memcpy(dst, src, sizeof(struct NodeFile));
+}
+
+/**
+ * CreateNodeFile - 创建一个节点文件
+ * @name: 文件名
+ * @attr: 属性
+ * @sb: 超级块
+ * 
+ * 创建过程如下：
+ * 如果磁盘上文件节点是下面这样分布的
+ * 0	test1	node
+ * 1	test1	invalid
+ * 
+ * 如果要创建test，那么当遇到0的时候，名字是test1，属性是node，其对应的位图一定是使用中的
+ * 那么就会继续向后扫描，遇到1的时候，名字是test1，类型是invlaid，那么对应的位图就是空闲的
+ * 就会把1的这个节点分配，并且修改节点信息以及节点属性，即1，test，node。如下：
+ * 0	test1	node
+ * 1	test	node
+ * 
+ */
+struct NodeFile *CreateNodeFile(char *name,
+	char attr, struct SuperBlock *sb)
+{
+	/* 分配节点和节点id, 创建节点 */
+	
+	/* 创建一个节点文件 */
+	struct File *file = CreateFile(name, FILE_TYPE_NODE, attr);
+
+	if (file == NULL) {
+		return NULL;
+	}
+	//printk("create file!\n");
+	/* 为节点分配内存 */
+	struct NodeFile *node = (struct NodeFile *)file;
+
+	/* 分配节点位图 */
+	unsigned int nodeID = FlatAllocBitmap(sb, FLAT_BMT_NODE, 1); 
+	if (nodeID == -1) {
+		printk(PART_ERROR "alloc node bitmap failed!\n");
+		kfree(node);
+		return NULL;
+	}
+	/* 保存节点id */
+
+	//printk("alloc node %d!\n", nodeID);
+	
+	/* 把节点id同步到磁盘 */
+	FlatSyncBitmap(sb, FLAT_BMT_NODE, nodeID);
+    
+	/* 初始化节点的信息 */
+	NodeFileInit(node, sb->devno, nodeID);
+
+	//printk("init node!\n");
+	
+	/* 同步节点信息 */
+	SyncNodeFile(node, sb);
+	//printk("sync node!\n");
+	
+	/* 文件数变多 */
+	sb->files++;
+	if (sb->files > sb->highestFiles) {
+		sb->highestFiles++;
+	}
+
+	/* 同步超级块 */
+	SyncSuperBlock(sb);
+	//printk("sync sb!\n");
+	
+	return node;
+}
+
+/**
+ * GetNodeFileByName - 从磁盘中读取节点文件
+ * @dir: 目录
+ * @name: 文件名字
+ * 
+ * 搜索过程如下：
+ * 如果磁盘上文件节点是下面这样分布的
+ * 0	test1	node
+ * 1	test1	invalid
+ * 2	test2	node
+ * 3	test3	invalid
+ * 4	test3	node
+ * 
+ * 如果要搜索test3，那么当遇到3的时候，名字相等，但是类型是invalid无效的
+ * 那么就会继续向后搜索，遇到4的时候，名字相等，类型也是node，那么就满足
+ * 
+ * 成功返回文件节点指针，失败返回NULL
+ */
+struct NodeFile *GetNodeFileByName(struct Directory *dir, char *name)
+{
+	unsigned int blockID = 0;
+	int i;
+
+	struct SuperBlock *sb = dir->sb;
+	sector_t lba = sb->nodeTableLba;
+
+	struct NodeFile *nodeFile = kmalloc(SIZEOF_NODE_FILE, GFP_KERNEL);
+	if (nodeFile == NULL) {
+		printk(PART_ERROR "kmalloc for node file failed!\n");
+		return NULL;
+	}
+
+	bbuf_t iobuf = kmalloc(sb->blockSize, GFP_KERNEL);
+	if (iobuf == NULL) {
+		printk(PART_ERROR "kmalloc for io buf failed!\n");
+		kfree(nodeFile);
+		return NULL;
+	}
+
+	size_t blocks = DIV_ROUND_UP(sb->highestFiles, sb->blockSize);
+	while (blockID < blocks) {
+		/* 读取块 */
+		memset(iobuf, 0, sb->blockSize);
+		if (!BlockRead(sb->devno, lba, iobuf)) {
+			printk(PART_ERROR "device %d read failed!\n", sb->devno);
+
+			/* 搜索失败 */
+			goto ToFailed;
+		}
+		
+		struct NodeFile *node = (struct NodeFile *)iobuf;
+
+		/*scan a sector*/
+		for(i = 0; i < sb->inodeNrInBlock; i++){
+			/* 有名字才进行检测 */
+			if(node[i].super.name[0] != '\0'){
+				printk("node file name ->%s , search for dir entry ->%s\n", node[i].super.name, dir->name);
+				if(!strcmp(node[i].super.name, name) && node[i].super.type != FILE_TYPE_INVALID){
+					/* 找到相同名字的文件 */
+					memcpy(nodeFile, &node[i], SIZEOF_NODE_FILE);
+
+					/* 释放io缓冲 */
+					kfree(iobuf);
+					return nodeFile;
+				}
+			} else {
+				/* 搜索失败 */
+				goto ToFailed;
+			}
+		}
+		blockID++;
+		lba++;
+	}
+ToFailed:
+	/* 释放io缓冲 */
+	kfree(iobuf);
+	kfree(nodeFile);
+
+	return NULL;
+}
+
+/**
+ * LoseNodeFile - 丢失一个节点文件
+ * @node: 节点
+ * @sb: 节点所在的超级块
+ * @depth: 丢失深度 (0表示只使节点失效，1表示还要使删除节点对应的数据
+ * 
+ * 让节点id对应的节点文件变成无效，如果深度为1，还会回收文件数据内容
+ * 成功返回0，失败返回-1
+ */
+PUBLIC int LoseNodeFile(struct NodeFile *node, struct SuperBlock *sb, char depth)
+{
+	switch (depth)
+	{
+	case 1: /* 删除节点对应的数据 */
+		
+	case 0: /* 使节点无效 */
+		node->super.type = FILE_TYPE_INVALID;
+		break;
+	default:
+		break;
+	}
+
+	/* 同步回磁盘 */
+	if (SyncNodeFile(node, sb)) {
+		return -1;
+	}
+
+	/* 回收节点位图 */
+	FlatFreeBitmap(sb, FLAT_BMT_NODE, node->id);
+	FlatSyncBitmap(sb, FLAT_BMT_NODE, node->id);
+    
+	/* 文件数变少 */
+	sb->files--;
+
+	/* 同步超级块 */
+	SyncSuperBlock(sb);
+
+	return 0;
 }
