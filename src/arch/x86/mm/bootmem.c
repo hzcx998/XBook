@@ -6,7 +6,7 @@
  */
 
 #include <book/debug.h>
-#include <page.h>
+#include <mm/page.h>
 #include <ards.h>
 #include <bootmem.h>
 #include <share/string.h>
