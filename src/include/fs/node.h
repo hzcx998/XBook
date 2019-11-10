@@ -15,8 +15,8 @@
 #include <fs/file.h>
 #include <fs/super_block.h>
 
-/* 文件块指针的数量 */
-#define NODE_FILE_BLOCK_PRT_NR  15
+#define NODE_FILE_BLOCK_PTR_NR  15     /* 文件块指针的数量 */
+
 #define NODE_FILE_RESERVED      (256 - 76 - SIZEOF_FILE)
 
 /* 默认的节点文件数 */
@@ -35,7 +35,7 @@ struct NodeFile {
 	unsigned int mdftime;	/* 修改时间 */
 	unsigned int acstime;	/* 访问时间 */
 
-    unsigned int block[NODE_FILE_BLOCK_PRT_NR];    /* 数据区域 */
+    unsigned int blocks[NODE_FILE_BLOCK_PTR_NR];    /* 数据区域 */
     
     unsigned char reserved[NODE_FILE_RESERVED];    /* 保留区域 */
 } __attribute__ ((packed));
@@ -53,6 +53,19 @@ struct NodeFile *CreateNodeFile(char *name,
 struct NodeFile *GetNodeFileByName(struct Directory *dir, char *name);
 PUBLIC int LoseNodeFile(struct NodeFile *node, struct SuperBlock *sb, char depth);
 PUBLIC void CloseNodeFile(struct NodeFile *node);
+
+PUBLIC int NodeFileWrite(struct FileDescriptor *pfd, void *buffer, size_t count);
+PUBLIC int NodeFileRead(struct FileDescriptor *pfd, void *buffer, size_t count);
+
+PUBLIC int GetBlockByBlockIndex(struct NodeFile *node,
+	unsigned int index,
+	unsigned int *block,
+	struct SuperBlock *sb);
+PUBLIC int PutBlockByBlockIndex(struct NodeFile *node,
+	unsigned int index,
+	struct SuperBlock *sb);
+PUBLIC int ReleaseNodeFileData(struct SuperBlock *sb,
+	struct NodeFile *node);
 
 #endif	/* _FS_NODE_H */
 

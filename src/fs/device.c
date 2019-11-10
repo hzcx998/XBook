@@ -120,7 +120,7 @@ PUBLIC int MakeDeviceFile(char *dname,
 
 PUBLIC int DeviceFileWrite( struct FileDescriptor *fdptr,
 	void* buf,
-	unsigned int count)
+	size_t count)
 {
 	if (count <= 0) {
 		printk("device file write count zero!\n");
@@ -208,7 +208,7 @@ PUBLIC int DeviceFileWrite( struct FileDescriptor *fdptr,
 
 PUBLIC int DeviceFileRead( struct FileDescriptor *fdptr,
 	void* buf,
-	unsigned int count)
+	size_t count)
 {
 	if (count <= 0) {
 		printk("device file read count zero!\n");

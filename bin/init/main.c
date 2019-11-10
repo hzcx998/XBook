@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 		
 		printf("Execv shell.\n");	
 		
-		//while(1);
+		while(1);
 		/* init的第一个子进程就执行shell */
 		if (execv("/bin/shell", 0)) {
 			printf("execute failed!\n");

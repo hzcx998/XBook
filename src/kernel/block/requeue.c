@@ -78,12 +78,6 @@ PRIVATE void AddRequest(struct RequestQueue *queue, struct Request *req)
 
     /* 把请求插入合适的位置 */
     ElevatorIoSchedule(queue, req);
-
-    
-    if (req->bh) {
-        /* 把缓冲区的脏位去掉，因为将会读取全新的数据 */
-        req->bh->dirty = 0;
-    }
     
     /* 如果请求队列没有请求，就立即执行当前请求 */
     tmp = queue->currentRequest;
@@ -156,11 +150,12 @@ PUBLIC void MakeRequest(int major, int rw, struct BufferHead *bh)
     struct Request *req;
     
     req = GetRequestFromDoneList();
-    if (req == NULL) 
+    if (req == NULL)
         req = kmalloc(SIZEOF_REQUEST, GFP_KERNEL);
     
     if (req == NULL) {
         UnlockBuffer(bh);
+        
         return;
     }
     memset(req, 0, SIZEOF_REQUEST);

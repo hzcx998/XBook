@@ -75,10 +75,9 @@ int main()
 	/* 初始化块设备 */	
 	InitBlockDevice();
 
-	InitFlatFileSystem();
 	
 	/* 初始化文件系统 */
-	//InitFileSystem();
+	InitFileSystem();
 	
 	/* 初始化文件系统 */
 	//InitFileSystem();
@@ -86,7 +85,7 @@ int main()
 	//Spin("bofs test");
 	
 	/* 加载init进程 */
-	//InitFirstProcess("/bin/init", "init");
+	InitFirstProcess("root:init", "init");
 	//BlockDeviceTest();
 	
 	/* main thread 就是idle线程 */

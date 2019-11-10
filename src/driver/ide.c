@@ -1558,7 +1558,6 @@ PRIVATE void IdeTest()
 	#endif
 }
 
-
 /**
  * InitIdeDriver - 初始化IDE硬盘驱动
  */

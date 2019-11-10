@@ -37,13 +37,14 @@ void ThreadDiskFlush(void *arg)
     while (1) {
         /* 每隔1s同步一次 */
         TaskSleep(1*HZ);
-
+        
         /* 执行块同步操作 */
         count = Bsync();
         if (count) {
             printk(">>>sync disk for %d count.\n", count);
         }
         count = 0;
+        
     }
 }
 

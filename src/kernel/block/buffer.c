@@ -162,7 +162,7 @@ PRIVATE struct BufferHead *GetBlock(dev_t devno, sector_t lba)
         if (bh != NULL) {
             return bh;
         }
-        
+        //printk("%d", lba);
         /* 没找到，就添加一个新的buffer */
         if (CreateBuffers(disk, lba, blkdev->blockSize)) {
             /* 如果添加新buffer失败，就尝试释放更多内存，再进行添加 */
@@ -276,6 +276,7 @@ PUBLIC struct BufferHead *Bwrite(dev_t devno, sector_t block, void *buffer)
 
     /* 标记块为脏 */
     bh->dirty = 1;
+    
     SemaphoreUp(&bh->sema);
     
     return bh;
@@ -331,11 +332,35 @@ PUBLIC int Bsync()
         bh = NULL;
         /* 获取磁盘中的的缓冲 */
         ListForEachOwner(bh ,&disk->bufferHeadList, list) {
+            //printk("%d ", bh->dirty);
+    
             count += BsyncOne(bh);
         }
     }
-    
     return count;
+}
+
+/**
+ * Bsync - 同步所有脏缓冲(Buffer Sync)
+ * 
+ * 对所有磁盘中的所有缓冲进行一次同步
+ */
+PUBLIC int DirtyCheck()
+{
+    struct Disk *disk = NULL;
+    struct BufferHead *bh;
+    
+    /* 获取磁盘 */
+    ListForEachOwner(disk, &allDiskList, list) {
+        bh = NULL;
+        /* 获取磁盘中的的缓冲 */
+        ListForEachOwner(bh ,&disk->bufferHeadList, list) {
+            if (bh->dirty) {
+                printk("%d ", bh->lba);
+            }
+        }
+    }
+    return 0;
 }
 
 /**

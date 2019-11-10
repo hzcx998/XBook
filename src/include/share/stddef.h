@@ -28,7 +28,9 @@ typedef unsigned long register_t;
 typedef unsigned long address_t;
  */
 
-typedef unsigned char * bbuf_t;     //字节类型的缓冲区
+typedef unsigned char * buf8_t;     // 字节类型的缓冲区
+typedef unsigned short * buf16_t;   // 字类型的缓冲区
+typedef unsigned int * buf32_t;     // 双字类型的缓冲区
 
 /*
  *这里是define类型的

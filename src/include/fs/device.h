@@ -38,10 +38,10 @@ struct DeviceFile *CreateDeviceFile(char *name,
 	char attr, struct Directory *dir, struct Device *device);
 PUBLIC int DeviceFileRead( struct FileDescriptor *fdptr,
 	void* buf,
-	unsigned int count);
+	size_t count);
 PUBLIC int DeviceFileWrite( struct FileDescriptor *fdptr,
 	void* buf,
-	unsigned int count);
+	size_t count);
 
 #endif	/* _FS_DEVICE_H */
 

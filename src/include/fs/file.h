@@ -35,6 +35,17 @@ struct File {
     size_t size;                    /* 文件的大小 */
 } __attribute__ ((packed));
 
+
+/* 记录一些重要信息 */
+struct Stat
+{
+	unsigned int type;
+	unsigned int size;
+	unsigned int mode;
+	/* 时间日期 */
+};
+
+
 #define SIZEOF_FILE sizeof(struct File)
 
 /* 系统中最多可以打开的文件数量 */
@@ -59,6 +70,7 @@ struct FileDescriptor {
 
 PUBLIC void InitFileDescriptor();
 void DumpFileDescriptor(int fd);
+struct FileDescriptor *GetFileByDescriptor(int fd);
 
 PUBLIC int FlatOpen(const char *path, int flags);
 PUBLIC int FlatClose(int fd);
@@ -67,5 +79,6 @@ PUBLIC int FlatRead(int fd, void* buf, size_t count);
 PUBLIC off_t FlatLseek(int fd, off_t offset, char whence);
 PUBLIC int FlatIoctl(int fd, unsigned int cmd, unsigned int arg);
 PUBLIC int FlatRemove(const char *path);
+PUBLIC int FlatStat(const char *path, struct Stat *buf);
 
 #endif  /* _FS_FILE */

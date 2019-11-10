@@ -17,6 +17,7 @@
 #include <fs/super_block.h>
 #include <fs/node.h>
 #include <fs/device.h>
+#include <book/vmarea.h>
 
 /**
  * ParseDirectoryName - 解析目录名
@@ -219,6 +220,7 @@ PUBLIC int InitFlatFileSystem()
 {
     PART_START("Flat File System");
 	
+	/* 初始化文件描述符 */
 	InitFileDescriptor();
 
     struct Directory *dir =  CreateDirectory("dev", DIR_TYPE_DEVICE);
@@ -233,20 +235,195 @@ PUBLIC int InitFlatFileSystem()
 	}
 	
 	ListDirectory();
+
+	/* 挂载根目录 */
 	MountDirectory("dev:hda0", "root");
 	
 	ListDirectory();
 	//Spin("test");
 	
 	//Spin("test");
-	int fd = FlatOpen("root:test5", O_CREAT | O_RDWR);
+	/*int fd = FlatOpen("root:test4", O_CREAT | O_RDWR);
 	if (fd < 0) {
 		printk("file open failed!\n");
 	}
+	
+
+	struct FileDescriptor *pfd = GetFileByDescriptor(fd);
+	struct NodeFile *node = (struct NodeFile *)pfd->file;*/
+/*
+	unsigned int block = 0;
+
+	unsigned int index = 0;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+
+	index = 11;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+
+	index = 12;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+
+	index = 13;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	
+	index = 256;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	
+	index = 256 + 11;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 256+12;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+
+	index = 256+12 + 1;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 256+12 + 256;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 256+12 + 256 + 1;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 256+12 + 256*10 + 1;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 12 + 256 + 256*256;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 12 + 256 + 256*256 + 1;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+
+	index = 12 + 256 + 256*256 + 256*10;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 12 + 256 + 256*256 + 256*256;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+	
+	index = 12 + 256 + 256*256 + 256*256*256-1;
+	GetBlockByBlockIndex(node, index, &block, pfd->dir->sb);
+
+	DumpNodeFile(node);
+
+	index = 0;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+
+	index = 12;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	
+	//
+	index = 13;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	
+	index = 256;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	
+	index = 256 + 11;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	
+	index = 256+12;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	//printk("index %d block %d\n", index, block);
+	printk("9\n");
+	index = 256+12 + 1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("8\n");
+	index = 256+12 + 256;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("7\n");
+	index = 256+12 + 256 + 1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("6\n");
+	index = 256+12 + 256*10 + 1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("5\n");
+	index = 12 + 256 + 256*256;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("4\n");
+	index = 12 + 256 + 256*256 + 1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("3\n");
+	index = 12 + 256 + 256*256 + 256*10;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("2\n");
+	index = 12 + 256 + 256*256 + 256*256*1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	printk("1\n");
+	index = 12 + 256 + 256*256 + 256*256*256-1;
+	PutBlockByBlockIndex(node, index, pfd->dir->sb);
+	Spin("test");
+	
 	DumpFileDescriptor(fd);
+	*/
+
+	/*int i, block;
+	for (i = 0; i < 12+256+256*1;i++) {
+		GetBlockByBlockIndex(node, i, &block, pfd->dir->sb);
+		
+	}
+	printk("get done!\n");
+	for (i = 0; i < 12+256+256*1;i++) {
+		PutBlockByBlockIndex(node, i, pfd->dir->sb);
+	}*/
+	
+	//DumpNodeFile(node);
+/*
+	int sz = 1 * MB;
+
+	char *buf = vmalloc(sz);
+
+	memset(buf, 0, sz);
+	strcpy(buf, "hello, world!");
+	buf[strlen(buf)] = 0;
+	//FlatLseek(fd, 0, SEEK_SET);
+
+	int write = FlatWrite(fd, buf, sz);
+	printk("write bytes %d blocks %d\n", write, write / 1024);
+
+	memset(buf, 0,sz);
+
+	FlatLseek(fd, 0, SEEK_SET);
+
+	int read = FlatRead(fd, buf, sz);
+	printk("read bytes %d\n", read);
+	
+	printk("buf %s\n", buf);
 
 	FlatClose(fd);
+
+	FlatRemove("root:test4");
+*/
+/*
+	int write = FlatWrite(fd, buf, 32);
+	printk("write bytes %d\n", write);
+	//  ("test");
+
+	FlatLseek(fd, 6, SEEK_SET);
+
+	memset(buf, 0, PAGE_SIZE*2);
 	
+	int read = FlatRead(fd, buf, 26);
+	printk("read bytes %d\n", read);
+	printk("read string %s\n", buf);
+
+	write = FlatWrite(fd, buf, 32);
+	printk("write bytes %d\n", write);
+
+	FlatLseek(fd, 32, SEEK_SET);
+	read = FlatRead(fd, buf, 32);
+	printk("read bytes %d\n", read);
+	printk("read string %s\n", buf);
+*/
+	
+		/*
 	fd = FlatOpen("dev:hda0", O_RDWR);
 	if (fd < 0) {
 		printk("file open failed!\n");
@@ -260,7 +437,7 @@ PUBLIC int InitFlatFileSystem()
 	
 	if (FlatRemove("root:test5"))
 		printk("file remove failed!\n");
-	
+	*/
 	/*
 	fd = FlatOpen("dev:sda", O_CREAT | O_RDWR);
 	if (fd < 0) {
