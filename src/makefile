@@ -141,14 +141,6 @@ MM_OBJS = 	$(MM_DIR)mmu.o \
 #fs objs
 FS_OBJS = 	$(FS_DIR)interface.o \
 			$(FS_DIR)partition.o \
-			$(FS_DIR)bofs/main.o \
-			$(FS_DIR)bofs/super_block.o \
-			$(FS_DIR)bofs/inode.o \
-			$(FS_DIR)bofs/dir_entry.o \
-			$(FS_DIR)bofs/bitmap.o \
-			$(FS_DIR)bofs/dir.o \
-			$(FS_DIR)bofs/file.o \
-			$(FS_DIR)bofs/device.o \
 			$(FS_DIR)directory.o \
 			$(FS_DIR)file.o \
 			$(FS_DIR)flat.o \

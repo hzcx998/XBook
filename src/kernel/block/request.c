@@ -81,11 +81,6 @@ PRIVATE void AddRequest(struct RequestQueue *queue, struct Request *req)
     /* 把请求插入合适的位置 */
     ElevatorIoSchedule(queue, req);
     
-    if (req->bh) {
-        /* 把缓冲区的脏位去掉，因为将会读取全新的数据 */
-        req->bh->dirty = 0;
-    }
-    
     /* 如果请求队列没有请求，就立即执行当前请求 */
     tmp = queue->currentRequest;
 
@@ -147,9 +142,10 @@ PUBLIC void MakeRequest(int major, int rw, struct BufferHead *bh)
 
     /* 如果是写，并且没有脏数据，就直接返回。
     如果是读，并且数据有效，就直接返回 */
-    if ((rw == BLOCK_WRITE && !bh->dirty) || 
+    if ((rw == BLOCK_WRITE && !bh->dirty) ||
     (rw == BLOCK_READ && bh->uptodate)) {
         UnlockBuffer(bh);
+        //printk("do not need this request!\n");
         return;
     }
 
@@ -277,9 +273,14 @@ PUBLIC void BlockEndRequest(struct Request *request, int errors)
     request->errors += errors;
     
     if (request->bh) {
-        /* 把对应得bh设置为更新 */
         request->bh->uptodate = 1;
 
+        /* 写命令才清理脏位 */
+        if (request->cmd == BLOCK_WRITE) {
+            /* 把缓冲区的脏位去掉，因为已经写入到磁盘了 */
+            request->bh->dirty = 0;
+        }
+        
         /* 解除阻塞 */
         UnlockBuffer(request->bh);
 

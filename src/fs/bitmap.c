@@ -175,7 +175,7 @@ PUBLIC int FlatSyncBitmap(struct SuperBlock *sb,
 		lba = sb->nodeBitmapLba + Blockoffset;
 		bitsOffset = sb->nodeBitmap.bits + Blockoffset * sb->blockSize;
 	}
-
+	//printk("lba %d off %x\n", lba, Blockoffset);
 	/* 只对一个块进行操作 */
 	if (!BlockWrite(sb->devno, lba, bitsOffset, 0)) {
 		printk(PART_ERROR "device %d write failed!\n", sb->devno);

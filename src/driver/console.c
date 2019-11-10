@@ -81,6 +81,21 @@ PRIVATE void Flush()
 	SetCursor(private.cursor);
 	SetVideoStartAdr(private.currentStartAddr);
 }
+
+
+PRIVATE void CleanScreen()
+{
+	private.cursor = private.vramAddr;
+	private.currentStartAddr = private.vramAddr;
+	Flush();
+	uint8_t *vram = (uint8_t *)(V_MEM_BASE + private.cursor *2) ;
+	int i;
+	for(i = 0; i < private.vramLimit*2; i+=2){
+		*vram = 0;
+		vram += 2;
+	}
+}
+
 PRIVATE void ScrollScreen(int direction)
 {
 	if(direction == SCREEN_UP){
@@ -137,19 +152,6 @@ PRIVATE unsigned char GetChar()
 		return *vram;
 	}
 	return 0;
-}
-
-PRIVATE void CleanScreen()
-{
-	private.cursor = private.vramAddr;
-	private.currentStartAddr = private.vramAddr;
-	Flush();
-	uint8_t *vram = (uint8_t *)(V_MEM_BASE + private.cursor *2) ;
-	int i;
-	for(i = 0; i < private.vramLimit*2; i+=2){
-		*vram = 0;
-		vram += 2;
-	}
 }
 
 PUBLIC void ConsoleInit()

@@ -217,7 +217,7 @@ LoadeFile:
 	;写入参数
 	mov ax, FILE_SEG
 	mov si, FILE_OFF
-	mov cx, 100
+	mov cx, 128
 	;调用读取一整个块的扇区数据函数，其实也就是循环读取128个扇区，只是
 	;把它做成函数，方便调用
 	call LoadeBlock

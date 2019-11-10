@@ -40,13 +40,11 @@ all: compile
 
 #Compile files
 compile: $(OBJS)
-	cd $(BOFS_PATH) && make
-
+	
 #Clean temporary files
 clean:
 	-rm *.o
-	cd $(BOFS_PATH) && make clean
-
+	
 %.o: %.c
 	$(CC) $(C_FLAGS) -o $@ $<
 

@@ -49,6 +49,7 @@ PUBLIC struct BufferHead *Bread(dev_t dev, sector_t block);
 PUBLIC struct BufferHead *Bwrite(dev_t dev, sector_t block, void *buffer);
 PUBLIC int BsyncOne(struct BufferHead *bh);
 PUBLIC int Bsync();
+PUBLIC int DirtyCheck();
 
 PUBLIC void DumpBH(struct BufferHead *bh);
 

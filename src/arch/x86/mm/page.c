@@ -374,7 +374,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 获取发生故障的地址
 	addr = ReadCR2();
 
-    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+    printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");
 
@@ -396,10 +396,10 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
         // 栈向下扩展的标志
 		uint32 expandStack = 0;
 
-		//printk(PART_TIP "no space or neet expand stack\n");
+		printk(PART_TIP "no space or neet expand stack\n");
 		// 如果是用户空间的页故障
         if (frame->errorCode & PAGE_ERR_USER) {
-			//printk(PART_TIP "is user level page fault\n");
+			printk(PART_TIP "is user level page fault\n");
 			
 			// 如果是栈空间，是向下越界，并且栈的大小不能超过8MB
             if (space != NULL && 

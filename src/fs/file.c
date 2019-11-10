@@ -98,6 +98,15 @@ void DumpFileDescriptor(int fd)
 	
 }
 
+struct FileDescriptor *GetFileByDescriptor(int fd)
+{
+	if(fd < 0 || fd >= MAX_OPEN_FILE_NR) {
+		printk("fd error\n");
+		return;
+	}
+
+	return &fileDescriptorTable[fd];
+}
 
 /**
  * CreateFile - 创建目录
@@ -180,7 +189,7 @@ PUBLIC int FlatClose(int fd)
 	if (fd >= 0 && fd < MAX_OPEN_FILE_NR) {
 		ret = CloseFile(&fileDescriptorTable[fd]);
 
-		printk("close fd:%d success!\n", fd);
+		//printk("close fd:%d success!\n", fd);
 	}else{
 		printk("close fd:%d failed!\n", fd);
 	}
@@ -222,7 +231,7 @@ PRIVATE int OpenFileWithFD(struct Directory *dir, struct File *file, int flags)
  */
 PUBLIC int FlatOpen(const char *path, int flags)
 {
-	printk("open: %s\n", path);
+	//printk("open: %s\n", path);
 
 	/* 解析目录和文件，并查看目录是否存在 */
 	char dname[DIR_NAME_LEN];
@@ -233,7 +242,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		printk("open: path %s bad dir name, please check it!\n", path);
 		return -1;
 	}
-	printk("dir name is %s\n", dname);
+	//printk("dir name is %s\n", dname);
 
 	/* 获取目录 */
 	struct Directory *dir = GetDirectoryByName(dname);
@@ -250,7 +259,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		printk("open: path %s bad file name, please check it!\n", path);
 		return -1;
 	}
-	printk("file name is %s\n", fname);
+	//printk("file name is %s\n", fname);
 
 	/* 文件存在标志 */
 	char found = 0;
@@ -277,7 +286,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 			found = 1;
 			file = (struct File *)devfile;
 			
-			printk("open: search device file.\n");
+			//printk("open: search device file.\n");
 		}
 		
 	} else if (dir->type == DIR_TYPE_MOUNT) { /* 挂载目录 */
@@ -293,14 +302,14 @@ PUBLIC int FlatOpen(const char *path, int flags)
 			found = 1;
 			file = (struct File *)nodefile;
 			
-			printk("open: search node file.\n");
+			//printk("open: search node file.\n");
 		}
 		
 	}
 
 	/* 普通没有找到文件 */
 	if (!found) {
-		printk("file not found!\n");
+		//printk("file not found!\n");
 
 		/* 也不是创建创建 */
 		if (!(flags & O_CREAT)) {
@@ -312,14 +321,14 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		
 		/* 找到文件 */
 		if (file->type == FILE_TYPE_DEVICE) {
-			printk("device file found!\n");
+			//printk("device file found!\n");
 			/*
 			if (flags & O_CREAT) {
 				printk("open: device can not open with O_CREAT!\n");
 				return -1;
 			}*/
 		} else if (file->type == FILE_TYPE_NODE) {
-			printk("node file found!\n");
+			//printk("node file found!\n");
 		}
 	}
 
@@ -344,7 +353,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 
 		/* 根据不同的目录类型创建不同的文件 */
 		if (dir->type == DIR_TYPE_DEVICE) {		
-			printk("create device with attr %x\n", attr);
+			//printk("create device with attr %x\n", attr);
 			/* 创建设备文件，不指向任何设备 */
 			devfile = CreateDeviceFile(fname, attr, dir, NULL);
 			if (devfile == NULL) {
@@ -354,7 +363,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 			/* 修改文件指针 */
 			file = (struct File *)devfile;
 		} else if (dir->type == DIR_TYPE_MOUNT) {		
-			printk("create file with attr %x\n", attr);
+			//printk("create file with attr %x\n", attr);
 			/* 创建文件 */
 			nodefile = CreateNodeFile(fname, attr, dir->sb);
 			if (nodefile == NULL) {
@@ -371,7 +380,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 	
 	/* 其它操作 */
 	if (file->type == FILE_TYPE_DEVICE) {
-		printk("open device file %s\n", fname);
+		//printk("open device file %s\n", fname);
 		
 		/* 有设备指针才可以打开 */
 		if (devfile->device != NULL) {
@@ -384,7 +393,7 @@ PUBLIC int FlatOpen(const char *path, int flags)
 		}
 		
 	} else if (file->type == FILE_TYPE_NODE) {
-		printk("open node file %s\n", fname);
+		//printk("open node file %s\n", fname);
 		
 		if (fd > 0) {
 			/* 是否有追加标志 */
@@ -420,7 +429,7 @@ PUBLIC int FlatWrite(int fd, void* buf, size_t count)
 			if (pfd->file->type == FILE_TYPE_DEVICE) {
 				written = DeviceFileWrite(pfd, buf, count);
 			} else if (pfd->file->type == FILE_TYPE_NODE) {
-				
+				written = NodeFileWrite(pfd, buf, count);
 			}
 			return written;
 		}else{
@@ -456,7 +465,7 @@ PUBLIC int FlatRead(int fd, void* buf, size_t count)
 			if (pfd->file->type == FILE_TYPE_DEVICE) {
 				read = DeviceFileRead(pfd, buf, count);
 			} else if (pfd->file->type == FILE_TYPE_NODE) {
-				
+				read = NodeFileRead(pfd, buf, count);
 			}
 			return read;
 		}else{
@@ -501,7 +510,7 @@ PUBLIC off_t FlatLseek(int fd, off_t offset, char whence)
 			return -1;
 		}
 	} else if (pfd->file->type == FILE_TYPE_NODE) {
-
+		fileSize = pfd->file->size;
 	}
 	//printk("size is %d\n", fileSize);
 
@@ -520,19 +529,15 @@ PUBLIC off_t FlatLseek(int fd, off_t offset, char whence)
 			break;
 	}
 
-	if (pfd->file->type == FILE_TYPE_NODE) {
-		/* 文件范围之内才可以 */
-		if (newPos < 0 || newPos > fileSize) {	 
-			return -1;
-		}
-	} else if (pfd->file->type == FILE_TYPE_DEVICE) {
-		/* 设备扇区数范围之内才可以 */
-		if (newPos < 0 || newPos > fileSize) {	 
-			return -1;
-		}
+	/* 文件范围之内才可以 */
+	if (newPos < 0) {	 
+		newPos = 0;
+	}
+	if (newPos > fileSize) {	 
+		newPos = fileSize;
 	}
 	pfd->pos = newPos;
-
+	//printk("seek pos:%d\n", pfd->pos);
 	return pfd->pos;
 }
 
@@ -586,7 +591,7 @@ PUBLIC int FlatRemove(const char *path)
 		6.删除成功
 	 */
 
-	printk("remove: %s\n", path);
+	//printk("remove: %s\n", path);
 
 	/* 解析目录和文件，并查看目录是否存在 */
 	char dname[DIR_NAME_LEN];
@@ -597,7 +602,7 @@ PUBLIC int FlatRemove(const char *path)
 		printk("remove: path %s bad dir name, please check it!\n", path);
 		return -1;
 	}
-	printk("dir name is %s\n", dname);
+	//printk("dir name is %s\n", dname);
 
 	/* 获取目录 */
 	struct Directory *dir = GetDirectoryByName(dname);
@@ -614,7 +619,7 @@ PUBLIC int FlatRemove(const char *path)
 		printk("remove: path %s bad file name, please check it!\n", path);
 		return -1;
 	}
-	printk("file name is %s\n", fname);
+	//printk("file name is %s\n", fname);
 
 	/* 文件存在标志 */
 	char found = 0;
@@ -680,7 +685,7 @@ PUBLIC int FlatRemove(const char *path)
 		return -1;
 	} else if (file->type == FILE_TYPE_NODE) {
 		/* 使节点失效 */
-		if (LoseNodeFile(nodefile, dir->sb, 0)) {
+		if (LoseNodeFile(nodefile, dir->sb, 1)) {
 			printk(PART_ERROR "remove: lose node failed!\n");
 			return -1;
 		}
@@ -741,4 +746,97 @@ PUBLIC int IsFileEqual(struct File *file1, struct File *file2)
 
 	/* 信息都一样，说明相等 */
 	return 1;
+}
+
+PUBLIC int FlatStat(const char *path, struct Stat *buf)
+{
+	/* 解析目录和文件，并查看目录是否存在 */
+	char dname[DIR_NAME_LEN];
+	bzero(dname, DIR_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseDirectoryName((char *)path, dname)) {
+		printk("stat: path %s bad dir name, please check it!\n", path);
+		return -1;
+	}
+	//printk("dir name is %s\n", dname);
+
+	/* 获取目录 */
+	struct Directory *dir = GetDirectoryByName(dname);
+	if (dir == NULL) {
+		printk("stat: dir %s not exist!\n", dname);
+		return -1;
+	}
+
+	char fname[FILE_NAME_LEN];
+	bzero(fname, FILE_NAME_LEN);
+
+	/* 解析目录名 */
+	if(!ParseFileName((char *)path, fname)) {
+		printk("stat: path %s bad file name, please check it!\n", path);
+		return -1;
+	}
+	//printk("file name is %s\n", fname);
+
+	/* 文件存在标志 */
+	char found = 0;
+
+	
+	/* 文件类 */
+	struct File *file = NULL;
+	
+	/* 具体的文件 */
+	struct DeviceFile *devfile = NULL;
+	struct NodeFile *nodefile = NULL;
+	
+	/* 搜索文件 */
+	if (dir->type == DIR_TYPE_DEVICE) {		/* 设备目录 */
+
+		/* 获取设备文件 */
+		devfile = GetDeviceFileByName(&dir->deviceListHead, fname);
+		
+		/* 设备文件不存在 */
+		if (devfile == NULL) {
+			printk("stat: device file %s not exist!\n", fname);
+			return -1;
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)devfile;
+			
+			//printk("stat: search device file.\n");
+		}
+		
+	} else if (dir->type == DIR_TYPE_MOUNT) { /* 挂载目录 */
+		
+		/* 获取节点文件 */
+		nodefile = GetNodeFileByName(dir, fname);
+		
+		/* 节点文件不存在 */
+		if (nodefile == NULL) {
+			printk("stat: node file %s not exist!\n", fname);
+			return -1;
+		} else {
+			/* 设备文件存在 */
+			found = 1;
+			file = (struct File *)nodefile;
+			
+			//printk("stat: search node file.\n");
+		}
+		
+	}
+
+	/* 找到文件 */
+	if (file->type == FILE_TYPE_DEVICE) {
+		//printk("device file found!\n");
+
+	} else if (file->type == FILE_TYPE_NODE) {
+		//printk("node file found!\n");
+
+		buf->type = FILE_TYPE_NODE;
+		buf->size = nodefile->super.size;
+		buf->mode = nodefile->super.attr;
+		
+	}
+	return 0;
 }
