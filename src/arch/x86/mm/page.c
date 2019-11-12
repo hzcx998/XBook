@@ -421,6 +421,8 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 
 				// 是段故障
                 Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
+				/*if (DoHandleNoPage(addr))
+					return -1; */
             }
         }
 		/*如果没有栈扩展， 也不是用户空间里面的内存，

@@ -148,7 +148,7 @@ PUBLIC void SysRewindDir(DIR *dir)
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:init"
-	#define FILE_SECTORS 30
+	#define FILE_SECTORS 40
 #elif FILE_ID == 2
 	#define FILE_NAME "root:shell"
 	#define FILE_SECTORS 30

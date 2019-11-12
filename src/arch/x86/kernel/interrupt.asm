@@ -104,13 +104,14 @@ SyscallHandler:
    mov [esp + 8*4], eax	
    jmp InterruptExit		    ; InterruptExit返回,恢复上下文
 
-; 跳转到用户态执行的开关
+; 跳转到用户态执行的切换
 global SwitchToUser
 
 global InterruptExit
 
-SwitchToUser:
-    mov esp, [esp + 4]  ; process stack
+;SwitchToUser:
+;    mov esp, [esp + 4]  ; process stack
+;    jmp $
 InterruptExit:
 ; 以下是恢复上下文环境
    add esp, 4			   ; 跳过中断号
@@ -121,6 +122,24 @@ InterruptExit:
    pop ds
    add esp, 4			   ; 跳过error_code
    iretd
+
+
+
+SwitchToUser:
+    mov esp, [esp + 4]  ; process stack
+; 以下是恢复上下文环境
+   add esp, 4			   ; 跳过中断号
+   popad
+   pop gs
+   pop fs
+   pop es
+   pop ds
+   add esp, 4			   ; 跳过error_code
+
+    
+
+   iretd
+
 
 ;----
 ; 

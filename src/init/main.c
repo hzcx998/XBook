@@ -85,7 +85,7 @@ int main()
 	//Spin("bofs test");
 	
 	/* 加载init进程 */
-	InitFirstProcess("root:init", "init");
+	//InitFirstProcess("root:init", "init");
 	//BlockDeviceTest();
 	
 	/* main thread 就是idle线程 */
