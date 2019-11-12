@@ -65,15 +65,14 @@
 返回值：返回哪些值，不同的值有啥意思  
 说明：需要提供的其它更多信息  
 ##  
-    /*
-    * function: the mian of kernel
-    * parameters: none
-    * return: do not return, just pretend to return
-    * explain: after boot and loader, it will be there!
+    /**
+    * SysMmap - 内存映射
+    * @addr: 地址
+    * @len: 长度
+    * @prot: 页保护
+    * @flags: 空间的标志
+    *
+    * 执行内存映射，使得该范围内的虚拟地址可以使用
+    * 成功返回映射后的地址，失败返回NULL
     */
-    /*
-    * 功能: 内核的主函数
-    * 参数: 无
-    * 返回: 不返回，只是假装返回
-    * 说明: 引导和加载完成后，就会跳到这里
-    */
+    
