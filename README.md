@@ -40,5 +40,5 @@ We can use this OS to compile this OS!
     v0.2 2019/2/21  
     v0.1 2019/1/7  
 # 联系
-邮箱 E-mail: 2323168280@qq.com  
+邮箱 E-mail: book_os@163.com  
 官网 Website: www.book-os.org  
