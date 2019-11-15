@@ -36,9 +36,9 @@ HD_VHD = $(IMG_DIR)$(DISK_VHD)
 ASM_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
 			-f elf
 C_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
-			-c -fno-builtin -Wall -Wunused
+			-c -fno-builtin -Wall -Wunused -m32
 
-LDFLAGS		= -e _start -Ttext 0x00000000
+LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00000000
 
 OBJS =  _start.o \
 		main.o
