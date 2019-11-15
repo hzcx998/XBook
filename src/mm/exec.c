@@ -22,13 +22,12 @@
  * @offset: 偏移
  * @size: 要读取的数据数量
  */
-PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
+PRIVATE int ReadFileFrom(struct IoStream *fd, void *buffer, uint32_t offset, uint32_t size)
 {
-
-    SysLseek(fd, offset, SEEK_SET);
+    IoStreamSeek(fd, offset, SEEK_SET);
     //printk("seek!\n");
-    if (SysRead(fd, buffer, size) != size) {
-        printk(PART_ERROR "ReadFileFrom: SysRead failed!\n");
+    if (IoStreamRead(fd, buffer, size) != size) {
+        printk(PART_ERROR "ReadFileFrom: IoStreamRead failed!\n");
         return -1;
     }
     return 0;
@@ -44,7 +43,7 @@ PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
  * 加载一个段到内存
  */
 PRIVATE int 
-SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
+SegmentLoad(struct IoStream * fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
 {
     /*printk(PART_TIP "SegmentLoad:fd %d off %x size %x vaddr %x\n",
         fd, offset, fileSize, vaddr);
@@ -144,7 +143,7 @@ SegmentLoad(int fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
  * LoadElfBinary - 加载文件镜像
  * @pathname: 文件的位置
  */
-PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader, int fd)
+PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader, struct IoStream *fd)
 {
     struct Elf32_Phdr progHeader;
     /* 获取程序头起始偏移 */
@@ -480,7 +479,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     memset(&elfHeader, 0, sizeof(struct Elf32_Ehdr));
     
     /* 读取elf头部分，出错就跳到ToEnd关闭文件 */
-    /*if (SysRead(fd, &elfHeader, sizeof(struct Elf32_Ehdr)) !=\
+    /*if (IoStreamRead(fd, &elfHeader, sizeof(struct Elf32_Ehdr)) !=\
             sizeof(struct Elf32_Ehdr)) {
         ret = -1;
         printk(PART_ERROR "SysExecv: read elf header failed!\n");
@@ -612,6 +611,166 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 10.命运裁决，是返回还是运行 */
 ToEnd:
     SysClose(fd);
+    // 释放参数缓冲
+    kfree(argBuf);
+
+    /* 返回值为-1就返回-1 */
+    if (ret)
+        return -1;
+    /* 没有错误，切换到进程空间运行 */
+    SwitchToUser(frame);
+    /* 这里是不需要返回的，但为了让编译器不发出提醒，就写一个返回值 */
+    return 0;
+}
+/**
+ * SysExecv - 用新的镜像替换原来的镜像
+ * @path: 文件的路径
+ * @argv: 参数指针数组
+ * 
+ * 执行后，新的文件生效，程序重获新生
+ * 失败返回-1，成功就执行新的镜像
+ */
+PUBLIC int SysExecv2(const char *path, const char *argv[])
+{
+    printk(PART_TIP "execv: path %s\n", path);
+    int ret = 0;
+    /* 1.读取文件 */
+  
+    /* 文件流操作 */
+    struct IoStream *fd = CreateIoStream("TEST", 20*KB);
+    fd->start = (unsigned char *)0x80042000;
+    
+    /* 2.读取elf头 */
+    struct Elf32_Ehdr elfHeader;
+
+    memset(&elfHeader, 0, sizeof(struct Elf32_Ehdr));
+    
+    //ReadFileFrom(fd, &elfHeader, 0, sizeof(struct Elf32_Ehdr));
+    if (ReadFileFrom(fd, &elfHeader, 0, sizeof(struct Elf32_Ehdr))) {
+        ret = -1;
+        printk(PART_ERROR "SysExecv: read elf header failed!\n");
+        goto ToEnd;
+    }
+    
+    //printk(PART_TIP "read elfHeader\n");
+    /* 3.检验elf头 */
+    /* 检验elf头，看它是否为一个elf格式的程序 */
+    if (memcmp(elfHeader.e_ident, "\177ELF\1\1\1", 7) || \
+        elfHeader.e_type != 2 || \
+        elfHeader.e_machine != 3 || \
+        elfHeader.e_version != 1 || \
+        elfHeader.e_phnum > 1024 || \
+        elfHeader.e_phentsize != sizeof(struct Elf32_Phdr)) {
+        
+        /* 头文件检测出错 */
+        printk(PART_ERROR "SysExecv: it is not a elf format file!\n", path);
+        
+        ret = -1;
+        goto ToEnd;
+    }
+    
+    struct Task *current = CurrentTask();
+
+    /* 4.解析参数
+    后面可能释放内存资源，导致参数消失，
+    所以要在释放资源之前解析参数
+    */
+        
+    /* 当argv不为NULL才解析
+    先存放到一个缓冲中
+     */
+    
+    /*if (argv != NULL) {        
+       
+        while (argv[argc]) {
+            argc++;
+        }
+        printk("argc %d \n", argc);
+    }*/
+    /* 分配空间来保存参数 */
+    char *argBuf = (char *)kmalloc(PAGE_SIZE, GFP_KERNEL);
+    if (argBuf == NULL) {
+        printk(PART_ERROR "SysExecv: kmalloc for arg buf failed!\n");
+        
+        ret = -1;
+        goto ToEnd;
+    }
+    memset(argBuf, 0, PAGE_SIZE);
+    int argc = MakeArguments(argBuf, (char **)argv);
+
+    //printk("argc %d \n", argc);
+
+    /* 5.先把之前的资源释放
+    当再次映射的时候才能保证数据正确
+    */
+    /* 由于释放资源会把进程空间传入的名字清空，所以这里做备份 */
+    char name[MAX_TASK_NAMELEN];
+    memset(name, 0, MAX_TASK_NAMELEN);
+    strcpy(name, path);
+    
+    /* 只释放占用的其它资源*/
+    MemoryManagerRelease(current->mm, 0);
+    
+    //printk("start load");
+    /* 6.加载程序段 */
+    if (LoadElfBinary(current->mm, &elfHeader, fd)) {
+        printk(PART_ERROR "SysExecv: load elf binary failed!\n");
+        
+        ret = -1;
+        goto ToEnd;
+    }
+    
+    //printk("end load\n");
+    /* 7.设置中断栈 */
+    
+    /* 构建新的中断栈 */
+    struct TrapFrame *frame = (struct TrapFrame *)\
+        ((unsigned int)current + PAGE_SIZE - sizeof(struct TrapFrame));
+    
+    if(InitUserStack(current, frame, (char **)argBuf, argc)){
+        ret = -1;
+        goto ToEnd;
+    }
+
+    if(InitUserHeap(current)){
+        ret = -1;
+        goto ToEnd;
+    }
+    
+    /* 8.修改寄存器 */
+    ResetRegisters(frame);
+    
+    /* 传递参数 */
+    frame->ebx = (uint32_t)argv;
+    frame->ecx = argc;
+    frame->eip = (uint32_t)elfHeader.e_entry;
+
+    /* 9.设置其他内容 */
+    /*
+    printk(PART_TIP "task %s pid %d execv path %s", 
+        current->name, current->pid, path
+    ); */
+    
+    /* 修改进程的名字 */
+    memset(current->name, 0, MAX_TASK_NAMELEN);
+    /* 这里复制前面备份好的名字 */
+    strcpy(current->name, name);
+    
+    
+    printk(PART_TIP "VMspace->\n");
+    printk(PART_TIP "code start:%x end:%x data start:%x end:%x\n", 
+        current->mm->codeStart, current->mm->codeEnd, current->mm->dataStart, current->mm->dataEnd
+    );
+    
+    printk(PART_TIP "brk start and end:%x\n", current->mm->brkStart);
+    printk(PART_TIP "stack start and end:%x\n", current->mm->stackStart);
+    printk(PART_TIP "arg start:%x end:%x\n", current->mm->argStart, current->mm->argEnd);
+    
+
+    //printk(PART_TIP "exec int the end!\n");
+    /* 10.命运裁决，是返回还是运行 */
+ToEnd:
+    //SysClose(fd);
     // 释放参数缓冲
     kfree(argBuf);
 

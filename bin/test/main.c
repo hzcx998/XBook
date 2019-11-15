@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 		i++;
 	}
 	printf("I will do some test and exit\n");	
-	// return 0;
+	 return 0;
 	
 
 	printf("----file test----\n");

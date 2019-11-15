@@ -361,7 +361,9 @@ PRIVATE void StartProcess(void *fileName)
 {
     /* 开启进程的时候，需要去执行init程序，所以这里
     调用execv来完成这个工作 */
-    SysExecv((char *)fileName, NULL);
+    //SysExecv((char *)fileName, NULL);
+    SysExecv2((char *)fileName, NULL);
+    
     /* 如果运行失败就停在这里 */
     Panic("start init failed!\n");
 }

@@ -108,7 +108,7 @@ PUBLIC pid_t SysFork();
 
 /* exec.c */
 PUBLIC int SysExecv(const char *path, const char *argv[]);
-
+PUBLIC int SysExecv2(const char *path, const char *argv[]);
 /* sleep_wakeup.c */
 PUBLIC void TaskSleep(uint32_t ticks);
 PUBLIC int SysSleep(uint32_t second);
