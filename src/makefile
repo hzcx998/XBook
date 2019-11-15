@@ -35,7 +35,7 @@ HDD_IMG		= $(IMG_DIR)f.img
 #----flags----
 #out a map file: -Map kernel.map
 #i386 link flags
-LDFLAGS		= -m elf_i386 -e _start -Ttext 0x80100000
+LDFLAGS		= -m elf_i386
 
 #system disk
 LOADER_OFF = 2		
@@ -79,7 +79,7 @@ KERNEL_ELF =  kernel.elf
 PHONY	+= all run compile link disk bochs bochsdbg qemu clean
 PHONY	+= $(SRCDIRS)
 
-export NASM NASM_FLAGS CC LD CFLAGS TOPDIR
+export NASM NASM_FLAGS CC LD CFLAGS LDFLAGS TOPDIR
 
 #----cmd----
 all: disk
@@ -96,7 +96,7 @@ else
 endif
 
 $(KERNEL_ELF): $(OBJS)
-	$(LD) $(LDFLAGS) -o $(KERNEL_ELF) $(OBJS)
+	$(LD) $(LDFLAGS)  -e _start -Ttext 0x80100000 -o $(KERNEL_ELF) $(OBJS)
 
 #write file into disk
 disk: $(KERNEL_ELF)
