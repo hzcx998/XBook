@@ -15,6 +15,6 @@ obj-y	+= workqueue.o
 obj-y	+= ioqueue.o
 obj-y	+= device.o
 obj-y	+= iostream.o
+obj-y	+= spinlock.o
 obj-y	+= block/
 obj-y	+= char/
-		

@@ -15,6 +15,7 @@
 #include <user/stdlib.h>
 #include <user/conio.h>
 #include <book/semaphore.h>
+#include <book/spinlock.h>
 
 /**
  * SwitchToUser - 跳转到用户态执行的开关 
@@ -502,16 +503,15 @@ PUBLIC void PrintTask()
 
 }
 /*
-PRIVATE struct SyncLock consoleLock;
+PRIVATE Spinlock_t consoleLock;
 
 PRIVATE void lockPrintk(char *buf)
 {
-    SyncLockAcquire(&consoleLock);
+    enum InterruptStatus old = SpinLockSaveIntrrupt(&consoleLock);
     printk(buf);
-
-    SyncLockRelease(&consoleLock);
-}*/
-
+    SpinUnlockRestoreInterrupt(&consoleLock, old);
+}
+*/
 int testA = 0, testB = 0;
 void ThreadA(void *arg)
 {
@@ -519,8 +519,10 @@ void ThreadA(void *arg)
     int i = 0;
     while (1) {
         i++;
-        if (i%0xf00000 == 0) {
-            //lockPrintk("%x ", testA);
+        testA++;
+        if (i%0xf0000 == 0) {
+
+            //lockPrintk("abcdefg");
             //lockPrintk(par);
             
         }
@@ -534,8 +536,9 @@ void ThreadB(void *arg)
     // log("hello\n");
     while (1) {
         i++;
-        if (i%0xf00000 == 0) {
-            //lockPrintk(par);
+        testB++;
+        if (i%0xf0000 == 0) {
+            //lockPrintk("123456");
             //SysMSleep(3000);
             //printk("%x ", testB);
         }
