@@ -194,3 +194,45 @@ CpuNop:
 	nop
 	ret
 
+global Xchg8
+; char Xchg8(char *ptr, char value);
+Xchg8:
+    push ebx
+    
+    mov eax, [esp + 4 + 4]      ; ptr  
+    mov bl, [esp + 4 + 8]       ; value
+    xchg [eax], bl     ; 8 bits
+    xor eax, eax    ; eax = 0
+    mov al, bl      ; al == old *ptr
+
+    pop ebx
+    ret
+
+global Xchg16
+; short Xchg16(short *ptr, short value);
+Xchg16:
+    push ebx
+    
+    mov eax, [esp + 4 + 4]      ; ptr  
+    mov bx, [esp + 4 + 8]       ; value
+    xchg [eax], bx     ; 16 bits
+
+    xor eax, eax    ; eax = 0
+    mov ax, bx      ; ax == old *ptr
+
+    pop ebx
+    ret
+
+global Xchg32
+; int Xchg32(int *ptr, int value);
+Xchg32:
+    push ebx
+    
+    mov eax, [esp + 4 + 4]      ; ptr  
+    mov bx, [esp + 4 + 8]       ; value
+    xchg [eax], ebx     ; 32 bits
+
+    mov eax, ebx      ; eax == old *ptr
+
+    pop ebx
+    ret

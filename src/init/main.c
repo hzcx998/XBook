@@ -75,7 +75,6 @@ int main()
 	/* 初始化块设备 */	
 	InitBlockDevice();
 
-	
 	/* 初始化文件系统 */
 	//InitFileSystem();
 	

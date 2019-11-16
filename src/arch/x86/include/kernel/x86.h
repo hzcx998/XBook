@@ -9,6 +9,7 @@
 #define _ARCH_X86_H
 
 #include <share/stdint.h>
+#include <share/types.h>
 
 uint32_t In8(uint32_t port);
 uint32_t In16(uint32_t port);
@@ -40,5 +41,38 @@ void X86Cpuid(unsigned int id_eax, unsigned int *eax, \
         unsigned int *ebx, unsigned int *ecx, unsigned int *edx);
 
 void CpuNop();
+
+char Xchg8(char *ptr, char value);
+short Xchg16(short *ptr, short value);
+int Xchg32(int *ptr, int value);
+
+#define XCHG(ptr,v) ((__typeof__(*(ptr)))__Xchg((unsigned int) \
+        (v),(ptr),sizeof(*(ptr))))
+
+/**
+ * __Xchg: 交换一个内存地址和一个数值的值
+ * @x: 数值
+ * @ptr: 内存指针
+ * @size: 地址值的字节大小
+ * 
+ * 返回交换前地址中的值
+ */
+STATIC INLINE unsigned int __Xchg(unsigned int x, 
+        volatile void * ptr, int size)
+{
+    int old;
+    switch (size) {
+        case 1:
+            old = Xchg8((char *)ptr, x);
+            break;
+        case 2:
+            old = Xchg16((short *)ptr, x);
+            break;
+        case 4:
+            old = Xchg32((int *)ptr, x);
+            break;
+    }
+    return old;
+}
 
 #endif	/*_ARCH_X86_H*/

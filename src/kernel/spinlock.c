@@ -134,3 +134,47 @@ PUBLIC void SpinUnlockInterrupt(struct Spinlock *lock)
    /* 打开中断 */
     EnableInterrupt();
 }
+
+
+/**
+ * SpinTryLock - 尝试自旋锁加锁
+ * @lock: 锁对象
+ * 
+ * 
+ * 非阻塞式获取锁
+ * 如果锁已经被使用，就返回一个非0值，不会自旋等待锁释放。
+ * 如果成功获得了锁，就返回0
+ */
+PUBLIC int SpinTryLock(struct Spinlock *lock)
+{
+    /* 对于多处理器，应该先禁止内核抢占，由于目前是单处理器，就可以不用写抢占 */
+
+    /* 如果锁已经被其它进程或线程占用，返回非0，不等待 */
+    if (AtomicGet(&lock->lock) > 0) {
+        return 1;
+    }
+    
+    /* 执行上锁操作，获取锁 */
+    AtomicInc(&lock->lock);
+
+    /* 对于多处理器，应该打开内核抢占，由于目前是单处理器，就可以不用打开内核抢占 */
+
+    return 0;
+}
+
+/**
+ * SpinIsLocked - 检测锁是否被占用
+ * @lock: 锁对象
+ * 
+ * 如果锁已经被使用，就返回1
+ * 不然就返回0
+ */
+PUBLIC int SpinIsLocked(struct Spinlock *lock)
+{
+    /* 如果锁是非0，就说明已经被占用 */
+    if (AtomicGet(&lock->lock) > 0) {
+        return 1;
+    }
+    /* 没有被占用 */
+    return 0;
+}

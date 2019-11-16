@@ -129,7 +129,7 @@
 struct IdeChannel {
    	unsigned short base;  // I/O Base.
 	char irqno;		 	// 本通道所用的中断号
-   	struct SyncLock lock;
+   	struct Synclock lock;
    	struct IdeDevice *devices;	// 通道上面的设备
 	char who;		/* 通道上主磁盘在活动还是从磁盘在活动 */
 	char what;		/* 执行的是什么操作 */
@@ -955,7 +955,8 @@ PRIVATE int AtaTypeTransfer(struct IdeDevice *dev,
 	/* 已经完成的扇区数 */
 	unsigned int done = 0;
 	
-	SyncLockAcquire(&channel->lock);
+    /* 同步锁加锁 */
+	SyncLock(&channel->lock);
 
 	/* 保存读写操作 */
 	channel->what = rw;
@@ -1021,7 +1022,7 @@ PRIVATE int AtaTypeTransfer(struct IdeDevice *dev,
 		}
 	}
 
-	SyncLockRelease(&channel->lock);
+	SyncUnlock(&channel->lock);
 	return 0;
 }
 
@@ -1428,11 +1429,11 @@ PRIVATE void IdeProbe(char diskFound)
 		}
 		channel->who = 0;	// 初始化为0
 		channel->what = 0;
-		SyncLockInit(&channel->lock);	
+		SynclockInit(&channel->lock);	
 
 		/* 初始化任务协助 */
 		TaskAssistInit(&ideAssist, IdeAssistHandler, 0);
-
+        
 		/* 注册中断 */
 		RegisterIRQ(channel->irqno, IdeHandler, IRQF_DISABLED, "ATA", "BLOCK", (unsigned int)channel);
 		#ifdef _DEBUG_IDE_INFO	
