@@ -74,7 +74,7 @@ OBJS	:= $(patsubst %/, %/built-in.o, $(SRCDIRS))
 
 INCLUDE_PATH	:= $(patsubst %, -I $(TOPDIR)/%, $(INCDIRS))
 
-CFLAGS	:=  -fno-builtin -Wall -Wunused -m32 -fno-stack-protector $(INCLUDE_PATH) -c
+CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(INCLUDE_PATH) -c
 NASM_FLAGS	:= $(INCLUDE_PATH)
 
 #kernel temp file	

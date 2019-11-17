@@ -76,11 +76,15 @@ typedef struct Task {
     unsigned int stackMagic;         /* 任务的魔数 */
 } Task_t;
 
+#define SET_TASK_STATUS(task, stat) \
+        (task)->status = stat
+
 EXTERN struct List taskReadyList;
 EXTERN struct List taskGlobalList;
 
 PUBLIC void InitTasks();
 PUBLIC void PrintTask();
+PUBLIC void DumpTask(struct Task *task);
 
 PUBLIC Task_t *CurrentTask();
 

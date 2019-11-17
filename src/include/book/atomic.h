@@ -10,6 +10,7 @@
 
 #include <book/config.h>
 #include <share/types.h>
+#include <book/arch.h>
 
 EXTERN void __AtomicAdd(int *a, int b);
 EXTERN void __AtomicSub(int *a, int b);
@@ -88,5 +89,7 @@ PRIVATE INLINE void AtomicClearMask(Atomic_t *atomic, int mask)
 {
    __AtomicAnd(&atomic->value, ~mask);
 }
+
+#define ATOMIC_XCHG(v, new) (XCHG(&((v)->value), new))
 
 #endif   /* _BOOK_ATOMIC_H */

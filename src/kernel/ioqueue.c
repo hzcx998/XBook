@@ -26,7 +26,7 @@ PUBLIC struct IoQueue *CreateIoQueue()
 PUBLIC int IoQueueInit(struct IoQueue *ioQueue)
 {
 	//初始化队列锁
-	SyncLockInit(&ioQueue->lock);
+	SynclockInit(&ioQueue->lock);
 	//初始化缓冲区
 	ioQueue->buf = (unsigned int *)kmalloc(IO_QUEUE_BUF_LEN*4, GFP_KERNEL);
 	if (ioQueue->buf == NULL) {
@@ -70,12 +70,12 @@ PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data)
 	/*如果队列已经满了，就不能放入数据*/
 	while (IoQueueFull(ioQueue)) {
 		/* 获取锁 */
-		SyncLockAcquire(&ioQueue->lock);
+		SyncLock(&ioQueue->lock);
 
 		/* 进入等待队列 */
 		IoQueueWait(&ioQueue->producer);
 		/* 释放锁 */
-		SyncLockRelease(&ioQueue->lock);
+		SyncUnlock(&ioQueue->lock);
 	}
 	
 	//如果最大了就直接覆盖原有信息
@@ -103,11 +103,11 @@ PUBLIC unsigned int IoQueueGet(struct IoQueue *ioQueue)
 	/*如果队列时空的，就一直等待，知道有数据产生*/
 	while (IoQueueEmpty(ioQueue)) {
 		/* 获取锁 */
-		SyncLockAcquire(&ioQueue->lock);
+		SyncLock(&ioQueue->lock);
 		/* 消费者进入等待状态 */
 		IoQueueWait(&ioQueue->consumer);
 		/* 释放锁 */
-		SyncLockRelease(&ioQueue->lock);
+		SyncUnlock(&ioQueue->lock);
 	}
 
 	/* 从尾部获取一个数据 */

@@ -31,7 +31,7 @@ struct List {
 
 /* 创建并赋值 */
 #define LIST_HEAD(name) \
-      struct List name = LIST_HEAD_INIT(name)
+        struct List name = LIST_HEAD_INIT(name)
 
 /* 让链表内容指针指向自己本身 */
 PRIVATE INLINE void INIT_LIST_HEAD(struct List *list)

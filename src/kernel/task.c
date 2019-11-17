@@ -10,11 +10,13 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/schedule.h>
-#include <book/sync_lock.h>
+#include <book/synclock.h>
 #include <book/vmspace.h>
 #include <user/stdlib.h>
 #include <user/conio.h>
 #include <book/semaphore.h>
+#include <book/mutex.h>
+
 #include <book/spinlock.h>
 
 /**
@@ -37,6 +39,7 @@ PUBLIC Task_t *mainThread;
 PUBLIC LIST_HEAD(taskReadyList);
 // 全局队列链表，用来查找所有存在的任务
 PUBLIC LIST_HEAD(taskGlobalList);
+
 
 /**
  * KernelThread - 执行内核线程
@@ -512,6 +515,20 @@ PRIVATE void lockPrintk(char *buf)
     SpinUnlockRestoreInterrupt(&consoleLock, old);
 }
 */
+
+//PRIVATE Mutex_t consoleLock;
+/*
+DEFINE_MUTEX(consoleLock); 
+
+PRIVATE void lockPrintk(char *buf)
+{
+    MutexLock(&consoleLock);
+    printk(buf);
+
+    MutexUnlock(&consoleLock);
+
+}
+*/
 int testA = 0, testB = 0;
 void ThreadA(void *arg)
 {
@@ -520,12 +537,15 @@ void ThreadA(void *arg)
     while (1) {
         i++;
         testA++;
-        if (i%0xf0000 == 0) {
-
-            //lockPrintk("abcdefg");
-            //lockPrintk(par);
+        if (i%0x10000 == 0) {
             
+            //lockPrintk("<abcdefghabcdef> ");
+           
+            //lockPrintk(par);
         }
+/*
+        if (i > 0xf000000)
+            Panic("halt");*/
     }
 }
 
@@ -537,12 +557,24 @@ void ThreadB(void *arg)
     while (1) {
         i++;
         testB++;
-        if (i%0xf0000 == 0) {
-            //lockPrintk("123456");
+        if (i%0x10000 == 0) {
+            
+            //lockPrintk("[12345678123456] ");
+            
             //SysMSleep(3000);
             //printk("%x ", testB);
         }
+        /*if (i > 0xf000000)
+            Panic("halt");*/
     }
+}
+
+PUBLIC void DumpTask(struct Task *task)
+{
+    printk(PART_TIP "----Task----\n");
+    printk(PART_TIP "name:%s pid:%d parent pid:%d status:%d\n", task->name, task->pid, task->parentPid, task->status);
+    printk(PART_TIP "pgdir:%x priority:%d ticks:%d elapsed ticks:%d\n", task->pgdir, task->priority, task->ticks, task->elapsedTicks);
+    printk(PART_TIP "exit code:%d mm:%x stack mageic:%d\n", task->exitStatus, task->mm, task->stackMagic);
 }
 
 /**
@@ -561,14 +593,16 @@ PUBLIC void InitTasks()
     // TaskExecute(0, "init");
     
     //SyncLockInit(&consoleLock);
-    
+    //MutexInit(&consoleLock);
+
+    //DumpMutex(&consoleLock);
     MakeMainThread();
    
     /* 有可能做测试阻塞main线程，那么就没有线程，
     在切换任务的时候就会出错，所以这里创建一个测试线程 */
-    ThreadStart("test", 3, ThreadA, "NULL");
+    ThreadStart("test", 1, ThreadA, "NULL");
     
-    ThreadStart("test2", 3, ThreadB, "NULL");
+    ThreadStart("test2", 1, ThreadB, "NULL");
     
 	// 在初始化多任务之后才初始化任务的虚拟空间
 	InitVMSpace();

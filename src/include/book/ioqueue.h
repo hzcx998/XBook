@@ -10,7 +10,7 @@
 
 #include <share/types.h>
 #include <share/stdint.h>
-#include <book/sync_lock.h>
+#include <book/synclock.h>
 #include <book/task.h>
 
 #define IO_QUEUE_BUF_LEN 64
@@ -22,7 +22,7 @@
 生产者消费者模型来实现IoQueue
 */
 struct IoQueue {
-    struct SyncLock lock;
+    struct Synclock lock;
     unsigned int *buf;			    // 缓冲区大小
     unsigned int *head;			    // 队首,数据往队首处写入
     unsigned int *tail;			    // 队尾,数据从队尾处读出
