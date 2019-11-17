@@ -1,5 +1,5 @@
 /*
- * file:		driver/char/mouse.c
+ * file:		drivers/char/mouse.c
  * auther:		Jason Hu
  * time:		2019/8/22
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -9,7 +9,7 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/interrupt.h>
-#include <driver/mouse.h>
+#include <drivers/mouse.h>
 #include <book/ioqueue.h>
 #include <share/string.h>
 

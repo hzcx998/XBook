@@ -10,8 +10,8 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/task.h>
-#include <driver/timer.h>
-#include <driver/clock.h>
+#include <drivers/timer.h>
+#include <drivers/clock.h>
 
 
 /**

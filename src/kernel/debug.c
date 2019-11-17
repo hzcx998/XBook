@@ -7,7 +7,7 @@
 
 
 #include <book/debug.h>
-#include <driver/console.h>
+#include <drivers/console.h>
 #include <share/vsprintf.h>
 #include <book/arch.h>
 

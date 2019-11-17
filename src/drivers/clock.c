@@ -1,5 +1,5 @@
 /*
- * file:		driver/char/clock.c
+ * file:		drivers/char/clock.c
  * auther:		Jason Hu
  * time:		2019/6/26
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -8,10 +8,10 @@
 #include <share/stddef.h>
 #include <book/arch.h>
 #include <book/debug.h>
-#include <driver/clock.h>
+#include <drivers/clock.h>
 #include <book/schedule.h>
 #include <book/task.h>
-#include <driver/timer.h>
+#include <drivers/timer.h>
 #include <share/math.h>
 #include <book/interrupt.h>
 

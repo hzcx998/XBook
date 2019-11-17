@@ -10,8 +10,8 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <share/string.h>
-#include <driver/ide.h>
-#include <driver/clock.h>
+#include <drivers/ide.h>
+#include <drivers/clock.h>
 #include <fs/bitmap.h>
 #include <share/math.h>
 #include <fs/file.h>

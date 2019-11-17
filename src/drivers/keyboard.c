@@ -1,5 +1,5 @@
 /*
- * file:		driver/char/keyboard.c
+ * file:		drivers/char/keyboard.c
  * auther:		Jason Hu
  * time:		2019/8/19
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -9,8 +9,8 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/interrupt.h>
-#include <driver/keyboard.h>
-#include <driver/keymap.h>
+#include <drivers/keyboard.h>
+#include <drivers/keymap.h>
 #include <book/ioqueue.h>
 #include <book/device.h>
 #include <share/string.h>

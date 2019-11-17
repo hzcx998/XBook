@@ -6,10 +6,10 @@
  */
 
 #include <book/syscall.h>
-#include <driver/console.h>
+#include <drivers/console.h>
 #include <book/task.h>
 #include <book/vmspace.h>
-#include <driver/clock.h>
+#include <drivers/clock.h>
 #include <fs/interface.h>
 
 /* 系统调用表 */ 

@@ -1,5 +1,5 @@
 /*
- * file:		driver/char/timer.c
+ * file:		drivers/char/timer.c
  * auther:		Jason Hu
  * time:		2019/8/8
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -8,8 +8,8 @@
 #include <share/stddef.h>
 #include <book/arch.h>
 #include <book/debug.h>
-#include <driver/clock.h>
-#include <driver/timer.h>
+#include <drivers/clock.h>
+#include <drivers/timer.h>
 #include <book/schedule.h>
 #include <book/task.h>
 

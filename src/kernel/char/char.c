@@ -11,7 +11,7 @@
 #include <book/device.h>
 #include <book/char.h>
 
-#include <driver/keyboard.h>
+#include <drivers/keyboard.h>
 
 //#define _DEBUG_TEST
 

@@ -63,7 +63,7 @@ LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
 TOPDIR	:= $(CURDIR)
 
 #objs
-SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ driver/ mm/ fs/ user/
+SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/
 
 INCDIRS	:= include/ include/book/ $(ARCH)/include/ \
 	$(ARCH)/include/bus/ \

@@ -1,5 +1,5 @@
 /*
- * file:		driver/ide.c
+ * file:		drivers/ide.c
  * auther:		Jason Hu
  * time:		2019/10/13
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -10,7 +10,7 @@
 #include <book/config.h>
 #include <book/debug.h>
 #include <book/interrupt.h>
-#include <driver/ide.h>
+#include <drivers/ide.h>
 #include <book/ioqueue.h>
 #include <book/device.h>
 #include <share/string.h>
@@ -18,7 +18,7 @@
 #include <share/math.h>
 #include <share/const.h>
 #include <share/vsprintf.h>
-#include <driver/clock.h>
+#include <drivers/clock.h>
 
 #include <book/blk-disk.h>
 #include <book/blk-dev.h>
