@@ -9,10 +9,14 @@ make
 make run
 #run in qemu（直接在qemu虚拟机中运行）
 make qemu
-#run in bochs（直接在bochs虚拟机中运行）
-make bochs
-#run in bochsdbg（运行bochsdbg调试器）
-make bochsdbg
+#run in bochs_win（直接在windows环境下的bochs虚拟机中运行）
+make bochs_win 
+#run in bochs_linux（直接在linux环境下的bochs虚拟机中运行）
+make bochs_linux 
+#run in bochsdbg_win（运行bochsdbg调试器）
+make bochsdbg_win
+#run in bochsdbg_linux（运行bochsdbg调试器）
+make bochsdbg_linux
 #clean all .o, .bin, .elf file（删除所有产生的临时文件）
 make clean
 ```
