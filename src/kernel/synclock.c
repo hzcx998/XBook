@@ -1,5 +1,5 @@
 /*
- * file:		kernel/sync_lock.c
+ * file:		kernel/synclock.c
  * auther:	    Jason Hu
  * time:		2019/7/31
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -10,13 +10,13 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/task.h>
-#include <book/sync_lock.h>
+#include <book/synclock.h>
 
 /**
- * SyncLockInit - 初始化同步锁
+ * SynclockInit - 初始化同步锁
  * @lock: 锁对象
  */
-PUBLIC void SyncLockInit(struct SyncLock *lock)
+PUBLIC void SynclockInit(struct Synclock *lock)
 {
     lock->holder = NULL;        // 最开始没有持有者
     lock->holderReaptCount = 0; // 一次都没有重复
@@ -26,10 +26,10 @@ PUBLIC void SyncLockInit(struct SyncLock *lock)
 }
 
 /**
- * SyncLockAcquire - 获取同步锁
+ * SyncLock - 获取同步锁
  * @lock: 锁对象
  */
-PUBLIC void SyncLockAcquire(struct SyncLock *lock)
+PUBLIC void SyncLock(struct Synclock *lock)
 {
     // 自己没有锁才获取信号量
     if (lock->holder != CurrentTask()) {
@@ -62,10 +62,10 @@ PUBLIC void SyncLockAcquire(struct SyncLock *lock)
 }
 
 /**
- * SyncLockRelease - 释放同步锁
+ * SyncUnlock - 释放同步锁
  * @lock: 锁对象
  */
-PUBLIC void SyncLockRelease(struct SyncLock *lock)
+PUBLIC void SyncUnlock(struct Synclock *lock)
 {
     // 释放的时候自己必须持有锁
     ASSERT(lock->holder == CurrentTask());

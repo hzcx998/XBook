@@ -12,8 +12,8 @@
 #include <fs/flat.h>
 #include <fs/file.h>
 #include <fs/directory.h>
-#include <driver/keyboard.h>
-#include <driver/ide.h>
+#include <drivers/keyboard.h>
+#include <drivers/ide.h>
 #include <fs/super_block.h>
 #include <fs/node.h>
 #include <fs/device.h>

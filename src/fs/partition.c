@@ -11,7 +11,7 @@
 #include <book/debug.h>
 #include <book/share.h>
 #include <fs/partition.h>
-#include <driver/ide.h>
+#include <drivers/ide.h>
 #include <fs/bofs/bofs.h>
 #include <book/device.h>
 

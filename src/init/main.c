@@ -8,7 +8,7 @@
 #include <book/arch.h>
 #include <book/hal.h>
 #include <book/debug.h>
-#include <driver/clock.h>
+#include <drivers/clock.h>
 #include <share/string.h>
 #include <book/memcache.h>
 #include <user/conio.h>
@@ -16,14 +16,14 @@
 #include <user/stdlib.h>
 #include <user/mman.h>
 #include <book/atomic.h>
-#include <driver/keyboard.h>
+#include <drivers/keyboard.h>
 #include <book/interrupt.h>
 #include <book/device.h>
-#include <driver/ide.h>
+#include <drivers/ide.h>
 #include <book/vmarea.h>
 #include <fs/partition.h>
 #include <fs/interface.h>
-#include <driver/ramdisk.h>
+#include <drivers/ramdisk.h>
 #include <book/block.h>
 #include <fs/super_block.h>
 #include <book/char.h>
@@ -75,7 +75,6 @@ int main()
 	/* 初始化块设备 */	
 	InitBlockDevice();
 
-	
 	/* 初始化文件系统 */
 	//InitFileSystem();
 	

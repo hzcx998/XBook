@@ -1,5 +1,5 @@
 /*
- * file:		driver/ramdisk.c
+ * file:		drivers/ramdisk.c
  * auther:		Jason Hu
  * time:		2019/9/22
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -10,7 +10,7 @@
 #include <book/config.h>
 #include <book/debug.h>
 #include <book/interrupt.h>
-#include <driver/ramdisk.h>
+#include <drivers/ramdisk.h>
 #include <book/ioqueue.h>
 #include <book/device.h>
 #include <share/string.h>

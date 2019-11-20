@@ -11,9 +11,9 @@
 #include <book/block.h>
 #include <book/device.h>
 #include <book/task.h>
-#include <driver/clock.h>
-#include <driver/ramdisk.h>
-#include <driver/ide.h>
+#include <drivers/clock.h>
+#include <drivers/ramdisk.h>
+#include <drivers/ide.h>
 
 #include <book/blk-buffer.h>
 #include <book/blk-request.h>

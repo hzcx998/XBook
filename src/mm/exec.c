@@ -116,7 +116,6 @@ SegmentLoad(struct IoStream * fd, uint32_t offset, uint32_t fileSize, uint32_t v
     }
 
     //printk(PART_TIP "addr %x link done!\n", vaddrFirstPage);
-    // while (1);
     
     /* 映射虚拟空间 */  
     int32 ret = (int32)SysMmap(vaddrFirstPage, occupyPages*PAGE_SIZE, 
@@ -125,7 +124,7 @@ SegmentLoad(struct IoStream * fd, uint32_t offset, uint32_t fileSize, uint32_t v
         printk(PART_ERROR "SegmentLoad: SysMmap failed!\n");
         return -1;
     }
-    printk(PART_TIP "VMSpace: addr %x page %d\n", vaddrFirstPage, occupyPages);
+    //printk(PART_TIP "VMSpace: addr %x page %d\n", vaddrFirstPage, occupyPages);
     
     //memset(vaddr, 0, fileSize);
 
@@ -756,7 +755,7 @@ PUBLIC int SysExecv2(const char *path, const char *argv[])
     /* 这里复制前面备份好的名字 */
     strcpy(current->name, name);
     
-    
+    /*
     printk(PART_TIP "VMspace->\n");
     printk(PART_TIP "code start:%x end:%x data start:%x end:%x\n", 
         current->mm->codeStart, current->mm->codeEnd, current->mm->dataStart, current->mm->dataEnd
@@ -765,7 +764,7 @@ PUBLIC int SysExecv2(const char *path, const char *argv[])
     printk(PART_TIP "brk start and end:%x\n", current->mm->brkStart);
     printk(PART_TIP "stack start and end:%x\n", current->mm->stackStart);
     printk(PART_TIP "arg start:%x end:%x\n", current->mm->argStart, current->mm->argEnd);
-    
+    */
 
     //printk(PART_TIP "exec int the end!\n");
     /* 10.命运裁决，是返回还是运行 */

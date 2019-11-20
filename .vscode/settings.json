@@ -18,7 +18,9 @@
         "types.h": "c",
         "stddef.h": "c",
         "list.h": "c",
-        "clock.h": "c"
+        "clock.h": "c",
+        "mutex.h": "c",
+        "spinlock.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

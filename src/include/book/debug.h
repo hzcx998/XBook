@@ -10,7 +10,7 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
-#include <driver/console.h>
+#include <drivers/console.h>
 
 #define DEBUG_PART
 

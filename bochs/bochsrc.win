@@ -1,5 +1,6 @@
 ###############################################################
-# bochsrc.txt file for DLX Linux disk image.
+# bochsrc.win file for Book Kernel disk image on Windows 
+# environment.
 ###############################################################
 
 # how much memory the emulated machine will have

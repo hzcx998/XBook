@@ -1,5 +1,9 @@
 # Book-OS-X*(XBook) Finished task.  
 
+* synclock
+* mutexlock
+* spinlock
+--2019.11.17--
 * flat file system of device file
 * new keyboard driver
 * char device

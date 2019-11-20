@@ -20,7 +20,11 @@ DD 			= dd
 QEMU 		= qemu-system-i386
 BOCHS 		= bochs
 BOCHSDBG 	= bochsdbg
-BXRC 		= $(BOCHS_DIR)bochsrc.bxrc
+
+# bochsrc for windows
+BXRC_WIN 		= $(BOCHS_DIR)bochsrc.win
+# bochsrc for linux
+BXRC_LINUX 		= $(BOCHS_DIR)bochsrc.linux
 
 #----img----
 #img dir
@@ -59,7 +63,7 @@ LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
 TOPDIR	:= $(CURDIR)
 
 #objs
-SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ driver/ mm/ fs/ user/
+SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/
 
 INCDIRS	:= include/ include/book/ $(ARCH)/include/ \
 	$(ARCH)/include/bus/ \
@@ -76,7 +80,7 @@ NASM_FLAGS	:= $(INCLUDE_PATH)
 #kernel temp file	
 KERNEL_ELF =  kernel.elf
 
-PHONY	+= all run compile link disk bochs bochsdbg qemu clean
+PHONY	+= all run compile link disk bochs_win bochs_linux bochsdbg_win bochsdbg_linux qemu clean
 PHONY	+= $(SRCDIRS)
 
 export NASM NASM_FLAGS CC LD CFLAGS LDFLAGS TOPDIR
@@ -105,11 +109,17 @@ disk: $(KERNEL_ELF)
 	$(DD) if=$(KERNEL_ELF) of=$(FLAPPY_IMG) bs=512 seek=$(KERNEL_OFF) count=$(KERNEL_CNTS) conv=notrunc
 
 #run kernel in vm
-bochs: disk
-	$(BOCHS) -q -f $(BXRC)
+bochs_win: disk
+	$(BOCHS) -q -f $(BXRC_WIN)
+bochs_linux: disk
+	$(BOCHS) -q -f $(BXRC_LINUX)
 
-bochsdbg: disk
-	$(BOCHSDBG) -q -f $(BXRC)
+bochsdbg_win: disk
+	$(BOCHSDBG) -q -f $(BXRC_WIN)
+
+bochsdbg_linux: disk
+	$(BOCHSDBG) -q -f $(BXRC_LINUX)
+
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu: disk

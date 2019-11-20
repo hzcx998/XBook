@@ -1,5 +1,5 @@
 /*
- * file:		driver/char/console.c
+ * file:		drivers/char/console.c
  * auther:		Jason Hu
  * time:		2019/6/26
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
