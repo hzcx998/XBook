@@ -1,0 +1,53 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "debug-windows",
+            "type": "shell",
+            "command": "make -j8 G=on ; if($LastExitCode) {exit $LastExitCode} else {scripts/qemu-dbg.bat; if($LastExitCode) {exit $LastExitCode} }",
+            "args": [
+            ],
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation":["relative","${workspaceFolder}/kernel"],
+                "base": "$gcc"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "debug-linux",
+            "type": "shell",
+            "command": "make -j8 G=on && scripts/qemu-dbg.sh",
+            "args": [
+            ],
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation":["relative","${workspaceFolder}/kernel"],
+                "base": "$gcc"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
