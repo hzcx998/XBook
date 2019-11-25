@@ -102,7 +102,7 @@ NASM_FLAGS	:= $(INCLUDE_PATH)
 #kernel temp file	
 KERNEL_ELF =  kernel.elf
 
-PHONY	+= all run compile link disk bochs_win bochs_linux bochsdbg_win bochsdbg_linux qemu clean
+PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean
 PHONY	+= $(SRCDIRS)
 
 export NASM NASM_FLAGS CC LD CFLAGS LDFLAGS TOPDIR
