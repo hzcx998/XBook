@@ -64,6 +64,21 @@ LOADER_BIN =  $(ARCH_BOOT_DIR)loader.bin
 
 TOPDIR	:= $(CURDIR)
 
+# System environment variable.
+ifeq ($(OS),Windows_NT)
+	HOSTOS		:= windows
+else
+	ifeq ($(shell uname),Darwin)
+		HOSTOS		:= macos
+	else
+		ifeq ($(shell uname),Linux)
+			HOSTOS		:= linux
+		else
+			HOSTOS		:= unix-like
+		endif
+	endif
+endif
+
 #objs
 SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/
 
@@ -76,13 +91,20 @@ OBJS	:= $(patsubst %/, %/built-in.o, $(SRCDIRS))
 
 INCLUDE_PATH	:= $(patsubst %, -I $(TOPDIR)/%, $(INCDIRS))
 
-CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(INCLUDE_PATH) -c
+OPTFLAGS		:=
+ifeq ("$(origin G)", "command line")
+ifeq ($(G),on)
+OPTFLAGS		:= -O0 -g -ggdb
+endif
+endif
+
+CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTFLAGS) $(INCLUDE_PATH) -c
 NASM_FLAGS	:= $(INCLUDE_PATH)
 
 #kernel temp file	
 KERNEL_ELF =  kernel.elf
 
-PHONY	+= all run compile link disk bochs_win bochs_linux bochsdbg_win bochsdbg_linux qemu clean
+PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean
 PHONY	+= $(SRCDIRS)
 
 export NASM NASM_FLAGS CC LD CFLAGS LDFLAGS TOPDIR
@@ -111,23 +133,32 @@ disk: $(KERNEL_ELF)
 	$(DD) if=$(KERNEL_ELF) of=$(FLAPPY_IMG) bs=512 seek=$(KERNEL_OFF) count=$(KERNEL_CNTS) conv=notrunc
 
 #run kernel in vm
-bochs_win: disk
+
+bochs: disk
+ifeq ($(HOSTOS),windows)
 	$(BOCHS) -q -f $(BXRC_WIN)
-bochs_linux: disk
+else
 	$(BOCHS) -q -f $(BXRC_LINUX)
+endif
 
-bochsdbg_win: disk
+bochsdbg: disk
+ifeq ($(HOSTOS),windows)
 	$(BOCHSDBG) -q -f $(BXRC_WIN)
-
-bochsdbg_linux: disk
+else
 	$(BOCHSDBG) -q -f $(BXRC_LINUX)
-
+endif
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
 qemu: disk
-	$(QEMU) -m 512 -fda $(FLAPPY_IMG) \
-	-hda $(HDA_IMG) -hdb $(HDB_IMG) \
-	-boot a
+	$(QEMU) -m 512M \
+		-name "XBook Development Platform for x86" \
+		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a
+
+qemudbg: disk
+	$(QEMU) -m 512M \
+		-name "XBook Development Platform for x86" \
+		-S -gdb tcp::10001,ipv4 \
+		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a
 
 #clean temporary files
 clean: $(SRCDIRS)
