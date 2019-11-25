@@ -19,6 +19,9 @@ typedef unsigned int size_t;
 typedef unsigned int register_t;    //寄存器
 typedef unsigned int address_t;     //地址类型的变量
 typedef unsigned int off_t;         //偏移类型的变量
+typedef unsigned long sector_t;
+typedef unsigned char mode_t;
+
 
 /* 64位操作系统 */
 /*

@@ -65,6 +65,15 @@ PRIVATE void ClockChangeSystemDate()
 }
 
 /**
+ * GetLocalTime - 获取本地时间
+ * @time: 时间结构体
+ */
+PUBLIC void GetLocalTime(struct SystemDate *time)
+{
+    *time = systemDate;
+}
+
+/**
  * PrintSystemDate - 打印系统时间
  */
 PUBLIC void PrintSystemDate()

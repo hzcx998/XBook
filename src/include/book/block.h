@@ -10,8 +10,6 @@
 
 #include <share/stddef.h>
 
-typedef unsigned long sector_t;
-
 #define BLOCK_READ 1
 #define BLOCK_WRITE 2
 

@@ -30,7 +30,7 @@
 //#define _DEBUG_RAMDISK
 /* 配置结束 */
 
-#define MAX_SECTORS			1024
+#define MAX_SECTORS			10240
 
 PRIVATE struct RamdiskDevice {
 	struct Disk *disk;
@@ -195,6 +195,13 @@ PRIVATE int RamdiskIoctl(struct Device *device, int cmd, int arg)
 			retval = -1;
 		}
 		break;
+    case RAMDISK_IO_SECTORS:	/* 获取扇区数 */
+        *((sector_t *)arg) = blkdev->part->sectorCounts;
+
+		break;
+    case RAMDISK_IO_BLKZE:	/* 获取块大小 */
+        *((sector_t *)arg) = blkdev->blockSize;
+		break;
 	default:
 		/* 失败 */
 		retval = -1;
@@ -295,7 +302,7 @@ PRIVATE int RamdiskCreateDevice(struct RamdiskDevice *dev, int major, int idx)
 	if (blkdev == NULL) {
 		return -1;
 	}
-	BlockDeviceInit(blkdev, dev->disk, -1, SECTOR_SIZE * 4, dev);
+	BlockDeviceInit(blkdev, dev->disk, -1, SECTOR_SIZE * 2, dev);
 	BlockDeviceSetup(blkdev, &opSets);
 	BlockDeviceSetName(blkdev, name);
 	

@@ -1,0 +1,17 @@
+移植文档
+版权声明：
+/*------------------------------------------------------------------------/
+/  The Main Development Bench of FatFs Module
+/-------------------------------------------------------------------------/
+/
+/  Copyright (C) 2019, ChaN, all right reserved.
+/
+/ * This software is a free software and there is NO WARRANTY.
+/ * No restriction on use. You can use, modify and redistribute it for
+/   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+/ * Redistributions of source code must retain the above copyright notice.
+/
+/-------------------------------------------------------------------------*/
+FatFs提供了一个可移植的接口，易使用，好移植，在这里，我们需要自己也提供一个套
+接口对接函数，这样，如果该文件系统修改了，我们也只需要修改部分内容即可。
+

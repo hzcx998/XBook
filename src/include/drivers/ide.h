@@ -15,7 +15,9 @@
 /* IO命令 */
 enum {
 	IDE_IO_CLEAN = 1,
-
+    IDE_IO_SECTORS,
+    IDE_IO_BLKZE,
+	IDE_IO_NR,
 };
 
 EXTERN unsigned char ideDiskFound;

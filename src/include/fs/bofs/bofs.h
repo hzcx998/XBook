@@ -39,15 +39,13 @@ data
 
 /*bofs basic*/
 
-PUBLIC int BOFS_Init();
+PUBLIC int InitBoFS();
 
 
 PUBLIC void BOFS_Test();
+PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb);
 
-PUBLIC int BOFS_MountMasterFS(struct BOFS_SuperBlock *superBlock);
-PUBLIC struct BOFS_SuperBlock *BOFS_MakeFS(struct DiskPartitionTableEntry *dpte,
-    unsigned int deviceID);
-void BOFS_Format(int deviceID, uint32 startSector, uint32 totalSector, uint32 inodeNr);
+
 
 #endif
 

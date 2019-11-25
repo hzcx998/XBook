@@ -37,7 +37,7 @@ struct BOFS_DirEntry
 
 #define BOFS_SIZEOF_DIR_ENTRY 	(sizeof(struct BOFS_DirEntry))
 
-#define BOFS_DIR_NR_IN_SECTOR 	(SECTOR_SIZE/BOFS_SIZEOF_DIR_ENTRY)
+#define BOFS_DIR_NR_IN_SECTOR 	(BLOCK_SIZE/BOFS_SIZEOF_DIR_ENTRY)
 
 PUBLIC void BOFS_CreateDirEntry(struct BOFS_DirEntry *dirEntry,
     unsigned int inode,

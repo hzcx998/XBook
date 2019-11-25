@@ -41,9 +41,9 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysUnmountDir,
     SysGetCWD,
     SysChangeCWD,
-    SysChangeName,
+    SysChangeName,/*
     SysOpenDir,
     SysCloseDir,
     SysReadDir,
-    SysRewindDir,
+    SysRewindDir,*/
 };

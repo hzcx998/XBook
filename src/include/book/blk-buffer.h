@@ -73,16 +73,16 @@ STATIC INLINE void PutBH(struct BufferHead *bh)
  * @block: 块
  * @buffer: 读取到缓冲区
  * 
- * 成功返回读取的数据量，失败返回0
+ * 成功返回0，失败返回-1
  */
 STATIC INLINE int BlockRead(dev_t devno, sector_t block,void *buffer)
 {
     struct BufferHead *bh = Bread(devno, block);
     if (bh) {
         memcpy(buffer, bh->data, bh->size);
-        return bh->size;
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 /**
@@ -91,7 +91,7 @@ STATIC INLINE int BlockRead(dev_t devno, sector_t block,void *buffer)
  * @block: 块
  * @buffer: 要写入的缓冲区
  * 
- * 成功返回读取的数据量，失败返回0
+ * 成功返回0，失败返回-1
  */
 STATIC INLINE int BlockWrite(dev_t devno, sector_t block, void *buffer, char sync)
 {
@@ -100,10 +100,13 @@ STATIC INLINE int BlockWrite(dev_t devno, sector_t block, void *buffer, char syn
     if (bh) {
         if (sync) 
             return BsyncOne(bh);
-        return 1;
+        return 0;
     }
-    return 0;
+    return -1;
 }
+
+#define BlockSync  Bsync
+
 
 
 #endif   /* _BOOK_BLOCK_BUFFER_H */

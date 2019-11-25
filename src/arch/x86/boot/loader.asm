@@ -205,7 +205,13 @@ LoadeKernel:
 	add ax, 0x1000
 	mov cx, BLOCK_SIZE
 	call LoadeBlock
-
+    
+    ;third block 128 sectors
+	;这个地方和上面同理
+	add ax, 0x1000
+	mov cx, BLOCK_SIZE
+	call LoadeBlock
+    
 	ret
 
 ;在这个地方把file加载到一个内存

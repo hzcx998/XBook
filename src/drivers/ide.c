@@ -1190,7 +1190,7 @@ PRIVATE int IdeIoctl(struct Device *device, int cmd, int arg)
 	struct BlockDevice *blkdev = (struct BlockDevice *)device;
 	struct IdeDevice *dev = (struct IdeDevice *)blkdev->private;
 	
-	DumpIdeDevice(dev);
+	//DumpIdeDevice(dev);
 
 	switch (cmd)
 	{
@@ -1198,6 +1198,13 @@ PRIVATE int IdeIoctl(struct Device *device, int cmd, int arg)
 		if (IdeCleanDisk(dev, arg)) {
 			retval = -1;
 		}
+		break;
+    case IDE_IO_SECTORS:	/* 获取扇区数 */
+        *((sector_t *)arg) = blkdev->part->sectorCounts;
+
+		break;
+    case IDE_IO_BLKZE:	/* 获取块大小 */
+        *((sector_t *)arg) = blkdev->blockSize;
 		break;
 	default:
 		/* 失败 */
@@ -1299,6 +1306,7 @@ PRIVATE int IdeBlockDeviceCreate(struct IdeDevice *dev, int major, int idx)
 	DiskIdentity(dev->disk, name, major, IDE_MINOR(idx));
 	DiskBind(dev->disk, dev->requestQueue, dev);
 	SetCapacity(dev->disk, dev->size);
+    //printk("sectors:%d",dev->size);
 	
 	AddDisk(dev->disk);
 	#ifdef _DEBUG_IDE_INFO
@@ -1485,9 +1493,15 @@ PRIVATE void IdeProbe(char diskFound)
 			if (dev->commandSets & (1 << 26)) {
 				dev->size = ((int)dev->info->lba48Sectors[1] << 16) + \
 					(int)dev->info->lba48Sectors[0];
+
+                /* 磁盘大小是块的大小，不是扇区的大小 */
+                dev->size /= IDE_BLOCK_SIZE / SECTOR_SIZE;  
 			} else {
 				dev->size = ((int)dev->info->lba28Sectors[1] << 16) + 
 					(int)dev->info->lba28Sectors[0];
+
+                /* 磁盘大小是块的大小，不是扇区的大小 */
+                dev->size /= IDE_BLOCK_SIZE / SECTOR_SIZE;  
 			}
 
 			dev->capabilities = dev->info->Capabilities0;

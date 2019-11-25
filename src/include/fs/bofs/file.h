@@ -65,20 +65,24 @@ void BOFS_FreeFdGlobal(int fd);
 struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
 
 void BOFS_DumpFD(int fd);
-int BOFS_Open(const char *pathname, unsigned int flags);
+PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_SuperBlock *sb);
+
 int BOFS_Close(int fd);
-int BOFS_Unlink(const char *pathname);
+PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb);
 
 int BOFS_Write(int fd, void* buf, unsigned int count);
 int BOFS_Read(int fd, void* buf, unsigned int count);
 int BOFS_Lseek(int fd, int offset, unsigned char whence);
 int BOFS_Ioctl(int fd, int cmd, int arg);
 
-int BOFS_Access(const char *pathname, int mode);
-int BOFS_GetMode(const char* pathname);
-int BOFS_SetMode(const char* pathname, int mode);
+PUBLIC int BOFS_Access(const char *pathname, int mode, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_GetMode(const char* pathname, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_SetMode(const char* pathname, int mode, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_Stat(const char *pathname,
+    struct BOFS_Stat *buf,
+    struct BOFS_SuperBlock *sb);
 
-int BOFS_Stat(const char *pathname, struct BOFS_Stat *buf);
+PUBLIC void BOFS_InitFile();
 
 #endif
 

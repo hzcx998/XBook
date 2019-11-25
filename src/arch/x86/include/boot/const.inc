@@ -20,7 +20,7 @@ LOADER_SEG EQU 0x9000
 ;we read kernel.elf from disk sector 10 
 KERNEL_OFF EQU 10	
 
-;----we assume that kernel max is 200 kb (0x32000 byte)----
+;----we assume that kernel max is 256 kb (0x40000 byte)----
 
 ;we read kernel.elf to memory 0x10000
 ;so the segment is 0x1000, we are in real mode now.
@@ -30,11 +30,11 @@ KERNEL_SEG EQU 0x1000
 ;0x1000*16 = 0x10000
 KERNEL_PHY_ADDR EQU KERNEL_SEG*16
 
-;----we assume that file max is 312 kb (0x4e000 byte)----
+;----we assume that file max is 256 kb (0x40000 byte)----
 ;we read init.bin from disk sector 500 
-FILE_OFF EQU 500
+FILE_OFF EQU 600
 
-FILE_SEG EQU 0x4200
+FILE_SEG EQU 0x5000
 
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr

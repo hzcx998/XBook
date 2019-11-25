@@ -60,6 +60,8 @@ PUBLIC void SysMSleep(unsigned int msecond);
 
 PUBLIC void PrintSystemTime();
 
+PUBLIC void GetLocalTime(struct SystemDate *time);
+
 PRIVATE INLINE unsigned int SystemDateToData()
 {
 	unsigned short date = DATE_TO_DATA16(systemDate.year, systemDate.month, systemDate.day);

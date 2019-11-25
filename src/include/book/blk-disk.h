@@ -15,8 +15,6 @@
 #include <book/blk-request.h>
 #include <book/blk-dev.h>
 
-#include <fs/file.h>
-
 #define DISK_NAME_LEN 32
 
 struct DiskPartition {
@@ -28,12 +26,10 @@ struct DiskPartition {
     struct Disk *disk;
     Atomic_t ref;       /* 引用计数 */
 
-    struct BOFS_SuperBlock *sb;
-
+    void *fsi;  /* file system info, 文件系统信息 */
 };
 
 #define SIZEOF_PARTITION sizeof(struct DiskPartition)
-
 
 /**
  * 磁盘是对每一块物理磁盘设备的描述

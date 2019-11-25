@@ -275,6 +275,29 @@ char *itoa16_align(char * str, int num)
 	return str;
 }
 
+/**
+ * strmet - 复制直到遇到某个字符串
+ * @src: 要操作的字符串
+ * @buf: 要保存的地方
+ * @ch: 要遇到的字符串
+ * 
+ * 返回缓冲区中字符的长度
+ */
+int strmet(const char *src, char *buf, char ch)
+{ 
+	char *p = (char *)src;
+
+    /* 没有遇到就一直复制直到字符串结束或者遇到 */
+	while (*p && *p != ch) {
+        *buf = *p++;
+        buf++;
+	}
+    /* 最后添加结束字符 */
+    *buf = '\0';
+	return p - (char *)src;
+}
+
+
 /*
  *本文件大部分都是从网上搜索到的代码，如有侵权，请联系我。
  */

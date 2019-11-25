@@ -38,7 +38,7 @@ struct __dirent
 typedef struct __dirent DIRENT;
 
 /* 目录就是一个指针，指向文件系统的目录 */
-typedef unsigned int DIR;
+//typedef unsigned int DIR;
 
 /* dir operation目录操作 */
 int mkdir(const char *pathname);
@@ -50,9 +50,9 @@ int chdir(const char *pathname);
 int rename(const char *pathname, char *name);
 
 /* 目录打开读取关闭操作 */
-DIR *opendir(const char *pathname);
+/*DIR *opendir(const char *pathname);
 void closedir(DIR *dir);
 int readdir(DIR *dir, DIRENT *buf);
 void rewinddir(DIR *dir);
-
+*/
 #endif  /* _SHARE_DIR_H */

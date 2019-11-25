@@ -5,8 +5,8 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
-#ifndef _FS_INTERFACE
-#define _FS_INTERFACE
+#ifndef _FS_INTERFACE_H
+#define _FS_INTERFACE_H
 
 #include <share/const.h>
 #include <share/file.h>
@@ -35,12 +35,16 @@ int SysChangeCWD(const char *pathname);
 int SysChangeName(const char *pathname, char *name);
 
 /* 目录打开读取关闭操作 */
-DIR *SysOpenDir(const char *pathname);
+/*DIR *SysOpenDir(const char *pathname);
 void SysCloseDir(DIR *dir);
 int SysReadDir(DIR *dir, DIRENT *buf);
 void SysRewindDir(DIR *dir);
-
+*/
 /* 初始化文件系统 */
+
+void InitFatFs();
+
 void InitFileSystem();
 
-#endif  /* _FS_INTERFACE */
+
+#endif  /* _FS_INTERFACE_H */

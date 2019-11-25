@@ -20,8 +20,13 @@ PUBLIC void MutexInit(struct Mutex *lock)
 {
     /* 默认是1，表示没有空闲 */
     AtomicSet(&lock->count, 1);
+
+    /* 初始化维护count变量的自旋锁 */
+    SpinLockInit(&lock->countLock);
+    
     /* 初始化维护等待队列的自旋锁 */
     SpinLockInit(&lock->waitLock);
+
     /* 初始化等待队列 */
     INIT_LIST_HEAD(&lock->waitList);
 
@@ -46,9 +51,18 @@ PUBLIC int __MutexLock(struct Mutex *lock)
     */
     
     /* 先把锁值减1，如果不为负，就说明获取成功，就直接返回 */
+
+    /* 通过关闭中断保证dec 和 get两步操作是原子的 */
+    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&lock->countLock);
+
     AtomicDec(&lock->count);
-    if (AtomicGet(&lock->count) >= 0)
+    if (AtomicGet(&lock->count) >= 0) {
+        /* 恢复之前的中断状态 */
+        SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
         return 0;     /* 获取成功，返回 */ 
+    }
+    /* 恢复之前的中断状态 */
+    SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
 
     /* 锁已经被其它任务获取了，自己需要等待锁被释放 */
     
@@ -135,10 +149,19 @@ PUBLIC int __MutexUnlock(struct Mutex *lock)
 {
     /* 对引用计数器实行加1操作，如果加后小于等于0，
     说明该等待队列上还有任务需要获取锁 */
+
+    /* 通过关闭中断保证inc 和 get两步操作是原子的 */
+    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&lock->countLock);
+
     AtomicInc(&lock->count);
-    if (AtomicGet(&lock->count) == 1)
+    if (AtomicGet(&lock->count) == 1) {
+        /* 恢复之前的中断状态 */
+        SpinUnlockRestoreInterrupt(&lock->countLock ,oldStatus);
         return 0;     /* 没有任务请求了，返回 */ 
-    
+    }
+    /* 恢复之前的中断状态 */
+    SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
+
     /* 现在count != 0, 等待队列上还有任务要请求 */
 
     /* 对该锁上的等待队列加自旋锁，防止多个CPU的情况。 */

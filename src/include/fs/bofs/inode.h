@@ -17,8 +17,11 @@
 #define DEFAULT_MAX_INODE_NR 9182
 
 /*book os file system inode*/
-#define BOFS_BLOCK_NR 3
-#define BOFS_INODE_RESERVED 4
+#define BOFS_BLOCK_NR 15
+
+#define BOFS_INODE_RESERVED ((128-92)/4)
+
+
 
 #define BOFS_SECTOR_BLOCK_NR  128	/*a sector max block nr*/
 
@@ -38,12 +41,11 @@
 #define BOFS_IMODE_V 0X20 /* device mode*/
 
 /*
-we assume a inode is 64 bytes
+we assume a inode is 128 bytes
 */
-
 struct BOFS_Inode 
 {
-	dev_t deviceID;	/* 所在的设备ID */
+	dev_t devno;	/* 所在的设备ID */
 
 	unsigned int id;	/*inode id*/
 	
@@ -58,12 +60,10 @@ struct BOFS_Inode
 	
 	uint32 flags;	/*access time*/
 	
-	/* 如果是设备文件，
-	那么这个就指向表示的设备的ID */
-	dev_t otherDeviceID;
-
-	uint32 block[BOFS_BLOCK_NR];	/*data block*/
-	
+    /*8+15 = 23
+    23 * 4 = 92
+    128 ->*/
+	uint32 blocks[BOFS_BLOCK_NR];	/*data block*/
 	/* end 44 bytes */
 
 	uint32 reserved[BOFS_INODE_RESERVED];	/*data block*/
@@ -73,7 +73,7 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
     unsigned int flags,
-    dev_t deviceID);
+    dev_t devno);
 
 void BOFS_DumpInode(struct BOFS_Inode *inode);
 

@@ -517,7 +517,7 @@ PRIVATE void lockPrintk(char *buf)
 */
 
 //PRIVATE Mutex_t consoleLock;
-/*
+
 DEFINE_MUTEX(consoleLock); 
 
 PRIVATE void lockPrintk(char *buf)
@@ -528,7 +528,7 @@ PRIVATE void lockPrintk(char *buf)
     MutexUnlock(&consoleLock);
 
 }
-*/
+
 int testA = 0, testB = 0;
 void ThreadA(void *arg)
 {
@@ -593,7 +593,7 @@ PUBLIC void InitTasks()
     // TaskExecute(0, "init");
     
     //SyncLockInit(&consoleLock);
-    //MutexInit(&consoleLock);
+    MutexInit(&consoleLock);
 
     //DumpMutex(&consoleLock);
     MakeMainThread();

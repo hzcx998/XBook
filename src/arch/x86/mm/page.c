@@ -374,7 +374,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 获取发生故障的地址
 	addr = ReadCR2();
 
-    printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");
 

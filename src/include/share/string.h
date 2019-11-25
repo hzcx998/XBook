@@ -34,6 +34,7 @@ int strncmp (const char * s1, const char * s2, int n);
 int strpos(char *str, char ch);
 char* strncpy(char* dst_, char* src_, int n) ;
 char *strncat(char *dst, const char *src, int n);
+int strmet(const char *src, char *buf, char ch);
 
 #endif  /*_SHARE_STDINT_H*/
 

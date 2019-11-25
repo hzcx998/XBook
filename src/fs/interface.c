@@ -1,5 +1,5 @@
 /*
- * file:		fs/vfs.c
+ * file:		fs/interface.c
  * auther:		Jason Hu
  * time:		2019/8/5
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -20,35 +20,42 @@
 
 #include <fs/flat.h>
 #include <fs/file.h>
+#include <fs/vfs.h>
 
 PUBLIC int SysOpen(const char *path, unsigned int flags)
 {
-	return FlatOpen(path, flags);
+	//return FlatOpen(path, flags);
+    return 0;
 }
 
 PUBLIC int SysLseek(int fd, unsigned int offset, char flags)
 {
-	return FlatLseek(fd, offset, flags);
+	//return FlatLseek(fd, offset, flags);
+    return 0;
 }
 
 PUBLIC int SysRead(int fd, void *buffer, unsigned int size)
 {
-	return FlatRead(fd, buffer, size);
+	//return FlatRead(fd, buffer, size);
+    return 0;
 }
 
 PUBLIC int SysWrite(int fd, void *buffer, unsigned int size)
 {
-	return FlatWrite(fd, buffer, size);
+	//return FlatWrite(fd, buffer, size);
+    return 0;
 }
 
 PUBLIC int SysClose(int fd)
 {
-	return FlatClose(fd);
+	//return FlatClose(fd);
+    return 0;
 }
 
 PUBLIC int SysStat(const char *path, void *buf)
 {	
-	return FlatStat(path, buf);
+	//return FlatStat(path, buf);
+    return 0;
 }
 
 PUBLIC int SysUnlink(const char *pathname)
@@ -110,7 +117,7 @@ PUBLIC int SysChangeName(const char *pathname, char *name)
 {
 	return 0;
 }
-
+/*
 PUBLIC DIR *SysOpenDir(const char *pathname)
 {
 	
@@ -132,7 +139,7 @@ PUBLIC void SysRewindDir(DIR *dir)
 {
 	
 }
-
+*/
 /* 同步磁盘上的数据到文件系统 */
 #define SYNC_DISK_DATA
 
@@ -205,6 +212,11 @@ PRIVATE void WriteDataToFS()
 
 #include <book/blk-disk.h>
 
+
+
+
+
+
 /**
  * InitFileSystem - 初始化文件系统
  * 
@@ -214,11 +226,19 @@ PUBLIC void InitFileSystem()
 	PART_START("File System");
 
 	
-	InitFlatFileSystem();
+	//InitFlatFileSystem();
+
+    InitBoFS();
+    
+
+    /* 初始化完所有的文件系统后，才可以初始化虚拟文件系统 */
+    InitVFS();
+
+    //InitFatFs();
 
 	//Spin("----fs----");
 	
-	WriteDataToFS();
+	//WriteDataToFS();
 	
 /*
 	DIR *dir;

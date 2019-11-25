@@ -287,14 +287,14 @@ PUBLIC struct BufferHead *Bwrite(dev_t devno, sector_t block, void *buffer)
  * @bh: 块缓冲头
  * 
  * 把一个缓冲头对应的数据同步回磁盘
- * 成功返回1，失败返回0
+ * 成功返回0，失败返回-1
  */
 PUBLIC int BsyncOne(struct BufferHead *bh)
 {
     /* 判断是否为脏 */
     if (!bh->dirty) {
         /* 不是脏缓冲，就直接返回 */
-        return 0;
+        return -1;
     }
     SemaphoreDown(&bh->sema);
     
@@ -307,12 +307,12 @@ PUBLIC int BsyncOne(struct BufferHead *bh)
     
     /* 写入数据之后，检测是为脏，不是脏，说写入成功 */
     if (!bh->dirty) {
-        return 1;
+        return 0;
     }
     printk("Bwrite: write block failed!");
     /* 获取读取数据失败，释放掉buffer head */
     Brelease(bh);
-    return 0;
+    return -1;
 }
 
 /**
@@ -334,7 +334,9 @@ PUBLIC int Bsync()
         ListForEachOwner(bh ,&disk->bufferHeadList, list) {
             //printk("%d ", bh->dirty);
     
-            count += BsyncOne(bh);
+            if (!BsyncOne(bh)) {
+                count++;
+            }
         }
     }
     return count;

@@ -20,7 +20,20 @@
         "list.h": "c",
         "clock.h": "c",
         "mutex.h": "c",
-        "spinlock.h": "c"
+        "spinlock.h": "c",
+        "memcache.h": "c",
+        "device.h": "c",
+        "ramdisk.h": "c",
+        "interface.h": "c",
+        "diskio.h": "c",
+        "ff.h": "c",
+        "blk-buffer.h": "c",
+        "super_block.h": "c",
+        "dir.h": "c",
+        "inode.h": "c",
+        "file.h": "c",
+        "vmarea.h": "c",
+        "math.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

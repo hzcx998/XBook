@@ -40,10 +40,15 @@ typedef struct Mutex {
     /* 为1表示未上锁，0表示上锁，小于0表示有等待者 */
     Atomic_t count;
 
+    /* 用于对count的运算和判断多步骤进行保护，使得它们是原子操作 */
+    Spinlock_t countLock;
+    
     /* waitList是多任务(进程/线程)共享的，需要采用自旋锁互斥访问，
     自旋锁会不停循环检查且不会阻塞任务的执行，适合时间短的加锁。
     waitLock就是拿来保护waitList的访问的 */
     Spinlock_t waitLock;
+
+    
     struct List waitList;   /* 等待队列 */
 
     struct Task *owner;     /* 锁的持有者 */
@@ -52,6 +57,7 @@ typedef struct Mutex {
 /* 初始化互斥锁 */
 #define MUTEX_INIT(lockname) \
         { .count = ATOMIC_INIT(1) \
+        , .countLock = SPIN_LOCK_INIT_UNLOCKED((lockname).countLock) \
         , .waitLock = SPIN_LOCK_INIT_UNLOCKED((lockname).waitLock) \
         , .waitList = LIST_HEAD_INIT((lockname).waitList) \
         , .owner = NULL }

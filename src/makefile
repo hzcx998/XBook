@@ -46,7 +46,9 @@ LOADER_OFF = 2
 LOADER_CNTS = 8
 
 KERNEL_OFF = 10
-KERNEL_CNTS = 400
+
+# assume 256 kb 
+KERNEL_CNTS = 512	
 
 #----dir----
 #arch
