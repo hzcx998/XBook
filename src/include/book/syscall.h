@@ -12,38 +12,39 @@
 typedef void* syscall_t;
 
 enum {
-    SYS_LOG = 0,
-    SYS_MMAP,
-    SYS_MUNMAP,
-    SYS_FORK,
-    SYS_GETPID, 
-    SYS_EXECV,
-    SYS_SLEEP,
-    SYS_MSLEEP,
-    SYS_EXIT,
-    SYS_WAIT,
-    SYS_BRK,
-    SYS_OPEN,
-    SYS_CLOSE,
-    SYS_READ,
-    SYS_WRITE,
-    SYS_LSEEK,
-    SYS_STAT,
-    SYS_UNLINK,
-    SYS_IOCTL,
-    SYS_GETMODE,
-    SYS_SETMODE,
-    SYS_MKDIR,
-    SYS_RMDIR,
-    SYS_MOUNT,
-    SYS_UNMOUNT,
-    SYS_GETCWD,
-    SYS_CHDIR,
-    SYS_RENAME,
-    SYS_OPENDIR,
-    SYS_CLOSEDIR,
-    SYS_READDIR,
-    SYS_REWINDDIR,
+    SYS_LOG = 0,            /* 0 */
+    SYS_MMAP,               /* 1 */
+    SYS_MUNMAP,             /* 2 */
+    SYS_FORK,               /* 3 */
+    SYS_GETPID,             /* 4 */
+    SYS_EXECV,              /* 5 */
+    SYS_SLEEP,              /* 6 */
+    SYS_MSLEEP,             /* 7 */
+    SYS_EXIT,               /* 8 */
+    SYS_WAIT,               /* 9 */
+    SYS_BRK,                /* 10 */
+    SYS_OPEN,               /* 11 */
+    SYS_CLOSE,              /* 12 */
+    SYS_READ,               /* 13 */
+    SYS_WRITE,              /* 14 */
+    SYS_LSEEK,              /* 15 */
+    SYS_STAT,               /* 16 */
+    SYS_REMOVE,             /* 17 */
+    SYS_IOCTL,              /* 18 */
+    SYS_GETMODE,            /* 19 */
+    SYS_SETMODE,            /* 20 */
+    SYS_MKDIR,              /* 21 */
+    SYS_RMDIR,              /* 22 */
+    SYS_GETCWD,             /* 23 */
+    SYS_CHDIR,              /* 24 */
+    SYS_RENAME,             /* 25 */
+    SYS_OPENDIR,            /* 26 */
+    SYS_CLOSEDIR,           /* 27 */
+    SYS_READDIR,            /* 28 */
+    SYS_REWINDDIR,          /* 29 */
+    SYS_ACCESS,             /* 30 */
+    SYS_FCNTL,              /* 31 */
+    SYS_FSYNC,              /* 32 */
     MAX_SYSCALL_NR,
 };
 

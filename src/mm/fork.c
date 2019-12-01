@@ -252,7 +252,7 @@ PRIVATE int CopyTask(struct Task *childTask, struct Task *parentTask)
     //Spin("BuildChildStack");
     // printk(PART_TIP "BuildChildStack\n");
 
-    /* 4.更新打开的文件 */
+    /* 5.更新打开的文件 */
 
     return 0;
 }
@@ -265,6 +265,9 @@ PRIVATE int CopyTask(struct Task *childTask, struct Task *parentTask)
  */
 PUBLIC pid_t SysFork()
 {
+    /* 保存之前状态并关闭中断 */
+    enum InterruptStatus oldStatus = InterruptDisable();
+    
     /* 把当前任务当做父进程 */
     struct Task *parentTask = CurrentTask();
     /* 为子进程分配空间 */
@@ -284,9 +287,7 @@ PUBLIC pid_t SysFork()
         return -1;
     }
     
-    /* 保存之前状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
-
+    
     //Spin("test");
     /* 把子进程添加到就绪队列和全局链表 */
     // 保证不存在于链表中
@@ -301,10 +302,10 @@ PUBLIC pid_t SysFork()
 
     /* 恢复之前的状态 */
     InterruptSetStatus(oldStatus);
-    /*
-    printk(PART_TIP "task %s pid %d fork task %s pid %d", 
+    
+    printk(PART_TIP "task %s pid %d fork task %s pid %d\n", 
         parentTask->name, parentTask->pid, childTask->name, childTask->pid
-    ); */
+    );
     /* 返回子进程的pid */
     return childTask->pid;
 }

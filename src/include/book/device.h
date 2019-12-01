@@ -10,9 +10,7 @@
 
 #include <book/list.h>
 #include <book/atomic.h>
-
-typedef unsigned int dev_t;
-
+#include <share/stddef.h>
 enum {
     DEV_TYPE_BLOCK,
     DEV_TYPE_CHAR,

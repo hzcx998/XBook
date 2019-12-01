@@ -5,7 +5,6 @@
 /* init */
 int main(int argc, char *argv[])
 {
-
 	int pid = fork();
 
 	if (pid > 0) {
@@ -23,11 +22,11 @@ int main(int argc, char *argv[])
 	} else {
 		printf("I am child, my pid is %d.\n", getpid());	
 		
-		printf("Execv shell.\n");	
-		
+		printf("I will exit now.\n");	
+		return 0;
 		while(1);
 		/* init的第一个子进程就执行shell */
-		if (execv("/bin/shell", 0)) {
+		if (execv("/shell", 0)) {
 			printf("execute failed!\n");
 		}
 	}

@@ -11,7 +11,6 @@
 #include <share/string.h>
 #include <share/string.h>
 #include <share/math.h>
-#include <fs/partition.h>
 #include <fs/bofs/file.h>
 #include <fs/bofs/bitmap.h>
 #include <book/device.h>
@@ -19,7 +18,7 @@
 
 struct BOFS_FileDescriptor BOFS_GlobalFdTable[BOFS_MAX_FD_NR];
 
-void BOFS_InitFdTable()
+PUBLIC void BOFS_InitFdTable()
 {
 	int fdIdx = 0;
 	while (fdIdx < BOFS_MAX_FD_NR) {
@@ -35,7 +34,7 @@ void BOFS_InitFdTable()
 	}
 }
 
-int BOFS_AllocFdGlobal()
+PUBLIC int BOFS_AllocFdGlobal()
 {
 	uint32 fdIdx = 0;
 	while (fdIdx < BOFS_MAX_FD_NR) {
@@ -50,7 +49,7 @@ int BOFS_AllocFdGlobal()
 	return -1;
 }
 
-void BOFS_FreeFdGlobal(int fd)
+PUBLIC void BOFS_FreeFdGlobal(int fd)
 {
     if(fd < 0 || fd >= BOFS_MAX_FD_NR) {
 		printk("fd error\n");
@@ -65,7 +64,7 @@ void BOFS_FreeFdGlobal(int fd)
 	BOFS_GlobalFdTable[fd].superBlock = NULL;
 }
 
-struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd)
+PUBLIC struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd)
 {
 	if(fd < 0 || fd >= BOFS_MAX_FD_NR) {
 		printk("fd error\n");
@@ -92,7 +91,7 @@ PUBLIC void BOFS_DumpFD(int fd)
 	
 }
 
-int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
+PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
 	struct BOFS_SuperBlock *sb)
@@ -227,7 +226,7 @@ PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence)
 	return fdptr->pos;
 }
 
-int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
+PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
 	struct BOFS_SuperBlock *sb)
@@ -248,7 +247,7 @@ int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 		return -1;
 	}
 
-	printk("open inode and dir entry ok!\n");
+	//printk("open inode and dir entry ok!\n");
 	/*2.load dir entry to parent dir*/
 	if(BOFS_LoadDirEntry(parentDir, name, dirEntry, sb)){
 		
@@ -275,7 +274,7 @@ int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 
 		BOFS_GlobalFdTable[fd].superBlock = sb;
 		
-        printk("load dir entry ok!\n");
+        //printk("load dir entry ok!\n");
 
 		//we can't free dirEntry and inode, because we will use it in fd
 		return fd;
@@ -286,11 +285,11 @@ int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 		kfree(inode);
 		return -1;
 	}
-	
 }
 
 PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_SuperBlock *sb)
 {
+    //printk("BOFS_Open start\n");
 	char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
 	
@@ -319,9 +318,10 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 
 	//printk("master sb %x\n", sb);
 	int found = BOFS_SearchDir(path, &record, sb);
+	//printk("BOFS_Open end\n");
 	
 	if(!found){
-		printk("find dir entry! path %s name %s\n", pathname, name);
+		//printk("find dir entry! path %s name %s\n", pathname, name);
 		
 		//BOFS_DumpDirEntry(record.childDir);
 		if(record.childDir->type == BOFS_FILE_TYPE_DIRECTORY){	//found a dir
@@ -398,7 +398,7 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 				*/
 				//printk("create a file %s sucess!\n", name);
 
-				printk("create path %s file %s sucess!\n", pathname, name);
+				//printk("create path %s file %s sucess!\n", pathname, name);
 				BOFS_CloseDirEntry(record.childDir);
 			}else{	
 				/*create file failed, we close record dir*/
@@ -413,7 +413,7 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 	/* 如果有读写属性才进行打卡 */
 	if((flags & BOFS_O_RDONLY) || (flags & BOFS_O_WRONLY) || (flags & BOFS_O_RDWR)){
 		
-		printk("open: open the file %s\n", name);
+		//printk("open: open the file %s\n", name);
 		/*open an exsit file with O_RO,O_WO,O_RW*/
 		fd = BOFS_OpenFile(record.parentDir, name, mode, record.superBlock);
 		if(fd != -1){
@@ -426,7 +426,7 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 			/*close record child dir, we don't use it
 			fd_dir was alloced in bofs_create_file
 			*/
-			printk("open path %s file %s sucess!\n", pathname, name);
+			//printk("open path %s file %s sucess!\n", pathname, name);
 			BOFS_CloseDirEntry(record.childDir);
 		}else{
 			/*open file failed, we close record dir*/
@@ -453,10 +453,30 @@ int BOFS_CloseFile(struct BOFS_FileDescriptor *fdptr)
 	return 0;
 }
 
+/**
+ * BOFS_Fsync - 同步文件数据到磁盘
+ * @fd: 文件描述符
+ */
+PUBLIC int BOFS_Fsync(int fd)
+{
+	int ret = -1;   // defaut -1,error
+	if (fd >= 0 && fd < BOFS_MAX_FD_NR) {
+        /* 简单起见，直接同步所有文件 */
+        BlockSync();
+
+	} else {
+		printk("fd:%d failed!\n", fd);
+	}
+	return ret;
+}
+
 PUBLIC int BOFS_Close(int fd)
 {
 	int ret = -1;   // defaut -1,error
 	if (fd >= 0 && fd < BOFS_MAX_FD_NR) {
+        /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
+        BlockSync();
+
 		ret = BOFS_CloseFile(&BOFS_GlobalFdTable[fd]);
 		
 		BOFS_FreeFdGlobal(fd);
@@ -467,14 +487,14 @@ PUBLIC int BOFS_Close(int fd)
 	return ret;
 }
 
-PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
+PUBLIC int BOFS_Remove(const char *pathname, struct BOFS_SuperBlock *sb)
 {
 	char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
 	//printk("The path is %s\n", pathname);
 	
 	if(path[0] == '/' && path[1] == 0){
-		printk("unlink: can't delelt / dir!\n");
+		printk("remove: can't delelt / dir!\n");
 		return -1;
 	}
 	
@@ -495,7 +515,7 @@ PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
 	if(!found){
 		
 		if(record.childDir->type == BOFS_FILE_TYPE_DIRECTORY){	//found a dir
-			printk("unlink: can't delete a direcotry with unlink(), use rmdir() to instead!\n");
+			printk("remove: can't delete a direcotry with remove(), use rmdir() to instead!\n");
 			BOFS_CloseDirEntry(record.parentDir);
 			BOFS_CloseDirEntry(record.childDir);
 			
@@ -503,7 +523,7 @@ PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
 		}
 		/* 如果不是目录就可以删除 */
 	}else{
-		printk("unlink: file %s not found!\n", pathname);
+		printk("remove: file %s not found!\n", pathname);
 		BOFS_CloseDirEntry(record.parentDir);
 		BOFS_CloseDirEntry(record.childDir);
 		return -1;
@@ -525,7 +545,7 @@ PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
 	if (fd < BOFS_MAX_FD_NR) {
 		BOFS_CloseDirEntry(record.parentDir);
 		BOFS_CloseDirEntry(record.childDir);
-		printk("unlink: file %s is in using, not allow to delete!\n", pathname);
+		printk("remove: file %s is in using, not allow to delete!\n", pathname);
 		return -1;
 	}
 	//BOFS_DumpDirEntry(record.childDir);
@@ -535,7 +555,7 @@ PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
 	
 	/*4.sync child dir to parent dir*/
 	if(BOFS_SyncDirEntry(record.parentDir, record.childDir, record.superBlock)){
-		//printk("unlink: delete file %s done.\n",pathname);
+		//printk("remove: delete file %s done.\n",pathname);
 	
 		BOFS_CloseDirEntry(record.parentDir);
 		BOFS_CloseDirEntry(record.childDir);
@@ -543,12 +563,12 @@ PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb)
 	}
 	BOFS_CloseDirEntry(record.parentDir);
 	BOFS_CloseDirEntry(record.childDir);
-	printk("unlink: delete file %s faild!\n",pathname);
+	printk("remove: delete file %s faild!\n",pathname);
 	
 	return -1;
 }
 
-int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
+PRIVATE int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
 	void* buf,
 	unsigned int count)
 {
@@ -641,7 +661,10 @@ int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
 	while (bytesWritten < count) {
 		
 		BOFS_GetInodeData(fdptr->inode, blockID, &sectorLba, sb);
-		memset(iobuf, 0, blockSize);
+		
+        //printk("write block %d\n", sectorLba);
+
+        memset(iobuf, 0, blockSize);
 		
 		//get remainder of pos = pos/512
 		sectorOffsetBytes = fdptr->pos % blockSize;	
@@ -660,6 +683,7 @@ int BOFS_FileWrite( struct BOFS_FileDescriptor *fdptr,
 			firstWriteSector = 0;
 			//printk("first write, need to read old data!\n");
 		}
+        
 		memcpy(iobuf + sectorOffsetBytes, src, chunkSize);
 		//sector_write(sectorLba, iobuf, 1);
 		if(BlockWrite(sb->devno, sectorLba, iobuf, 0)) {
@@ -738,11 +762,9 @@ PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg)
 	return 0;
 }
 
-
-
-int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
+PRIVATE int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
 {
-    printk("file read start!\n");
+    //printk("file read start!\n");
 
 	/*step 1:
 	calculate that we can read how many bytes
@@ -754,7 +776,7 @@ int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
 	if ((fdptr->pos + count) > fdptr->inode->size){
 		size = fdptr->inode->size - fdptr->pos;
 		sizeLeft = size;
-		printk("sizeLeft:%d\n", sizeLeft);
+		//printk("sizeLeft:%d\n", sizeLeft);
 		
 		if (sizeLeft == 0) {	   // if read at the end of file, return 0
 			return -1;
@@ -795,15 +817,15 @@ int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
 
 	struct BOFS_SuperBlock *sb = fdptr->superBlock;
 
-    printk("file read start!\n");
+    //printk("file read start!\n");
 
 	while (bytesRead < size) {
 		//printk("get inode data");
 		/*BOFS_DumpSuperBlock(sb);
 		BOFS_DumpInode(fdptr->inode);*/
 		BOFS_GetInodeData(fdptr->inode, blockID, &sectorLba, sb);
-		
-		//printk("get inode data done");
+
+		//printk("read block %d\n", sectorLba);
 		//get remainder of pos = pos/512
 		sectorOffsetBytes = fdptr->pos % blockSize;	
 		sectorLeftBytes = blockSize - sectorOffsetBytes;
@@ -829,7 +851,7 @@ int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 count)
 		blockID++;
 	}
 	
-    printk("read ok!\n");
+    //printk("read ok!\n");
     kfree(iobuf);
 	return bytesRead;
 
@@ -846,7 +868,7 @@ PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count)
 		return -1;
 	}
 	if (count == 0) {
-		printk("fread: count zero\n");
+		//printk("fread: count zero\n");
 		return 0;
 	}
 	
@@ -874,7 +896,7 @@ PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count)
 	return -1;
 }
 
-int BOFS_IsPathExist(const char* pathname, struct BOFS_SuperBlock *sb)
+PRIVATE int BOFS_IsPathExist(const char* pathname, struct BOFS_SuperBlock *sb)
 {
 	char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
@@ -899,7 +921,7 @@ int BOFS_IsPathExist(const char* pathname, struct BOFS_SuperBlock *sb)
 	return ret;
 }
 
-int BOFS_IsPathModeTrue(const char* pathname, int mode, struct BOFS_SuperBlock *sb)
+PRIVATE int BOFS_IsPathModeTrue(const char* pathname, int mode, struct BOFS_SuperBlock *sb)
 {
 	char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
@@ -938,8 +960,9 @@ int BOFS_IsPathModeTrue(const char* pathname, int mode, struct BOFS_SuperBlock *
  * 
  * 如果文件有该属性就返回0，没有就返回-1
  */
-PUBLIC int BOFS_Access(const char *pathname, int mode, struct BOFS_SuperBlock *sb)
+PUBLIC int BOFS_Access(const char *pathname, mode_t mode, struct BOFS_SuperBlock *sb)
 {
+
 	int inodeMode = 0;
 	if(mode & BOFS_F_OK){
 		if(!BOFS_IsPathExist(pathname, sb)){
@@ -947,16 +970,21 @@ PUBLIC int BOFS_Access(const char *pathname, int mode, struct BOFS_SuperBlock *s
 		}
 	}
 
-	if (mode & BOFS_X_OK) {
-		inodeMode |= BOFS_IMODE_X;
-	}
-	if (mode & BOFS_R_OK) {
-		inodeMode |= BOFS_IMODE_R;
-	}
-	if (mode & BOFS_W_OK) {
-		inodeMode |= BOFS_IMODE_W;
-	}
-    
+    switch (mode)
+    {
+    case BOFS_X_OK:
+        inodeMode = BOFS_IMODE_X;
+        break;
+    case BOFS_R_OK:
+        inodeMode = BOFS_IMODE_R;
+        break;
+    case BOFS_W_OK:
+        inodeMode = BOFS_IMODE_W;
+        break;
+    default:
+        break;
+    }
+
 	if(!BOFS_IsPathModeTrue(pathname, inodeMode, sb)){
 		return 0;
 	}
@@ -972,7 +1000,7 @@ PUBLIC int BOFS_GetMode(const char* pathname, struct BOFS_SuperBlock *sb)
 	if(!strcmp(path, "/")){
 		return 0;
 	}
-
+    
 	int ret = 0;	//default -1
 	struct BOFS_DirSearchRecord record;
 	memset(&record, 0, sizeof(struct BOFS_DirSearchRecord));   // 记得初始化或清0,否则栈中信息不知道是什么
@@ -993,7 +1021,7 @@ PUBLIC int BOFS_GetMode(const char* pathname, struct BOFS_SuperBlock *sb)
 	return ret;
 }
 
-PUBLIC int BOFS_SetMode(const char* pathname, int mode, struct BOFS_SuperBlock *sb)
+PUBLIC int BOFS_ChangeMode(const char* pathname, mode_t mode, struct BOFS_SuperBlock *sb)
 {
 	char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
@@ -1052,11 +1080,18 @@ PUBLIC int BOFS_Stat(const char *pathname,
 	if(!strcmp(path, "/")){
 		BOFS_LoadInodeByID(&inode, sb->rootDir->dirEntry->inode, sb);
 		
-		buf->type = sb->rootDir->dirEntry->type;
 		buf->size = inode.size;
 		buf->mode = inode.mode;
-		buf->device = inode.devno;
-		
+		buf->devno = inode.devno;
+        buf->devno2 = 0;
+        buf->inode = inode.id;
+        
+        buf->crttime = inode.crttime;
+        buf->mdftime = inode.mdftime;
+        
+        buf->acstime = inode.acstime;
+        buf->blksize = sb->blockSize;
+        buf->blocks = DIV_ROUND_UP(inode.size, sb->blockSize);
 		return 0;
 	}
 	
@@ -1068,14 +1103,21 @@ PUBLIC int BOFS_Stat(const char *pathname,
 	if (!found) {
 		
 		BOFS_LoadInodeByID(&inode, record.childDir->inode, record.superBlock);
-		
-		buf->type = record.childDir->type;
+		//BOFS_DumpInode(&inode);
 		buf->size = inode.size;
 		buf->mode = inode.mode;
-		buf->device = inode.devno;
+		buf->devno = inode.devno;
+        buf->inode = inode.id;
+        
+        buf->crttime = inode.crttime;
+        buf->mdftime = inode.mdftime;
+        
+        buf->acstime = inode.acstime;
+        buf->blksize = sb->blockSize;
+        buf->blocks = DIV_ROUND_UP(inode.size, sb->blockSize);
 		
-		BOFS_DumpDirEntry(record.childDir);
-		BOFS_DumpInode(&inode);
+		//BOFS_DumpDirEntry(record.childDir);
+		//BOFS_DumpInode(&inode);
 		
 		BOFS_CloseDirEntry(record.childDir);
 		ret = 0;
@@ -1087,22 +1129,10 @@ PUBLIC int BOFS_Stat(const char *pathname,
 	return ret;
 }
 
-struct FileOperations fileOpSets = {
-    .open = &BOFS_Open,
-    .close = &BOFS_Close,
-    .read = &BOFS_Read,
-    .write = &BOFS_Write,
-    .unlink = &BOFS_Unlink,
-    .access = &BOFS_Access,
-    .getMode = &BOFS_GetMode,
-    .setMode = &BOFS_SetMode,
-    .stat = &BOFS_Stat
-};
-
 /**
  * BOFS_InitFile - 初始化文件相关
  */
 PUBLIC void BOFS_InitFile()
 {
-    VFS_BindFileSets("bofs", &fileOpSets);
+    
 }

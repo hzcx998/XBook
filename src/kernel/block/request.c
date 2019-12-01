@@ -192,7 +192,6 @@ PUBLIC void MakeRequest(int major, int rw, struct BufferHead *bh)
     AddRequest(dev->disk->requestQueue, req);
 }
 
-
 /**
  * BlockStartRequeue - 执行一个请求
  * @request: 要执行的请求

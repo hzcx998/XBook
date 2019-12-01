@@ -19,9 +19,9 @@
 #include <fs/bofs/bitmap.h>
 #include <fs/bofs/super_block.h>
 #include <fs/bofs/file.h>
+#include <fs/bofs/drive.h>
 
 #include <book/blk-buffer.h>
-#include <fs/vfs.h>
 
 /**
  * BOFS_PathToName - 解析出最终的名字
@@ -65,7 +65,7 @@ PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf)
 		name[j] = 0;
 		//printk("name:%s %d\n",name, i);
 		if(name[0] == 0){	//no name
-			printk("no name!\n");
+			//printk("no name!\n");
 			return -1;
 		}
 		
@@ -82,6 +82,34 @@ PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf)
 	}
 	return -1;
 }
+
+
+/**
+ * BOFS_PathToName - 解析出最终的磁盘符
+ * @pathname: 路径名
+ * @namebuf: 储存名字的地方
+ * 
+ * @return: 成功返回0，失败返回-1
+ */
+PUBLIC int BOFS_PathToDrive(const char *pathname, char *namebuf)
+{
+	char *p = (char *)pathname;
+    /* 没有磁盘符分隔字符串 */
+    if (strchr(p, ':') == NULL) {
+        //printk("path %s error without ':'!\n", pathname);
+        return -1;
+    }
+
+    int len = strmet(p, namebuf, ':');
+    /* 分隔符在开头，没有磁盘符 */
+    if (len == 0) {
+        printk("path %s error without drive!\n", pathname);
+        return -1;
+    }
+	return 0;
+}
+
+
 
 /**
  * BOFS_ListDir - 列出目录下面的内容
@@ -177,7 +205,7 @@ void BOFS_ListDir(const char *pathname, int level)
  */
 void BOFS_RewindDir(struct BOFS_Dir *dir)
 {
-	dir->pos = 0;
+    dir->pos = 0;
 }
 
 /**
@@ -210,7 +238,7 @@ PUBLIC struct BOFS_DirEntry *BOFS_ReadDir(struct BOFS_Dir *dir)
  * BOFS_DumpDir - 调试目录
  * @dir: 目录
  */
-PUBLIC void BOFS_DumpDir(struct BOFS_Dir* dir)
+PUBLIC void BOFS_DumpDir(struct BOFS_Dir *dir)
 {
 	printk(PART_TIP "---- Dir ----\n");
     printk(PART_TIP "dir entry:%x inode:%d sizeid:%d pos:%x \n",
@@ -221,9 +249,9 @@ PUBLIC void BOFS_DumpDir(struct BOFS_Dir* dir)
  * BOFS_CloseDir - 关闭一个以及打开的目录
  * @dir: 目录的指针
  */
-void BOFS_CloseDir(struct BOFS_Dir* dir)
+void BOFS_CloseDir(struct BOFS_Dir *dir)
 {
-	/* 不能关闭空目录 */
+    /* 不能关闭空目录 */
 	if(dir == NULL){	
 		return;
 	}
@@ -318,7 +346,7 @@ ToFreeDir:
  */
 struct BOFS_Dir *BOFS_OpenDir(const char *pathname, struct BOFS_SuperBlock *sb)
 {
-	char *path = (char *)pathname;
+    char *path = (char *)pathname;
 	//printk("The path is %s\n", pathname);
 	
 	struct BOFS_Dir *dir = NULL;
@@ -653,7 +681,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 			BOFS_SyncInode(&inode, sb);
             printk("change parent size!");
 
-            BOFS_DumpInode(&inode);
+           // BOFS_DumpInode(&inode);
 		}
 		return 0;
 	}
@@ -671,6 +699,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
  */
 PUBLIC int BOFS_MakeDir(const char *pathname, struct BOFS_SuperBlock *sb)
 {
+
 	int i, j;
 	
 	char *path = (char *)pathname;
@@ -743,8 +772,8 @@ PUBLIC int BOFS_MakeDir(const char *pathname, struct BOFS_SuperBlock *sb)
 			/* 没找到，并且是在路径末尾 */
 			if(i == depth - 1){
 				/* 创建目录 */
-				printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit!\n",depth, pathname, name);
-				printk("parent %s\n", parentDir.name);
+				//printk("BOFS_MakeDir:depth:%d path:%s name:%s not exsit!\n",depth, pathname, name);
+				//printk("parent %s\n", parentDir.name);
 				
                 /*
                 / -> /
@@ -781,7 +810,6 @@ PUBLIC int BOFS_RemoveDir(const char *pathname, struct BOFS_SuperBlock *sb)
 	char *path = (char *)pathname;
 
 	char *p = (char *)path;
-	char *next = NULL;
 	char depth = 0;
 	char name[BOFS_NAME_LEN];
 	
@@ -863,42 +891,208 @@ PUBLIC int BOFS_RemoveDir(const char *pathname, struct BOFS_SuperBlock *sb)
 	return -1;
 }
 
+
+/* 将最上层路径名称解析出来 */
+/**
+ * BOFS_ParsePathAfterward - 朝后解析路径
+ * @pathname: 路径名
+ * @nameStore: 储存名字的地址
+ * 
+ *  成功返回解析到的位置，失败返回NULL
+ */
+PRIVATE char *BOFS_ParsePathAfterward(char *pathname, char *nameStore)
+{
+    if (pathname[0] == '/') {   // 根目录不需要单独解析
+        /* 路径中出现1个或多个连续的字符'/',将这些'/'跳过,如"///a/b" */
+        while(*(++pathname) == '/');
+    }
+
+    /* 开始一般的路径解析 */
+    while (*pathname != '/' && *pathname != 0) {
+        *nameStore++ = *pathname++;
+    }
+
+    if (pathname[0] == 0) {   // 若路径字符串为空则返回NULL
+        return NULL;
+    }
+    return pathname; 
+}
+
+/**
+ * BOFS_WashPath - 对路径进行清洗
+ * @oldAbsPath: 旧的路径
+ * @newAbsPath: 新的路径
+ * 
+ * 转换路径中的.和..，使路径没有这些，并且是一个正确的路径
+ * 转换后的路径存放到newAbsPath中
+ */
+PUBLIC void BOFS_WashPath(char* oldAbsPath, char* newAbsPath)
+{
+    ASSERT(oldAbsPath[0] == '/');
+    char name[BOFS_NAME_LEN] = {0};    
+    char* subPath = oldAbsPath;
+    subPath = BOFS_ParsePathAfterward(subPath, name);
+    if (name[0] == 0) { // 若只有"/",直接将"/"存入newAbsPath后返回 
+        newAbsPath[0] = '/';
+        newAbsPath[1] = 0;
+        return;
+    }
+    newAbsPath[0] = 0;	   // 避免传给newAbsPath的缓冲区不干净
+    strcat(newAbsPath, "/");
+
+    while (name[0]) {
+        /* 如果是上一级目录“..” */
+        if (!strcmp("..", name)) {
+	        char* slashPtr =  strrchr(newAbsPath, '/');
+            /*如果未到newAbsPath中的顶层目录,就将最右边的'/'替换为0,
+	        这样便去除了newAbsPath中最后一层路径,相当于到了上一级目录 */
+	        if (slashPtr != newAbsPath) {	// 如newAbsPath为“/a/b”,".."之后则变为“/a”
+	            *slashPtr = 0;
+	        } else {	      // 如newAbsPath为"/a",".."之后则变为"/"
+                /* 若newAbsPath中只有1个'/',即表示已经到了顶层目录,
+	            就将下一个字符置为结束符0. */
+	            *(slashPtr + 1) = 0;
+	        }
+
+        } else if (strcmp(".", name)) {	  // 如果路径不是‘.’,就将name拼接到newAbsPath
+	        if (strcmp(newAbsPath, "/")) {	  // 如果newAbsPath不是"/",就拼接一个"/",此处的判断是为了避免路径开头变成这样"//"
+	            strcat(newAbsPath, "/");
+	        }
+	        strcat(newAbsPath, name);
+        }  // 若name为当前目录".",无须处理newAbsPath
+
+        /* 继续遍历下一层路径 */
+        memset(name, 0, BOFS_NAME_LEN);
+        if (subPath) {
+	        subPath = BOFS_ParsePathAfterward(subPath, name);
+        }
+    }
+}
+
+/**
+ * BOFS_MakeAbsPath - 根据路径名生成绝对路径
+ * @pathname: 路径名
+ * @abspath: 绝对路径存放的地址
+ * 
+ * 有可能路径名是相对路径，所以需要进行路径合并处理
+ */
+PUBLIC int BOFS_MakeAbsPath(const char *pathname, char *abspath)
+{
+    /* 根据传入的路径（相对路径或绝对路径），生成绝对路径 */
+    char driveName[BOFS_DRIVE_NAME_LEN];
+    memset(driveName, 0 , BOFS_DRIVE_NAME_LEN);
+
+    /*
+    判断是否有磁盘符，如果有，就说明是绝对路径，不然就是相对路径。
+    如果是相对路径，那么就需要读取当前的工作目录
+    */
+    if (BOFS_PathToDrive(pathname, driveName)) {
+        /* 获取当前工作目录 */
+        if (!BOFS_GetCWD(abspath, BOFS_PATH_LEN)) {
+            //printk("cwd:%s\n", abspath);
+            /* 检测当前工作目录是否是合格的目录，也就是说磁盘符后面
+            必须要有一个'/'，表明是根目录 */
+            char *p = strchr(abspath, '/');
+            if (p != NULL) {
+                /* 如果是进入根目录 */
+                if (!((p[0] == '/') && (p[1] == 0))) {	     // 若abs_path表示的当前目录不是根目录/
+                    strcat(abspath, "/");
+                }
+            }
+            //printk("SysGetCWD done!\n");
+        }
+    }
+
+    /* 想要直接进入根目录'/' */
+    if (pathname[0] == '/' && pathname[1] == '\0') {
+        //printk("will into root dir! path %s\n", abspath);
+        /* 移除根目录后面的内容，其实就是在'/'后面添加一个字符串结束 */
+        char *q = strchr(abspath, '/');
+        if (q != NULL) {
+            //printk("sub dir %s\n", q);
+            q[1] = '\0';
+        }
+    } else {
+        /* 不是进入根目录。如果是相对路径，就会和工作路径拼合，
+        不是的话就是绝对路径。
+        */
+        strcat(abspath, pathname);
+    }
+    return 0;
+}
+
+/**
+ * BOFS_GetDriveByPath - 通过路径获取磁盘符
+ * @pathname: 路径名
+ * 
+ * 成功返回磁盘符，失败返回NULL
+ */
+struct BOFS_Drive *BOFS_GetDriveByPath(char *pathname)
+{
+    char driveName[BOFS_DRIVE_NAME_LEN] = {0};
+
+    /* 获取磁盘符 */
+    if (BOFS_PathToDrive(pathname, driveName)) {
+        printk("bad path %s!\n", pathname);
+        return NULL;
+    }
+    /* 有磁盘符，现在获取磁盘符 */
+    struct BOFS_Drive *drive = BOFS_GetDriveByName(driveName);
+    if (drive == NULL) {
+        printk("drive %s not found!\n");
+        return NULL;
+    }
+    return drive;
+}
+
+
 /**
  * BOFS_ChangeCWD - 改变当前工作目录
  * 
  */
-PUBLIC int BOFS_ChangeCWD(const char *pathname)
+PUBLIC int BOFS_ChangeCWD(const char *pathname, struct BOFS_Drive *drive)
 {
 	struct Task *cur = CurrentTask();
 	int ret = -1;
 	
 	char *path = (char *)pathname;
 
-	struct BOFS_SuperBlock *sb;
-
 	/*root dir*/
 	if(path[0] == '/' && path[1] == 0){
 		memset(cur->cwd, 0, BOFS_PATH_LEN);
-		strcpy(cur->cwd, pathname);
+        /* 先添加磁盘符名字 */
+        strcat(cur->cwd, drive->name);
+        /* 再添加分隔符 */
+        strcat(cur->cwd, ":");
+        /* 最后添加路径名 */
+		strcat(cur->cwd, pathname);
 		ret = 0;
 	}else{
 		/*search dir*/
 		struct BOFS_DirSearchRecord record;  
 		memset(&record, 0, sizeof(struct BOFS_DirSearchRecord));
-		int found = BOFS_SearchDir(path, &record, sb);
+		int found = BOFS_SearchDir(path, &record, drive->sb);
 		//printk("bofs_chdir: %s is found!\n", path);
 		if (!found) {
 			//printk("bofs_chdir: %s is found!\n", path);
 			if(record.childDir->type == BOFS_FILE_TYPE_DIRECTORY){
 				
 				memset(cur->cwd, 0, BOFS_PATH_LEN);
-				strcpy(cur->cwd, pathname);
+                /* 先添加磁盘符名字 */
+                strcat(cur->cwd, drive->name);
+                /* 再添加分隔符 */
+                strcat(cur->cwd, ":");
+                /* 最后添加路径名 */
+                strcat(cur->cwd, pathname);
+
 				//printk("bofs_chdir: thread pwd %s \n", cur->cwd);
 				ret = 0;
-			}
+			} else {
+                printk("bofs chdir: %s not a directory!\n", pathname);
+            }
 			BOFS_CloseDirEntry(record.childDir);
 		}else {	
-			printk("bofs chdir: %s isn't exist or not a directory!\n", pathname);
+			printk("bofs chdir: %s isn't exist!\n", pathname);
 		}
 		BOFS_CloseDirEntry(record.parentDir);
 	}
@@ -973,21 +1167,10 @@ PUBLIC int BOFS_ResetName(const char *pathname, char *name, struct BOFS_SuperBlo
 	return ret;
 }
 
-/* 记录操作集 */
-struct DirOperations dirOpSets = {
-    .makeDir = &BOFS_MakeDir,
-    .removeDir = &BOFS_RemoveDir,
-    .openDir = &BOFS_OpenDir,
-    .closeDir = &BOFS_CloseDir,
-    .readDir = &BOFS_ReadDir,
-    .rewindDir = &BOFS_RewindDir,
-};
-
 /**
  * BOFS_InitDir - 初始化目录相关
  */
 PUBLIC void BOFS_InitDir()
 {
-    VFS_BindDirSets("bofs", &dirOpSets);
     
 }

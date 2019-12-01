@@ -17,10 +17,10 @@ H_SHARE_DIR = $(INCLUDE_DIR)share/
 USER_DIR = ../../src/user/
 SHARE_DIR = ../../src/share/
 
-BIN = bin
+BIN = a.out
 
-BIN_OFF = 500 
-BIN_CNTS = 32
+BIN_OFF = 600 
+BIN_CNTS = 50
 
 #img dir
 IMG_DIR = ../../img/
@@ -40,7 +40,7 @@ C_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
 
 #LDFLAGS		= --oformat binary -e _start -Ttext 0x00000000
 
-LDFLAGS		= -m elf_i368 -e _start -Ttext 0x00000000
+LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00000000
 
 OBJS =  _start.o \
 		main.o
@@ -82,7 +82,7 @@ vbox: compile link vhd
 #Clean temporary files
 clean:
 	-rm *.o
-	-rm bin
+	-rm $(BIN)
 
 %.o: %.asm
 	$(NASM) $(ASM_FLAGS) -o $@ $<

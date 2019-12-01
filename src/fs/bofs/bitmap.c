@@ -63,6 +63,25 @@ PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
 }
 
 /**
+ * BOFS_UnloadBitmap - 卸载位图
+ * @sb: 超级块
+ * 
+ * 把扇区位图和节点位图加载从内存移除
+ * @return: 成功0，失败-1
+ */
+PUBLIC int BOFS_UnloadBitmap(struct BOFS_SuperBlock *sb)
+{
+    /* 位图长度是格式化的时候就已经写入了的，这里不需要设定值，直接用就是了 */
+    if (sb->sectorBitmap.bits == NULL || sb->inodeBitmap.bits == NULL) {
+        return -1;
+    }
+    kfree(sb->sectorBitmap.bits);
+    kfree(sb->inodeBitmap.bits);
+    
+    return 0;
+}
+
+/**
  * BOFS_AllocBitmap - 从位图中分配位
  * @sb: 超级块
  * @bmType: 位图类型

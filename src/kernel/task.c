@@ -158,7 +158,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
 
     memset(thread->cwd, 0, MAX_PATH_LEN);
     /* 默认的工作目录是根目录 */
-    strcpy(thread->cwd, "/");
+    strcpy(thread->cwd, "root:/");
     
     // 设置中断栈为当前线程的顶端
     thread->kstack = (uint8_t *)(((uint32_t )thread) + PAGE_SIZE);
@@ -366,7 +366,7 @@ PRIVATE void StartProcess(void *fileName)
     /* 开启进程的时候，需要去执行init程序，所以这里
     调用execv来完成这个工作 */
     //SysExecv((char *)fileName, NULL);
-    SysExecv2((char *)fileName, NULL);
+    SysExecv((char *)fileName, NULL);
     
     /* 如果运行失败就停在这里 */
     Panic("start init failed!\n");

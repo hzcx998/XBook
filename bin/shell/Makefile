@@ -17,9 +17,9 @@ H_SHARE_DIR = $(INCLUDE_DIR)share/
 USER_DIR = ../../src/user/
 SHARE_DIR = ../../src/share/
 
-BIN = bin
+BIN = a.out
 
-BIN_OFF = 500 
+BIN_OFF = 600 
 BIN_CNTS = 100
 
 #img dir

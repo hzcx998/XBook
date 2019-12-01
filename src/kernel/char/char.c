@@ -10,10 +10,11 @@
 #include <share/string.h>
 #include <book/device.h>
 #include <book/char.h>
+#include <book/task.h>
 
 #include <drivers/keyboard.h>
 
-//#define _DEBUG_TEST
+#define _DEBUG_TEST
 
 EXTERN struct List allCharDeviceList;
 
@@ -21,17 +22,17 @@ EXTERN struct List allCharDeviceList;
  * CharDeviceTest - 对字符设备进行测试
  * 
  */
-PUBLIC void CharDeviceTest()
+PUBLIC void CharDeviceTest(void *arg)
 {
-    PART_START("Test");
+    //PART_START("Test");
     #ifdef _DEBUG_TEST
     
 	int key = 0;
 
 	DeviceOpen(DEV_KEYBOARD, 0);
 
-	DeviceIoctl(DEV_KEYBOARD, KEYBOARD_CMD_MODE, KEYBOARD_MODE_SYNC);
-
+	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_SYNC);
+    
 	while (1) {
 		key = 0;
 		if (!DeviceRead(DEV_KEYBOARD, 0, &key, 1)) {
@@ -39,9 +40,8 @@ PUBLIC void CharDeviceTest()
 		}
 	};
 
-
     #endif
-    PART_END();
+    //PART_END();
 }
 
 /**
@@ -58,7 +58,9 @@ PUBLIC void InitCharDevice()
     }
 	#endif
 	
-    CharDeviceTest();
+    /* 开启一个键盘线程，来处理键盘中断 */
+    ThreadStart("keyboard", 3, CharDeviceTest, "NULL");
+
     
     PART_END();
 }

@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 		arg[0] = "test";
 		arg[1] = 0;
 
-		execv("/bin/test", arg);	
+		execv("root:/test", arg);	
 	}
 	return 0;
 }

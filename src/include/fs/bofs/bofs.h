@@ -18,8 +18,6 @@ Book File System (BOFS) -V0.2
 #include <share/stdint.h>
 #include <share/const.h>
 
-#include <fs/partition.h>
-
 #include <fs/bofs/super_block.h>
 
 /*
@@ -35,17 +33,8 @@ inode table
 data
 -----
 */
-//extern struct bofs_super_block *bofs_current_super_block;
-
-/*bofs basic*/
 
 PUBLIC int InitBoFS();
-
-
-PUBLIC void BOFS_Test();
-PUBLIC int BOFS_MakeDirSub(const char *pathname, struct BOFS_SuperBlock *sb);
-
-
 
 #endif
 

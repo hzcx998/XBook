@@ -9,25 +9,14 @@
 #include <book/hal.h>
 #include <book/debug.h>
 #include <drivers/clock.h>
-#include <share/string.h>
 #include <book/memcache.h>
-#include <user/conio.h>
 #include <book/task.h>
-#include <user/stdlib.h>
-#include <user/mman.h>
-#include <book/atomic.h>
-#include <drivers/keyboard.h>
 #include <book/interrupt.h>
 #include <book/device.h>
-#include <drivers/ide.h>
 #include <book/vmarea.h>
-#include <fs/partition.h>
-#include <fs/interface.h>
-#include <drivers/ramdisk.h>
 #include <book/block.h>
-#include <fs/super_block.h>
 #include <book/char.h>
-#include <fs/flat.h>
+#include <fs/fs.h>
 
 /*
  * 功能: 内核的主函数
@@ -54,21 +43,18 @@ int main()
     /* 初始化软中断机制 */
     InitSoftirq();
 	
-	// 初始化多任务
+	/* 初始化多任务 */
 	InitTasks();
 	
-	// 初始化多任务后，初始化工作队列
+	/* 初始化多任务后，初始化工作队列 */
 	InitWorkQueue();
 	
-	// 打开中断标志
+	/* 打开中断标志 */
 	EnableInterrupt();
 	
-	//初始化时钟驱动
+	/* 初始化时钟驱动 */
 	InitClockDriver();
 	
-	/* 初始化ramdisk */
-	//InitRamdiskDriver();
-
 	/* 初始化字符设备 */	
 	InitCharDevice();
 
@@ -78,15 +64,9 @@ int main()
 	/* 初始化文件系统 */
     InitFileSystem();
 	
-	/* 初始化文件系统 */
-	//InitFileSystem();
-
-	//Spin("bofs test");
-	
 	/* 加载init进程 */
-	//InitFirstProcess("root:init", "init");
-	//BlockDeviceTest();
-	
+	InitFirstProcess("root:/init", "init");
+
 	/* main thread 就是idle线程 */
 	while (1) {
 		

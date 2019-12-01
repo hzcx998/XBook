@@ -25,7 +25,7 @@
 
 #define BOFS_FILE_TYPE_INVALID 		0X80
 
-#define BOFS_PATH_LEN 	256
+#define BOFS_PATH_LEN 	255
 
 struct BOFS_DirEntry
 {
@@ -45,9 +45,9 @@ PUBLIC void BOFS_CreateDirEntry(struct BOFS_DirEntry *dirEntry,
 	unsigned int mount,
     char *name);
 
-void BOFS_DumpDirEntry(struct BOFS_DirEntry *dirEntry);
+PUBLIC void BOFS_DumpDirEntry(struct BOFS_DirEntry *dirEntry);
 
-void BOFS_CloseDirEntry(struct BOFS_DirEntry *dirEntry);
+PUBLIC void BOFS_CloseDirEntry(struct BOFS_DirEntry *dirEntry);
 
 #endif	/* _BOFS_DIR_ENTRY_H */
 

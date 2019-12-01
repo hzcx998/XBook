@@ -14,11 +14,11 @@ global log
 
 ; void log(char *buf);
 log:
-	
+	push ebx
 
 	mov eax, SYS_LOG
-	mov ebx, [esp + 4]	; buf
+	mov ebx, [esp + 4 + 4]	; buf
 	int INT_VECTOR_SYS_CALL
 	
-	
+	pop ebx
 	ret

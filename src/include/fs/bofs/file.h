@@ -49,35 +49,40 @@ struct BOFS_FileDescriptor
 /* 记录一些重要信息 */
 struct BOFS_Stat
 {
-	unsigned int type;
-	unsigned int size;
-	unsigned int mode;
-	unsigned int device;
-	
+	size_t size;            /* 以字节为单位的文件大小 */
+	mode_t mode;            /* 模式 */
+	dev_t devno;            /* 设备号 */
+    dev_t devno2;           /* 设备文件指向的设备号 */
+    
+    ino_t inode;            /* 索引节点号 */
+    
 	/* 时间日期 */
-
+	time_t crttime;	        /* 创建时间 */
+	time_t mdftime;	        /* 修改时间 */
+	time_t acstime;	        /* 访问时间 */
+	
+    blksize_t blksize;      /* 单个块的大小 */
+	blkcnt_t blocks;        /* 文件占用的磁盘块数 */
 };
 
+PUBLIC void BOFS_InitFdTable();
+PUBLIC int BOFS_AllocFdGlobal();
+PUBLIC void BOFS_FreeFdGlobal(int fd);
+PUBLIC struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
 
-void BOFS_InitFdTable();
-int BOFS_AllocFdGlobal();
-void BOFS_FreeFdGlobal(int fd);
-struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
-
-void BOFS_DumpFD(int fd);
+PUBLIC void BOFS_DumpFD(int fd);
 PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_SuperBlock *sb);
 
-int BOFS_Close(int fd);
-PUBLIC int BOFS_Unlink(const char *pathname, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_Close(int fd);
+PUBLIC int BOFS_Remove(const char *pathname, struct BOFS_SuperBlock *sb);
 
-int BOFS_Write(int fd, void* buf, unsigned int count);
-int BOFS_Read(int fd, void* buf, unsigned int count);
-int BOFS_Lseek(int fd, int offset, unsigned char whence);
-int BOFS_Ioctl(int fd, int cmd, int arg);
+PUBLIC int BOFS_Write(int fd, void* buf, unsigned int count);
+PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count);
+PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence);
+PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg);
 
-PUBLIC int BOFS_Access(const char *pathname, int mode, struct BOFS_SuperBlock *sb);
-PUBLIC int BOFS_GetMode(const char* pathname, struct BOFS_SuperBlock *sb);
-PUBLIC int BOFS_SetMode(const char* pathname, int mode, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_Fsync(int fd);
+
 PUBLIC int BOFS_Stat(const char *pathname,
     struct BOFS_Stat *buf,
     struct BOFS_SuperBlock *sb);

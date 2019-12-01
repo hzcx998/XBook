@@ -33,7 +33,17 @@
         "inode.h": "c",
         "file.h": "c",
         "vmarea.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "char.h": "c",
+        "bofs.h": "c",
+        "vdir.h": "c",
+        "vfile.h": "c",
+        "blk-dev.h": "c",
+        "vobject.h": "c",
+        "drive.h": "c",
+        "syscall.h": "c",
+        "unistd.h": "c",
+        "stdlib.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

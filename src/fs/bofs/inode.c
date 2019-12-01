@@ -38,7 +38,7 @@ PUBLIC void BOFS_CloseInode(struct BOFS_Inode *inode)
  * 
  * 在节点中填写基础数据
  */
-void BOFS_CreateInode(struct BOFS_Inode *inode,
+PUBLIC void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
     unsigned int flags,
@@ -67,7 +67,7 @@ void BOFS_CreateInode(struct BOFS_Inode *inode,
  * BOFS_DumpInode - 调试输出节点
  * @inode: 要输出的节点
  */
-void BOFS_DumpInode(struct BOFS_Inode *inode)
+PUBLIC void BOFS_DumpInode(struct BOFS_Inode *inode)
 {
     printk(PART_TIP "---- Inode ----\n");
     printk(PART_TIP "id:%d mode:%x links:%d size:%x flags:%x block start:%d\n",
@@ -134,7 +134,7 @@ PUBLIC int BOFS_SyncInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
  * 从磁盘上吧节点的所有信息清空
  * 成功返回0，失败返回-1
  */
-int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
+PUBLIC int BOFS_EmptyInode(struct BOFS_Inode *inode, struct BOFS_SuperBlock *sb)
 {
 	uint32 sectorOffset = inode->id/sb->inodeNrInSector;
 	uint32 lba = sb->inodeTableLba + sectorOffset;
@@ -216,7 +216,7 @@ PUBLIC int BOFS_LoadInodeByID(struct BOFS_Inode *inode,
  * 复制节点对应的数据，而不是节点
  * 成功返回0，失败返回-1
  */
-int BOFS_CopyInodeData(struct BOFS_Inode *dst,
+PUBLIC int BOFS_CopyInodeData(struct BOFS_Inode *dst,
 	struct BOFS_Inode *src,
 	struct BOFS_SuperBlock *sb)
 {
@@ -869,7 +869,7 @@ PRIVATE int PutBlockInInderect1(struct BOFS_Inode *inode,
 		/* 读取1级间接块 */
 		memset(buffer1, 0, sb->blockSize);
 		
-		if (!BlockRead(sb->devno, *inderect1, buffer1)) {
+		if (BlockRead(sb->devno, *inderect1, buffer1)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->devno);
 			goto ToEnd;
 		}
@@ -995,7 +995,7 @@ PRIVATE int PutBlockInInderect2(struct BOFS_Inode *inode,
 		/* 读取1级间接块 */
 		memset(buffer1, 0, sb->blockSize);
 		
-		if (!BlockRead(sb->devno, *inderect1, buffer1)) {
+		if (BlockRead(sb->devno, *inderect1, buffer1)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->devno);
 			goto ToEnd;
 		}
@@ -1008,7 +1008,7 @@ PRIVATE int PutBlockInInderect2(struct BOFS_Inode *inode,
 			/* 读取2级间接块 */
 			memset(buffer2, 0, sb->blockSize);
 			
-			if (!BlockRead(sb->devno, *inderect2, buffer2)) {
+			if (BlockRead(sb->devno, *inderect2, buffer2)) {
 				printk(PART_ERROR "device %d read failed!\n", sb->devno);
 				goto ToEnd;
 			}
@@ -1168,7 +1168,7 @@ PRIVATE int PutBlockInInderect3(struct BOFS_Inode *inode,
 		/* 读取1级间接块 */
 		memset(buffer1, 0, sb->blockSize);
 		
-		if (!BlockRead(sb->devno, *inderect1, buffer1)) {
+		if (BlockRead(sb->devno, *inderect1, buffer1)) {
 			printk(PART_ERROR "device %d read failed!\n", sb->devno);
 			goto ToEnd;
 		}
@@ -1181,7 +1181,7 @@ PRIVATE int PutBlockInInderect3(struct BOFS_Inode *inode,
 			/* 读取2级间接块 */
 			memset(buffer2, 0, sb->blockSize);
 			
-			if (!BlockRead(sb->devno, *inderect2, buffer2)) {
+			if (BlockRead(sb->devno, *inderect2, buffer2)) {
 				printk(PART_ERROR "device %d read failed!\n", sb->devno);
 				goto ToEnd;
 			}
@@ -1194,7 +1194,7 @@ PRIVATE int PutBlockInInderect3(struct BOFS_Inode *inode,
 				/* 读取3级间接块 */
 				memset(buffer3, 0, sb->blockSize);
 				
-				if (!BlockRead(sb->devno, *inderect3, buffer3)) {
+				if (BlockRead(sb->devno, *inderect3, buffer3)) {
 					printk(PART_ERROR "device %d read failed!\n", sb->devno);
 					goto ToEnd;
 				}
@@ -1409,7 +1409,7 @@ PUBLIC int BOFS_ReleaseInodeData(struct BOFS_SuperBlock *sb,
 
 	unsigned int blocks = DIV_ROUND_UP(inode->size, sb->blockSize);
 	
-	printk("node:%d size:%d blocks:%d\n",inode->id, inode->size, blocks);
+	//printk("node:%d size:%d blocks:%d\n",inode->id, inode->size, blocks);
 	
 	for(index = 0; index < blocks; index++){
 		if (PutBlockByBlockIndex(inode, index, sb)) {

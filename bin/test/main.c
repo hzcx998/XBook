@@ -1,7 +1,9 @@
 #include <conio.h>
 #include <mman.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <unistd.h>
 
 char test[4096];
@@ -18,18 +20,20 @@ int sum(int n)
 int main(int argc, char *argv[])
 {
 	printf("Welcome to test. my pid %d\n", getpid());
-	
+
 	int i = 0;
 	while(i < argc){
-		printf("%s ", argv[i]);
+		printf("args %s ", argv[i]);
 		i++;
 	}
+    //return 0;
 	printf("I will do some test and exit\n");	
-	 return 0;
-	
+
 
 	printf("----file test----\n");
-	int fd = open("bee", O_RDONLY);
+    
+    //return 0;
+	int fd = open("test", O_RDONLY);
 	if (fd == -1) {
 		printf("fd error\n");
 		exit(-1);
@@ -52,7 +56,7 @@ int main(int argc, char *argv[])
 
 	close(fd);
 
-	while(1);
+	//while(1);
 	if (brk(0)) {
 		printf("brk failed!\n");
 	}

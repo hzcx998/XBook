@@ -100,12 +100,12 @@ PUBLIC bool BOFS_SearchDirEntry(struct BOFS_SuperBlock *sb,
 	
 	uint32 blocks = DIV_ROUND_UP(parentInode.size, sb->blockSize);
 
-    printk("block size:%d\n", blocks);
+    //printk("block size:%d\n", blocks);
 
 	/*we check for blocks, we need search in old dir entry*/
 	while (blockID < blocks) {
 		BOFS_GetInodeData(&parentInode, blockID, &lba, sb);
-		printk("inode data: id:%d lba:%d\n", blockID, lba);
+		//printk("inode data: id:%d lba:%d\n", blockID, lba);
 		
 		memset(iobuf, 0, sb->blockSize);
 		//sector_read(lba, sb->iobuf, 1);
@@ -143,7 +143,7 @@ return 0 is failed,
 return 1 is success with get a not invalid for dir entry, 
 return 2 is success with get a invalid for dir entry.
 */
-int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
+PUBLIC int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 	struct BOFS_DirEntry *childDir,
     struct BOFS_SuperBlock *sb)
 {
@@ -239,9 +239,9 @@ int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 					printk(PART_ERROR "device %d write failed!\n", sb->devno);
                     goto ToEnd;
 				}
-				printk("same dir entry but name different\n");
+				//printk("same dir entry but name different\n");
 				//printk(">>disk inode:%d child dir inode:%d\n", dirEntry[i].inode, childDir->inode);
-				printk("scan: id:%d lba:%d\n", blockID, lba);
+				//printk("scan: id:%d lba:%d\n", blockID, lba);
 				
 				retval = 1;
 				goto ToEnd;
@@ -271,7 +271,7 @@ ToEnd:
 	return retval;
 }
 
-void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
+PUBLIC void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
 	struct BOFS_DirEntry *childDir)
 {
 	/*1.read parent data*/
@@ -315,7 +315,7 @@ void BOFS_CloseDirEntry(struct BOFS_DirEntry *dirEntry)
 	kfree(dirEntry);
 }
 
-bool BOFS_LoadDirEntry(struct BOFS_DirEntry *parentDir, 
+PUBLIC bool BOFS_LoadDirEntry(struct BOFS_DirEntry *parentDir, 
 	char *name,
 	struct BOFS_DirEntry *childDir,
 	struct BOFS_SuperBlock *sb)

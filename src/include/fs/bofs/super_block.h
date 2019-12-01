@@ -44,16 +44,22 @@ struct BOFS_SuperBlock
 	struct Bitmap sectorBitmap;	/*sector manager bitmap*/
 	struct Bitmap inodeBitmap;		/*inode manager bitmap*/
 	struct BOFS_Dir *rootDir;   /* 根目录指针，每一个文件系统都有一个自己的根目录 */
-}__attribute__ ((packed));;
+} PACKED;
 
 #define BOFS_HAD_FS(sb) ((sb)->magic == BOFS_SUPER_BLOCK_MAGIC) ? 1: 0
 
+/* fs */
+PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
+    dev_t devno, 
+    sector_t startSector,
+    size_t totalSectors,
+    size_t blockSize,
+    size_t inodeNr);
 
-int BOFS_InitSuperBlockTable();
-struct BOFS_SuperBlock *BOFS_AllocSuperBlock();
-void BOFS_FreeSuperBlock(struct BOFS_SuperBlock *sb);
 void BOFS_DumpSuperBlock(struct BOFS_SuperBlock *sb);
-int BOFS_SuperBlockLoadBuffer(struct BOFS_SuperBlock *sb);
+
+PUBLIC int BOFS_MountFS(struct BOFS_SuperBlock *superBlock);
+PUBLIC int BOFS_UnmountFS(struct BOFS_SuperBlock *superBlock);
 
 /* dir */
 struct BOFS_DirSearchRecord
@@ -62,8 +68,8 @@ struct BOFS_DirSearchRecord
    struct BOFS_DirEntry *childDir;
    struct BOFS_SuperBlock *superBlock;	/* 搜索到的子目录所在的超级块 */
 };
-PUBLIC int BOFS_MakeDir(const char *pathname);
-PUBLIC int BOFS_RemoveDir(const char *pathname);
+PUBLIC int BOFS_MakeDir(const char *pathname, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_RemoveDir(const char *pathname, struct BOFS_SuperBlock *sb);
 
 struct BOFS_Dir *BOFS_OpenDir(const char *pathname, struct BOFS_SuperBlock *sb);
 PUBLIC int BOFS_OpenRootDir(struct BOFS_SuperBlock *sb);
@@ -74,6 +80,9 @@ int BOFS_SearchDir(char* pathname,
 
 PUBLIC int BOFS_ResetName(const char *pathname, char *name, struct BOFS_SuperBlock *sb);
 
+PUBLIC int BOFS_Access(const char *pathname, mode_t mode, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_GetMode(const char* pathname, struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_ChangeMode(const char* pathname, mode_t mode, struct BOFS_SuperBlock *sb);
 
 /* dir entry */
 int BOFS_CopyDirEntry(struct BOFS_DirEntry *dst,
@@ -124,13 +133,6 @@ PUBLIC int BOFS_ReleaseInodeData(struct BOFS_SuperBlock *sb,
 int BOFS_EmptyInode(struct BOFS_Inode *inode,
 	struct BOFS_SuperBlock *sb);
 
-/* fs */
-PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
-    dev_t devno, 
-    sector_t startSector,
-    size_t totalSectors,
-    size_t blockSize,
-    size_t inodeNr);
-PUBLIC int BOFS_MountFS(struct BOFS_SuperBlock *superBlock);
+
 #endif
 

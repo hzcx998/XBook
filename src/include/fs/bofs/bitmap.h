@@ -20,10 +20,11 @@ enum BOFS_BM_TYPE
 };
 
 PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb);
+PUBLIC int BOFS_UnloadBitmap(struct BOFS_SuperBlock *sb);
 
-int BOFS_AllocBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int counts);
-int BOFS_FreeBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int idx);
-int BOFS_SyncBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int idx);
+PUBLIC int BOFS_AllocBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int counts);
+PUBLIC int BOFS_FreeBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int idx);
+PUBLIC int BOFS_SyncBitmap(struct BOFS_SuperBlock *sb, enum BOFS_BM_TYPE bmType, unsigned int idx);
 
 /* 扇区位图idx和lba的转换 */
 #define BOFS_IDX_TO_LBA(sb, idx) ((sb)->dataStartLba + (idx))

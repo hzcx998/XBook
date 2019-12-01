@@ -276,6 +276,12 @@ PUBLIC struct BufferHead *Bwrite(dev_t devno, sector_t block, void *buffer)
 
     /* 标记块为脏 */
     bh->dirty = 1;
+
+    /* 标记为有效数据
+    如果不标记为有效，那么在读取数据的时候，就会到磁盘去读取数据
+    导致原有的写入磁盘的数据而未同步到磁盘的数据被覆盖（可能被空数据覆盖）
+     */
+    bh->uptodate = 1;
     
     SemaphoreUp(&bh->sema);
     

@@ -21,7 +21,13 @@ typedef unsigned int address_t;     //地址类型的变量
 typedef unsigned int off_t;         //偏移类型的变量
 typedef unsigned long sector_t;
 typedef unsigned char mode_t;
+typedef unsigned int time_t;
+typedef unsigned int dev_t;
 
+typedef unsigned int ino_t;
+
+typedef unsigned int blksize_t;
+typedef unsigned int blkcnt_t;
 
 /* 64位操作系统 */
 /*

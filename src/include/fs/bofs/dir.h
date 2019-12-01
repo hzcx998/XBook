@@ -28,24 +28,21 @@ struct BOFS_Dir
 	unsigned char pad[32];
 }__attribute__ ((packed));
 
-PUBLIC int BOFS_MountDir(const char *devpath, const char *pathname);
-PUBLIC int BOFS_UnmountDir(const char *target);
-
 PUBLIC void BOFS_DumpDir(struct BOFS_Dir* dir);
 
-void BOFS_CloseDir(struct BOFS_Dir* dir);
+PUBLIC void BOFS_CloseDir(struct BOFS_Dir* dir);
 PUBLIC struct BOFS_DirEntry *BOFS_ReadDir(struct BOFS_Dir *dir);
-void BOFS_RewindDir(struct BOFS_Dir *dir);
-void BOFS_ListDir(const char *pathname, int level);
+PUBLIC void BOFS_RewindDir(struct BOFS_Dir *dir);
+PUBLIC void BOFS_ListDir(const char *pathname, int level);
 
-int BOFS_PathToName(const char *pathname, char *namebuf);
-
-int BOFS_GetCWD(char* buf, unsigned int size);
-//int BOFS_ResetName(const char *pathname, char *name);
-int BOFS_ChangeCWD(const char *pathname);
+PUBLIC int BOFS_PathToName(const char *pathname, char *namebuf);
+PUBLIC void BOFS_WashPath(char* oldAbsPath, char* newAbsPath);
+PUBLIC int BOFS_GetCWD(char* buf, unsigned int size);
+PUBLIC int BOFS_MakeAbsPath(const char *pathname, char *abspath);
+PUBLIC struct BOFS_Drive *BOFS_GetDriveByPath(char *pathname);
+PUBLIC int BOFS_PathToDrive(const char *pathname, char *namebuf);
 
 PUBLIC void BOFS_InitDir();
-
 
 #endif
 

@@ -69,17 +69,17 @@ struct BOFS_Inode
 	uint32 reserved[BOFS_INODE_RESERVED];	/*data block*/
 }__attribute__ ((packed));;
 
-void BOFS_CreateInode(struct BOFS_Inode *inode,
+PUBLIC void BOFS_CreateInode(struct BOFS_Inode *inode,
     unsigned int id,
     unsigned int mode,
     unsigned int flags,
     dev_t devno);
 
-void BOFS_DumpInode(struct BOFS_Inode *inode);
+PUBLIC void BOFS_DumpInode(struct BOFS_Inode *inode);
 
-void BOFS_CopyInode(struct BOFS_Inode *dst, struct BOFS_Inode *src);
+PUBLIC void BOFS_CopyInode(struct BOFS_Inode *dst, struct BOFS_Inode *src);
 
-void BOFS_CloseInode(struct BOFS_Inode *inode);
+PUBLIC void BOFS_CloseInode(struct BOFS_Inode *inode);
 
 #endif
 

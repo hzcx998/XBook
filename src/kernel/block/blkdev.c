@@ -16,6 +16,24 @@ EXTERN struct List allDeviceListHead;
 /* 所有块设备的队列 */
 LIST_HEAD(allBlockDeviceList);
 
+
+/**
+ * GetBlockDeviceByName - 通过名字获取块设备
+ * @devno: 设备号
+ * 
+ * 返回块设备
+ */
+PUBLIC struct BlockDevice *GetBlockDeviceByName(char *name)
+{
+    struct BlockDevice *device;
+    ListForEachOwner(device, &allBlockDeviceList, list) {
+        if (!strcmp(device->super.name, name)) {
+            return device;
+        }
+    }
+    return NULL;
+}
+
 /**
  * GetBlockDeviceByDevno - 通过设备号获取块设备
  * @devno: 设备号

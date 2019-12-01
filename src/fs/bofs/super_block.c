@@ -14,6 +14,7 @@
 #include <book/blk-buffer.h>
 #include <share/math.h>
 #include <fs/bofs/bitmap.h>
+#include <fs/bofs/dir.h>
 
 PUBLIC void BOFS_DumpSuperBlock(struct BOFS_SuperBlock *sb)
 {
@@ -54,6 +55,23 @@ PUBLIC int BOFS_MountFS(struct BOFS_SuperBlock *superBlock)
 }
 
 /**
+ * BOFS_UnmountFS - 卸载文件系统
+ * @superBlock: 超级块
+ * 
+ * 卸载文件系统，就是释放让文件系统的信息
+ */
+PUBLIC int BOFS_UnmountFS(struct BOFS_SuperBlock *superBlock)
+{
+    if (BOFS_UnloadBitmap(superBlock)) {
+        printk("BOFS load bitmap failed!\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/**
  * BOFS_MakeFS - 创建文件系统
  * @devno: 设备号
  * @startSector: 起始扇区
@@ -73,9 +91,9 @@ PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
     size_t blockSize,
     size_t inodeNr)
 {
-    printk(PART_TIP "fs info start sector %d sector count %d inode count %d\n",
+    /*printk(PART_TIP "fs info start sector %d sector count %d inode count %d\n",
         startSector, totalSectors, inodeNr);
-    
+    */
     buf8_t iobuf;    /* 执行单次io需要 */
     buf8_t blkbuf; /* 执行大块io */
     
@@ -85,7 +103,7 @@ PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
     memset(superBlock, 0, blockSize);
 
     /*no fs on disk, format it*/
-    printk(PART_TIP "Make a fs on %x.\n", devno);
+    //printk(PART_TIP "Make a fs on %x.\n", devno);
 
     /* ----初始化超级块---- */
     
@@ -168,7 +186,7 @@ PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
     
     struct BOFS_DirEntry rootDirEntry;
 
-    BOFS_CreateDirEntry(&rootDirEntry, 0, BOFS_FILE_TYPE_DIRECTORY, 0, "/");
+    BOFS_CreateDirEntry(&rootDirEntry, 0, BOFS_FILE_TYPE_DIRECTORY, 0, ".");
 
     memset(iobuf, 0, blockSize);
     memcpy(iobuf, &rootDirEntry, sizeof(struct BOFS_DirEntry));
@@ -189,10 +207,10 @@ PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
     
     /* 缓冲区的块的数量 */
     unsigned int bufBlocks = DIV_ROUND_UP(usedBytes + 1, blockSize);
-
+    /*
     printk("used blocks:%d bytes:%d bits:%d bufBlocks:%d\n",
         usedBlocks, usedBytes, usedBits, bufBlocks);
-    
+    */
     /* 分配缓冲区 */
     blkbuf = kmalloc(bufBlocks * blockSize, GFP_KERNEL);
     if (blkbuf == NULL) {
@@ -241,41 +259,4 @@ ToFreeIoBuf:
     kfree(iobuf);
 ToEnd:
     return ret;
-
-    //BOFS_DumpSuperBlock(superBlock);
-/*
-    */
-    /*
-    int idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_SECTOR, 1);
-    printk("idx %d\n", idx);
-    BOFS_FreeBitmap(superBlock, BOFS_BMT_SECTOR, idx);
-
-    idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_INODE, 1);
-    printk("idx %d\n", idx);
-    BOFS_FreeBitmap(superBlock, BOFS_BMT_INODE, idx);
-
-    idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_SECTOR, 1);
-    printk("idx %d\n", idx);
-    idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_INODE, 1);
-    printk("idx %d\n", idx);
-    idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_SECTOR, 1);
-    printk("idx %d\n", idx);
-    idx = BOFS_AllocBitmap(superBlock, BOFS_BMT_INODE, 1);
-    printk("idx %d\n", idx);
-    */
-    /*printk("sb size %d\n", sizeof(struct BOFS_SuperBlock));
-    printk("dir size %d\n", sizeof(struct BOFS_Dir));
-    printk("dir entry size %d\n", sizeof(struct BOFS_DirEntry));
-    printk("inode size %d\n", sizeof(struct BOFS_Inode));
-    */
-    //Spin("test");
-/*
-    if (BOFS_OpenRootDir(superBlock)) {
-        printk("BOFS open root dir failed!\n");
-        return NULL;
-    }
-*/
-    /* 每次一个 */
-   
-    //return superBlock;
 }

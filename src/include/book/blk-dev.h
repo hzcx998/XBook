@@ -14,8 +14,6 @@
 #include <book/device.h>
 #include <book/blk-disk.h>
 
-#include <fs/file.h>
-
 /**
  * 块设备是每一个磁盘或者分区都应该有的一个结构
  * 是一个抽象集合 
@@ -64,7 +62,7 @@ PUBLIC void DelBlockDevice(struct BlockDevice *blkdev);
 PUBLIC void DumpBlockDevice(struct BlockDevice *blkdev);
 PUBLIC void BlockDeviceSetName(struct BlockDevice *blkdev, char *name);
 PUBLIC struct BlockDevice *GetBlockDeviceByDevno(dev_t devno);
-
+PUBLIC struct BlockDevice *GetBlockDeviceByName(char *name);
 
 
 

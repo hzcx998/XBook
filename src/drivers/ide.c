@@ -914,6 +914,7 @@ PRIVATE int PioDataTransfer(struct IdeDevice *dev,
 			/* 把数据写入端口，完成1个扇区后会产生一次中断 */
 			Write2Sector(dev, buf, 1);
 			buf += SECTOR_SIZE;
+            //printk("write success! ");
 		}
 		/* 刷新写缓冲区 */
 		Out8(ATA_REG_CMD(dev->channel), mode > 1 ?
@@ -1156,11 +1157,15 @@ PRIVATE void DoBlockRequest(struct RequestQueue *q)
 		#endif
 
 		if (rq->cmd == BLOCK_READ) {
-			IdeReadSector(dev, rq->lba, rq->buffer, rq->count);
+            if (IdeReadSector(dev, rq->lba, rq->buffer, rq->count)) {
+                printk("ide write error!\n");   
+            }
 		} else {
-			IdeWriteSector(dev, rq->lba, rq->buffer, rq->count);
+			if (IdeWriteSector(dev, rq->lba, rq->buffer, rq->count)) {
+                printk("ide write error!\n");   
+            }
 		}
-
+        
 		/* 结束当前请求 */
 		BlockEndRequest(rq, 0);
 
@@ -1330,7 +1335,7 @@ PRIVATE int IdeBlockDeviceCreate(struct IdeDevice *dev, int major, int idx)
 	#endif
 
 	/* 添加一个分区块设备 */
-	int i;
+	/*int i;
 	for (i = 0; i < 1; i++) {
 		// + 1 是因为在此之前为disk设置了一个block device
 		blkdev = AllocBlockDevice(MKDEV(major, dev->disk->firstMinor + i + 1));
@@ -1345,11 +1350,12 @@ PRIVATE int IdeBlockDeviceCreate(struct IdeDevice *dev, int major, int idx)
 
 		memset(name, 0, DEVICE_NAME_LEN);
 		sprintf(name, "hd%c%d", devname, i);
-		/* 名字和磁盘名字一样，名字是磁盘名和编号，例如hda0, hdb1这种 */
+		// 名字和磁盘名字一样，名字是磁盘名和编号，例如hda0, hdb1这种
 		BlockDeviceSetName(blkdev, name);
 	
 		AddBlockDevice(blkdev);
 	}
+    */
 	return 0;
 }
 
