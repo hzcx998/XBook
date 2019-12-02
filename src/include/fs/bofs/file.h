@@ -12,7 +12,7 @@
 #include <share/types.h>
 #include <fs/bofs/super_block.h>
 
-#define BOFS_MAX_FD_NR 32
+#define BOFS_MAX_FD_NR 128
 
 #define BOFS_O_RDONLY 0x01 /*file open with read only*/
 #define BOFS_O_WRONLY 0x02 /*file open with write only*/
@@ -33,6 +33,13 @@
 
 #define BOFS_FD_FREE 0
 #define BOFS_FD_USING 0x80000000
+
+/* 标准输入输出描述符 */
+enum {
+   STDIN_FD,   // 0 标准输入
+   STDOUT_FD,  // 1 标准输出
+   STDERR_FD   // 2 标准错误
+};
 
 /* 对文件的描述 */
 struct BOFS_FileDescriptor
@@ -76,8 +83,8 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 PUBLIC int BOFS_Close(int fd);
 PUBLIC int BOFS_Remove(const char *pathname, struct BOFS_SuperBlock *sb);
 
-PUBLIC int BOFS_Write(int fd, void* buf, unsigned int count);
-PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count);
+PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count);
+PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count);
 PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence);
 PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg);
 

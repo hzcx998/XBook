@@ -51,6 +51,8 @@ typedef int pid_t;
 
 #define TASK_STACK_MAGIC 0X19980325
 
+/* 单个进程可以打开的最大文件数量 */
+#define MAX_OPEN_FILES_IN_PROC 32
 
 /* 工作者线程特权级 */
 #define TASK_WORKER_PRIO 3
@@ -70,6 +72,8 @@ typedef struct Task {
     
     char cwd[MAX_PATH_LEN];		//当前工作路径,指针
 	
+    int fdTable[MAX_OPEN_FILES_IN_PROC];    // 文件描述符表
+
     struct MemoryManager *mm;       // 内存管理
     struct List list;               // 处于所在队列的链表
     struct List globalList;         // 全局任务队列，用来查找所有存在的任务

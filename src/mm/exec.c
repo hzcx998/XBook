@@ -450,13 +450,14 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         printk(PART_ERROR "SysExecv: read elf header failed!\n");
         goto ToEnd;
     }*/
+    
     //ReadFileFrom(fd, &elfHeader, 0, sizeof(struct Elf32_Ehdr));
     if (ReadFileFrom(fd, &elfHeader, 0, sizeof(struct Elf32_Ehdr))) {
         ret = -1;
         printk(PART_ERROR "SysExecv: read elf header failed!\n");
         goto ToEnd;
     }
-
+    
     //printk(PART_TIP "read elfHeader\n");
     /* 3.检验elf头 */
     /* 检验elf头，看它是否为一个elf格式的程序 */
@@ -516,7 +517,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 只释放占用的栈和堆，而代码，数据，bss都不释放（当进程重新加载时可以提高速度） */
     MemoryManagerRelease(current->mm, VMS_STACK | VMS_HEAP);
     
-    //printk("start load");
+    
     /* 6.加载程序段 */
     if (LoadElfBinary(current->mm, &elfHeader, fd)) {
         printk(PART_ERROR "SysExecv: load elf binary failed!\n");

@@ -7,8 +7,9 @@
 
 #include <share/stdarg.h>
 #include <share/vsprintf.h>
+#include <share/string.h>
 #include <user/conio.h>
-
+#include <user/stdio.h>
 /** 
  * printf - 格式化打印输出
  * @fmt: 格式以及字符串
@@ -21,6 +22,6 @@ int printf(const char *fmt, ...)
 	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
 	vsprintf(buf, fmt, arg);
 	
-	log(buf);
+    write(1, buf, strlen(buf));
 	return 0;
 }

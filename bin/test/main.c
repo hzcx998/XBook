@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 		printf("fd error\n");
 		exit(-1);
 	}
+    printf("open a fd %d\n", fd);
 
 	char fb[10];
 	memset(fb, 0, 10);
@@ -160,6 +161,13 @@ int main(int argc, char *argv[])
 	*maped = 0xfa;
 	printf("mmap %x %x.", maped, *maped);
 
+    int key = 0;
+    while (1) {
+        key = 0;
+        if (read(0, &key, 1)) {
+            printf("%c", key);
+        }
+    }
     printf("I will exit now!\n");
 
 	return 0;

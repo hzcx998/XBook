@@ -31,13 +31,14 @@ PUBLIC void CharDeviceTest(void *arg)
 
 	DeviceOpen(DEV_KEYBOARD, 0);
 
-	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_SYNC);
+    /* 异步方式打开 */
+	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_ASYNC);
     
 	while (1) {
 		key = 0;
-		if (!DeviceRead(DEV_KEYBOARD, 0, &key, 1)) {
-			printk("%c", key); 
-		}
+		/*if (!DeviceRead(DEV_KEYBOARD, 0, &key, 1)) {
+			//printk("%c", key); 
+		}*/
 	};
 
     #endif
@@ -59,8 +60,11 @@ PUBLIC void InitCharDevice()
 	#endif
 	
     /* 开启一个键盘线程，来处理键盘中断 */
-    ThreadStart("keyboard", 3, CharDeviceTest, "NULL");
-
+    //ThreadStart("keyboard", 3, CharDeviceTest, "NULL");
+    DeviceOpen(DEV_KEYBOARD, 0);
+    /* 异步方式打开 */
+	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_ASYNC);
+    
     
     PART_END();
 }

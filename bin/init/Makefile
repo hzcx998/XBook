@@ -53,6 +53,7 @@ LD_OBJS = 	$(USER_DIR)lib/log.o\
 			$(USER_DIR)lib/execv.o\
 			$(USER_DIR)lib/exit.o\
 			$(USER_DIR)lib/_wait.o\
+			$(USER_DIR)lib/file.o\
 			$(SHARE_DIR)vsprintf.o\
 			$(SHARE_DIR)string.o\
 			

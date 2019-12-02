@@ -91,6 +91,47 @@ PUBLIC void BOFS_DumpFD(int fd)
 	
 }
 
+/**
+ * fdLocal2Global - 把进程中的fd转换成为系统中的fd
+ * @localFD: 局部文件描述符
+ * 
+ * 返回全局文件描述符fd
+ */
+PUBLIC uint32_t fdLocal2Global(uint32_t localFD)
+{
+    struct Task *cur = CurrentTask();
+    int32_t globalFD = cur->fdTable[localFD]; /* 文件描述符表中存放的就是全局的文件描述符 */
+    ASSERT(globalFD >= 0 && globalFD < BOFS_MAX_FD_NR);
+    return (uint32_t )globalFD;
+}
+
+/**
+ * TaskInstallFD - 任务安装文件描述符
+ * @globalFdIdx: 全局描述符
+ * 
+ * 将全局描述符下标安装到进程或线程自己的文件描述符数组fd_table中
+ * 
+ * 成功返回下标,失败返回-1 
+ */
+PRIVATE int TaskInstallFD(int globalFdIdx) 
+{
+    struct Task* cur = CurrentTask();
+    /* 跨过stdin,stdout,stderr */
+    uint8_t localFdIdx = 3; 
+    while (localFdIdx < MAX_OPEN_FILES_IN_PROC) {
+        if (cur->fdTable[localFdIdx] == -1) {	// -1表示空闲，可以使用
+	        cur->fdTable[localFdIdx] = globalFdIdx; // 填写全局描述符索引到局部描述符表
+	        break;
+        }
+        localFdIdx++;
+    }
+    if (localFdIdx == MAX_OPEN_FILES_IN_PROC) {
+        printk(PART_ERROR "local fd out of bound!\n");
+        return -1;
+    }
+    return localFdIdx;
+}
+
 PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
@@ -178,7 +219,7 @@ PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 		
 		//we can't free dirEntry and inode, because we will use it in fd
 		
-		return fd;
+		return TaskInstallFD(fd);
 	}else{
 		kfree(dirEntry);
 		kfree(inode);
@@ -188,12 +229,15 @@ PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 
 PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence)
 {
-	if (fd < 0 || fd >= BOFS_MAX_FD_NR) {
+	if (fd < 3 || fd >= MAX_OPEN_FILES_IN_PROC) {
 		printk("bofs lseek: fd error\n");
 		return -1;
 	}
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = fdLocal2Global(fd);
 
-	struct BOFS_FileDescriptor* fdptr = &BOFS_GlobalFdTable[fd];
+	struct BOFS_FileDescriptor* fdptr = &BOFS_GlobalFdTable[globalFD];
 	
 	//printk("seek file %s\n",fdptr->dir->name);
 	int newPos = 0;   //new pos must < file size
@@ -277,7 +321,7 @@ PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
         //printk("load dir entry ok!\n");
 
 		//we can't free dirEntry and inode, because we will use it in fd
-		return fd;
+		return TaskInstallFD(fd);
 		
 	}else{
 		printk("load dir entry failed!\n");
@@ -460,7 +504,7 @@ int BOFS_CloseFile(struct BOFS_FileDescriptor *fdptr)
 PUBLIC int BOFS_Fsync(int fd)
 {
 	int ret = -1;   // defaut -1,error
-	if (fd >= 0 && fd < BOFS_MAX_FD_NR) {
+	if (fd > 2 && fd < MAX_OPEN_FILES_IN_PROC) {
         /* 简单起见，直接同步所有文件 */
         BlockSync();
 
@@ -470,16 +514,28 @@ PUBLIC int BOFS_Fsync(int fd)
 	return ret;
 }
 
+/**
+ * BOFS_Close - 关闭一个文件
+ * @fd: 文件描述符（局部）
+ * 
+ * 成功返回0，失败返回-1
+ */
 PUBLIC int BOFS_Close(int fd)
 {
 	int ret = -1;   // defaut -1,error
-	if (fd >= 0 && fd < BOFS_MAX_FD_NR) {
+	if (fd > 2 && fd < MAX_OPEN_FILES_IN_PROC) {
         /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
         BlockSync();
 
-		ret = BOFS_CloseFile(&BOFS_GlobalFdTable[fd]);
-		
-		BOFS_FreeFdGlobal(fd);
+        unsigned int globalFD = fdLocal2Global(fd);
+
+        /* 关闭全局文件描述符表中的文件 */
+		ret = BOFS_CloseFile(&BOFS_GlobalFdTable[globalFD]);
+		/* 释放全局描述符 */
+		BOFS_FreeFdGlobal(globalFD);
+
+        /* 释放局部文件描述符，置-1表示未使用 */
+        CurrentTask()->fdTable[fd] = -1; 
 		//printk("close fd:%d success!\n", fd);
 	}else{
 		printk("close fd:%d failed!\n", fd);
@@ -711,39 +767,45 @@ ToFailed:
     return -1;
 }
 
-PUBLIC int BOFS_Write(int fd, void* buf, unsigned int count)
+PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count)
 {
-	if (fd < 0 || fd >= BOFS_MAX_FD_NR) {
-		printk("bofs fwrite: fd error\n");
-		return -1;
-	}
-	if(count == 0) {
-		printk("bofs fwrite: count zero\n");
+	if (count == 0) {
+		//printk("fread: count zero\n");
 		return 0;
 	}
-	
-    struct BOFS_FileDescriptor* wrFile = &BOFS_GlobalFdTable[fd];
-	
-	/*we need compare inode mode with flags*/
-	/*flags have write*/
-    if(wrFile->flags & BOFS_O_WRONLY || wrFile->flags & BOFS_O_RDWR){
-		/*inode mode can write*/
-		if(wrFile->inode->mode & BOFS_IMODE_W){
-			int bytesWritten  = -1;
-			
-			//printk("write type %x\n", wrFile->dirEntry->type);
-			
-            bytesWritten = BOFS_FileWrite(wrFile, buf, count);
-
-			return bytesWritten;
-
-		}else{
-			printk("not allowed to write inode without BOFS_IMODE_W.\n");
-		}
-	} else {
-		printk("bofs fwrite: not allowed to write file without flag BOFS_O_RDWR or BOFS_O_WRONLY\n");
-	}
-	return -1;
+    int ret = -1;
+    unsigned int globalFD = 0;
+    
+    if (fd < 0 || fd == STDIN_FD || fd == STDERR_FD) {
+		printk("bofs write: fd error\n");
+		return -1;
+	} else if (fd == STDOUT_FD) {    /* 标准输出 */
+        //printk("<<< ");
+        /* 直接写入控制台 */
+        char tmpbuf[1024] = {0};
+        memcpy(tmpbuf, buf, count);
+        ConsoleWrite(tmpbuf, count);
+        ret = count;
+    } else {    /* 文件写入 */
+        /* 局部fd转换成全局fd */
+        globalFD = fdLocal2Global(fd);
+        
+        struct BOFS_FileDescriptor* wrFile = &BOFS_GlobalFdTable[globalFD];
+        
+        /*we need compare inode mode with flags*/
+        /*flags have read*/
+        if(wrFile->flags & BOFS_O_WRONLY || wrFile->flags & BOFS_O_RDWR){
+            /*inode mode can write*/
+            if(wrFile->inode->mode & BOFS_IMODE_W){
+                ret = BOFS_FileWrite(wrFile, buf, count);
+            }else{
+                printk("not allowed to write inode without BOFS_IMODE_W.\n");
+            }
+        } else {
+            printk("bofs fwrite: not allowed to write file without flag BOFS_O_RDWR or BOFS_O_WRONLY\n");
+        }
+    }
+	return ret;
 }
 
 PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg)
@@ -752,8 +814,11 @@ PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg)
 		printk("bofs fwrite: fd error\n");
 		return -1;
 	}
-	
-    struct BOFS_FileDescriptor* file = &BOFS_GlobalFdTable[fd];
+	unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = fdLocal2Global(fd);
+
+    struct BOFS_FileDescriptor* file = &BOFS_GlobalFdTable[globalFD];
 	
 	if (file->dirEntry->type == BOFS_FILE_TYPE_NORMAL) {
 		printk("ioctl: normal file not support ioctl!\n");
@@ -861,39 +926,45 @@ ToFailed:
     return -1;
 }
 
-PUBLIC int BOFS_Read(int fd, void* buf, unsigned int count)
+PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count)
 {
-	if (fd < 0 || fd >= BOFS_MAX_FD_NR) {
+    int ret = -1;
+    unsigned int globalFD = 0;
+    
+    if (fd < 0 || fd == STDOUT_FD || fd == STDERR_FD) {
 		printk("bofs fread: fd error\n");
 		return -1;
-	}
-	if (count == 0) {
-		//printk("fread: count zero\n");
-		return 0;
-	}
-	
-	struct BOFS_FileDescriptor* rdFile = &BOFS_GlobalFdTable[fd];
-	
-	/*we need compare inode mode with flags*/
-	/*flags have read*/
-    if(rdFile->flags & BOFS_O_RDONLY || rdFile->flags & BOFS_O_RDWR){
-		/*inode mode can read*/
-		if(rdFile->inode->mode & BOFS_IMODE_R){
+	} else if (fd == STDIN_FD) {    /* 标准输入读取 */
+        if (!DeviceRead(DEV_KEYBOARD, 0, buf, 1)) {
+            /* 读取成功返回1 */
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {    /* 文件读取 */
+        if (count == 0) {
+            return -1;
+        }
+        /* 局部fd转换成全局fd */
+        globalFD = fdLocal2Global(fd);
 
-			int bytesRead = -1;
+        struct BOFS_FileDescriptor* rdFile = &BOFS_GlobalFdTable[globalFD];
+        
+        /*we need compare inode mode with flags*/
+        /*flags have read*/
+        if(rdFile->flags & BOFS_O_RDONLY || rdFile->flags & BOFS_O_RDWR){
+            /*inode mode can read*/
+            if(rdFile->inode->mode & BOFS_IMODE_R){
+                ret = BOFS_FileRead(rdFile, buf, count);
+            }else{
+                printk("not allowed to read inode without BOFS_IMODE_R.\n");
+            }
+        } else {
+            printk("fread: not allowed to read file without flag BOFS_O_RDONLY or BOFS_O_RDWR.\n");
+        }
+    }
 
-			//printk("read type %x\n", rdFile->dirEntry->type);
-			
-			bytesRead = BOFS_FileRead(rdFile, buf, count);
-				
-			return bytesRead;
-		}else{
-			printk("not allowed to read inode without BOFS_IMODE_R.\n");
-		}
-	} else {
-		printk("fread: not allowed to read file without flag BOFS_O_RDONLY or BOFS_O_RDWR.\n");
-	}
-	return -1;
+	return ret;
 }
 
 PRIVATE int BOFS_IsPathExist(const char* pathname, struct BOFS_SuperBlock *sb)
@@ -1043,7 +1114,7 @@ PUBLIC int BOFS_ChangeMode(const char* pathname, mode_t mode, struct BOFS_SuperB
 		inode.mode = mode;
 		BOFS_SyncInode(&inode, record.superBlock);
 		
-		/* 如果以及载fd表中打开，就要更新进去 */
+		/* 如果已经在fd表中打开，就要更新进去 */
 		int fd;
 		for(fd = 0; fd < BOFS_MAX_FD_NR; fd++){
 			if (BOFS_GlobalFdTable[fd].flags & BOFS_FD_USING) {

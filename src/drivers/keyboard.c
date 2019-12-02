@@ -554,7 +554,6 @@ PRIVATE int KeyboardRead(struct Device *device, unsigned int lba, void *buffer, 
 		*_buf = keyData;
 		//memcpy(_buf, data, count);
 
-
 		ret = 0;
 	} else if (keyboardPrivate.workMode == KBD_MODE_ASYNC) {
 		/* 直接获取并返回 */
