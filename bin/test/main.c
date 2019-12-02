@@ -160,5 +160,7 @@ int main(int argc, char *argv[])
 	*maped = 0xfa;
 	printf("mmap %x %x.", maped, *maped);
 
+    printf("I will exit now!\n");
+
 	return 0;
 }

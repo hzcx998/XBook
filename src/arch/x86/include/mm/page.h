@@ -164,4 +164,9 @@ PUBLIC unsigned int RemoveFromPageTable(unsigned int virtualAddr);
 PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
 PUBLIC int UnmapPagesFragment(unsigned int vaddr, unsigned int len);
 
+PUBLIC int MapPagesMaybeMapped(unsigned int start,
+    unsigned int npages, 
+    unsigned int protect);
+
+
 #endif  /*_X86_MM_PAGE_H */

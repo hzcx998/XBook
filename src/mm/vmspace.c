@@ -272,7 +272,6 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
             printk(PART_ERROR "DoMmap: GetUnmappedVMSpace failed!\n");
             return -1;
         }
-        
     }
     
     /* 从slab中分配一块内存来当做VMSpace结构 */
@@ -430,8 +429,10 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
         /*  1.有释放栈的标志，并且space是栈，才释放空间（栈）
             2.有资源标志，但space不是栈，才释放空间
          */
-        if ((flags & VMS_STACK && space->flags & VMS_STACK) || 
-            (flags & VMS_RESOURCE && !(space->flags & VMS_STACK))) {
+        if ((flags & VMS_STACK && space->flags & VMS_STACK) ||  /* 栈 */
+            (flags & VMS_HEAP && space->flags & VMS_HEAP) ||    /* 堆 */
+            (flags & VMS_RESOURCE &&                            /* 非栈和堆（代码，数据，bss） */
+            !((space->flags & VMS_STACK) && (space->flags & VMS_HEAP)))) {    
             
             //printk("space: start %x end %x\n", space->start, space->end);
 

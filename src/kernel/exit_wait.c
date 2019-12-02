@@ -92,8 +92,8 @@ PUBLIC void SysExit(int status)
     AdopeChildren(current->pid);
 
     /* 2.释放自己占用的资源 */
-    MemoryManagerRelease(current->mm, VMS_RESOURCE | VMS_STACK);
-
+    MemoryManagerRelease(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
+    
     /* 3.如果有父进程，就通知父进程我已经远去，来帮我收尸吧
     在完成父进程唤醒之前不能调度 */
     

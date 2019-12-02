@@ -32,7 +32,7 @@
 #define DATA_ON_IDE
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 1
+#define FILE_ID 2
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"

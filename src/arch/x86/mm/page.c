@@ -145,6 +145,60 @@ PUBLIC int MapPages(unsigned int start,
 	return 0;
 }
 
+/**
+ * MapPagesMaybeMapped - 映射虚拟地址到物理页
+ * @start: 开始地址
+ * @npages: 页的数量
+ * @protect: 页保护属性
+ * 
+ * 虚拟地址可能已经映射过了，那就不映射，如果没有映射过，才会进行映射
+ * 
+ * 成功返回0，失败返回-1
+ */
+PUBLIC int MapPagesMaybeMapped(unsigned int start,
+    unsigned int npages, 
+    unsigned int protect)
+{
+    /* 为进程分配内存 */
+    uint32_t pageIdx = 0;
+    uint32_t vaddr = start;
+    
+    pde_t *pde;
+    pte_t *pte;
+    /*
+    这里运行的时候，选择根据页映射的方式来进行重新映射。
+    而不是重新从0开始映射，既可以提高映射效率，又可以
+    节约资源。不失为一个好方法。
+    */
+    while (pageIdx < npages) {
+        // 获取虚拟地址的页目录项和页表项
+        pde = PageGetPde(vaddr);
+        pte = PageGetPte(vaddr);
+        
+        /* 如果pde不存在，或者pte不存在，那么就需要把这个地址进行映射
+        pde的判断要放在pte前面，不然会导致pde不存在而去查看pte的值，产生页故障*/
+        if (!(*pde & PAGE_P_1) || !(*pte & PAGE_P_1)) {
+            //printk(PART_WARRING "addr %x not maped!\n");
+            // 分配一个物理页
+            uint32_t page = AllocPage();
+            if (!page) {
+                printk(PART_ERROR "MapPagesMaybeMapped: GetFreePage for link failed!\n");
+                return -1;
+            }
+            // 对地址进行链接，之后才能访问虚拟地址 
+            if(PageTableAdd(vaddr, page, protect)) {
+                printk(PART_ERROR "MapPagesMaybeMapped: PageTableAdd failed!\n");
+                return -1;
+            }
+            // printk(PART_TIP "addr %x paddr %x now maped!\n", vaddr, PageAddrV2P(vaddrPage));
+        } else {
+            //printk(PART_TIP "addr %x don't need map!\n", vaddr);
+        }
+        vaddr += PAGE_SIZE;
+        pageIdx++;
+    }
+    return 0;
+}
 
 /*
  * RemoveFromPageTable - 取消虚拟地址对应的物理链接
@@ -373,7 +427,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
     address_t addr = 0xffffffff;
 	// 获取发生故障的地址
 	addr = ReadCR2();
-
+    
     //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");

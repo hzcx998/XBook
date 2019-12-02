@@ -1,6 +1,7 @@
 #include <conio.h>
 #include <mman.h>
 #include <stdlib.h>
+#include <share/types.h>
 
 /* init */
 int main(int argc, char *argv[])
@@ -22,6 +23,38 @@ int main(int argc, char *argv[])
 	} else {
 		printf("I am child, my pid is %d.\n", getpid());	
 		
+        /*pid = fork();
+
+	    if (pid > 0) {
+            printf("I am parent, my pid is %d my child is %d.\n", getpid(), pid);
+		} else {
+		    printf("I am child, my pid is %d.\n", getpid());	
+        }
+
+        pid = fork();
+
+	    if (pid > 0) {
+            printf("I am parent, my pid is %d my child is %d.\n", getpid(), pid);
+		} else {
+		    printf("I am child, my pid is %d.\n", getpid());	
+        }*/
+
+        if (argc > 0) {
+            int i;
+            for (i = 0; i < argc; i++) {
+                printf("arg[%d]=%s\n", i, argv[i]);
+            }
+        }
+        
+        const char *arg[2];
+
+        arg[0] = "hello, world!";
+        arg[1] = NULL;
+        
+        if (execv("/shell", arg)) {
+            printf("execute failed!\n");
+        }
+
 		printf("I will exit now.\n");	
 		return 0;
 		while(1);

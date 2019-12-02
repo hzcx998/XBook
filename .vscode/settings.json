@@ -43,7 +43,8 @@
         "drive.h": "c",
         "syscall.h": "c",
         "unistd.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "vmspace.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

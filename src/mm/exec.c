@@ -67,53 +67,17 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
     } else {
         occupyPages = 1;
     }
-    /*printk(PART_TIP "occupy pages %d\n",
-        occupyPages);
-     */
 
-    /* 为进程分配内存 */
-    /*uint32_t pageIdx = 0;
-    uint32_t vaddrPage = vaddrFirstPage;
-    
-    pde_t *pde;
-    pte_t *pte;
-    
-    
-    while (pageIdx < occupyPages) {
-        // 获取虚拟地址的页目录项和页表项
-        pde = PageGetPde(vaddrPage);
-        pte = PageGetPte(vaddrPage);
-        
-        // 如果pde不存在，或者pte不存在，那么就需要把这个地址进行映射
-        pde的判断要放在pte前面，不然会导致pde不存在而去查看pte的值，产生页故障
-        if (!(*pde & PAGE_P_1) || !(*pte & PAGE_P_1)) {
-            //printk(PART_WARRING "addr %x not maped!\n");
-            // 分配一个物理页
-            uint32_t page = AllocPage();
-            if (!page) {
-                printk(PART_ERROR "SegmentLoad: GetFreePage for link failed!\n");
-
-                return -1;
-            }
-            // 对地址进行链接，之后才能访问虚拟地址 
-            if(PageTableAdd(vaddrPage, page, PAGE_US_U | PAGE_RW_W)) {
-                printk(PART_ERROR "SegmentLoad: PageTableAdd failed!\n");
-
-                return -1;
-            }
-                
-            // printk(PART_TIP "addr %x paddr %x now maped!\n", vaddrPage, PageAddrV2P(vaddrPage));
-        } else {
-            //printk(PART_TIP "addr %x don't need map!\n", vaddrPage);
-        }
-        vaddrPage += PAGE_SIZE;
-        pageIdx++;
-    }*/
-
-    /* 映射内存空间 */
-    if (MapPages(vaddrFirstPage, occupyPages * PAGE_SIZE, PAGE_US_U | PAGE_RW_W)) {
+    /* 虚拟地址和物理地址进行映射 */
+    if (MapPagesMaybeMapped(vaddrFirstPage, occupyPages, PAGE_US_U | PAGE_RW_W)) {
+        printk(PART_ERROR "SegmentLoad: MapPagesMaybeMapped failed!\n");
         return -1;
     }
+
+    /* 映射内存空间 */
+    /*if (MapPages(vaddrFirstPage, occupyPages * PAGE_SIZE, PAGE_US_U | PAGE_RW_W)) {
+        return -1;
+    }*/
 
     //printk(PART_TIP "addr %x link done!\n", vaddrFirstPage);
     
@@ -172,7 +136,7 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
             所以这个地方我们加载的时候就加载成memsz，
             运行的时候访问未初始化的全局变量时才可以正确 */
             if (SegmentLoad(fd, progHeader.p_offset, 
-                    progHeader.p_memsz, progHeader.p_vaddr)) {
+                    max(progHeader.p_memsz, progHeader.p_filesz), progHeader.p_vaddr)) {
                 return -1;
             }
             //printk(PART_TIP "seg load success\n");
@@ -549,8 +513,8 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     memset(name, 0, MAX_TASK_NAMELEN);
     strcpy(name, path);
     
-    /* 只释放占用的其它资源*/
-    MemoryManagerRelease(current->mm, 0);
+    /* 只释放占用的栈和堆，而代码，数据，bss都不释放（当进程重新加载时可以提高速度） */
+    MemoryManagerRelease(current->mm, VMS_STACK | VMS_HEAP);
     
     //printk("start load");
     /* 6.加载程序段 */
@@ -616,7 +580,7 @@ ToEnd:
     // 释放参数缓冲
     kfree(argBuf);
 
-    /* 返回值为-1就返回-1 */
+    /* 返回值为-1就返回-1，其实还应该释放之前分配的数据 */
     if (ret)
         return -1;
     /* 没有错误，切换到进程空间运行 */

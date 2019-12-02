@@ -17,7 +17,6 @@ execv:
 	push ebx
 	push ecx
 	
-
 	mov eax, SYS_EXECV
 	mov ebx, [esp + 8 + 4]
 	mov ecx, [esp + 8 + 8]

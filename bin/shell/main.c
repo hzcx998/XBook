@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 		int pid;
 		pid = _wait(&status);
 		printf("my child pid %d status %d\n", pid, status);
-		while(1);
+		
 	} else if (pid == 0) {
 		printf("I am child. my pid %d\n", getpid());
 		
