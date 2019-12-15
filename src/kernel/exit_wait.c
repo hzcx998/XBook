@@ -10,6 +10,8 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/task.h>
+#include <fs/fs.h>
+#include <fs/bofs/file.h>
 
 /**
  * AdopeChildren - 过继子进程给init进程
@@ -88,12 +90,19 @@ PUBLIC void SysExit(int status)
     /* 保存退出状态 */
     current->exitStatus = status;
 
+    //printk("exit del %s\n", current->name);
+    /* 从文件系统中删除任务 */
+    DelTaskFromFS(current->name, current->pid);
+
     /* 1.把子进程过继给init进程 */
     AdopeChildren(current->pid);
 
-    /* 2.释放自己占用的资源 */
+    /* 2.释放自己占用的内存资源 */
     MemoryManagerRelease(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
     
+    /* 释放文件资源 */
+    BOFS_ReleaseTaskFiles(current);
+
     /* 3.如果有父进程，就通知父进程我已经远去，来帮我收尸吧
     在完成父进程唤醒之前不能调度 */
     
@@ -106,6 +115,7 @@ PUBLIC void SysExit(int status)
     InterruptSetStatus(oldStatus);
 
     //printk(PART_TIP "I am gone, don't miss me!\n");
+    
     
     /* 4.不让自己运行，调度出去 */
     TaskBlock(TASK_ZOMBIE);
@@ -148,15 +158,17 @@ ToRepeat:
 
         /* 如果子进程的父进程是当前进程，就找到一个子进程 */
         found = true;
-        //printk(PART_TIP "found a child task.\n");
+        
         /* 如果不是变成zombie，就不管 */
         if (child->status != TASK_ZOMBIE) 
             continue;
 
         /* 子进程是zombie */
-
+        //printk(PART_TIP "found a child task.\n");
         /* 保存子进程的退出状态, 和pid */
-        *status = child->exitStatus;
+        if (status != NULL)
+            *status = child->exitStatus;
+        
         childPid = child->pid;
         /*
         printk(PART_TIP "find a zombie task %s pid %d exit status %d",

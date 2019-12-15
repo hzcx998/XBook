@@ -45,8 +45,6 @@ typedef int pid_t;
 
 #define MAX_TASK_NAMELEN 32
 
-#define MAX_PATH_LEN 256
-
 #define TASK_DEFAULT_PRIO 5
 
 #define TASK_STACK_MAGIC 0X19980325
@@ -78,6 +76,7 @@ typedef struct Task {
     struct List list;               // 处于所在队列的链表
     struct List globalList;         // 全局任务队列，用来查找所有存在的任务
     unsigned int stackMagic;         /* 任务的魔数 */
+    dev_t ttydev;               /* 进程对应的tty设备 */
 } Task_t;
 
 #define SET_TASK_STATUS(task, stat) \

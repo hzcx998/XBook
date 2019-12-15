@@ -290,7 +290,6 @@ PUBLIC int DeviceClose(int devno)
     /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
     if (devno != device->devno)
         return -1;
-    
     /* 增加引用 */
     if (AtomicGet(&device->references) > 0)
         AtomicDec(&device->references);

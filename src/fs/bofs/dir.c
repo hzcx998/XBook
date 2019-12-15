@@ -269,6 +269,8 @@ void BOFS_CloseDir(struct BOFS_Dir *dir)
  * @sb: 超级块
  * 
  * 打开一个目录，创建一个目录结构，然后把目录内容读取到缓冲区中去
+ * 只能打开一个128kb的目录，因为使用kmalloc来进行分配
+ * 
  * @return: 成功返回打开的目录，失败返回NULL
  */
 PRIVATE struct BOFS_Dir *BOFS_OpenDirSub(struct BOFS_DirEntry *dirEntry,
@@ -578,6 +580,7 @@ ToFreeRootDir:
 ToEnd:
     return retval;
 }
+
 /**
  * BOFS_CreateNewDirEntry - 创建一个新的目录项
  * @sb: 超级块儿
@@ -618,7 +621,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
     //printk("BOFS_CreateInode\n");
 	
 	// 创建子目录项
-	BOFS_CreateDirEntry(childDir, inodeID, BOFS_FILE_TYPE_DIRECTORY, 0, name);
+	BOFS_CreateDirEntry(childDir, inodeID, BOFS_FILE_TYPE_DIRECTORY, name);
 	//printk("BOFS_CreateDirEntry\n");
 	
 	//BOFS_DumpDirEntry(childDir);
@@ -668,7 +671,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 
 	int result = BOFS_SyncDirEntry(parentDir, childDir, sb);
 	
-    BOFS_DumpDirEntry(parentDir);
+    //BOFS_DumpDirEntry(parentDir);
 
     //printk("sync result:%d\n", result);
     //printk("BOFS_SyncDirEntry\n");
@@ -679,7 +682,7 @@ PRIVATE int BOFS_CreateNewDirEntry(struct BOFS_SuperBlock *sb,
 			
 			inode.size += sizeof(struct BOFS_DirEntry);
 			BOFS_SyncInode(&inode, sb);
-            printk("change parent size!");
+            //printk("change parent size!");
 
            // BOFS_DumpInode(&inode);
 		}
@@ -787,7 +790,7 @@ PUBLIC int BOFS_MakeDir(const char *pathname, struct BOFS_SuperBlock *sb)
                 if (BOFS_CreateNewDirEntry(sb, &parentDir, &childDir, name)) {
                     return -1;
                 }
-				printk("create a new dir success!\n");
+				//printk("create a new dir success!\n");
 			}else{
 				printk("mkdir:can't create path:%s name:%s\n", pathname, name);
 				return -1;
@@ -982,6 +985,7 @@ PUBLIC int BOFS_MakeAbsPath(const char *pathname, char *abspath)
     char driveName[BOFS_DRIVE_NAME_LEN];
     memset(driveName, 0 , BOFS_DRIVE_NAME_LEN);
 
+    
     /*
     判断是否有磁盘符，如果有，就说明是绝对路径，不然就是相对路径。
     如果是相对路径，那么就需要读取当前的工作目录
@@ -1017,6 +1021,14 @@ PUBLIC int BOFS_MakeAbsPath(const char *pathname, char *abspath)
         不是的话就是绝对路径。
         */
         strcat(abspath, pathname);
+
+        /* 只有磁盘符，例如tmp: , 那么就需要在这个后面添加一个'/' */
+        if (strchr(abspath, '/') == NULL) {
+            //printk("path %s only drive, add a '/'.\n", pathname);
+            strcat(abspath, "/");
+            //printk("after add path %s .\n", abspath);
+            
+        }
     }
     return 0;
 }

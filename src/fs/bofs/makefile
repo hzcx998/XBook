@@ -6,3 +6,7 @@ obj-y	+= bitmap.o
 obj-y	+= dir.o
 obj-y	+= file.o
 obj-y	+= drive.o
+obj-y	+= device.o
+obj-y	+= task.o
+obj-y	+= pipe.o
+obj-y	+= fifo.o

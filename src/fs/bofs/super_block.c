@@ -186,7 +186,7 @@ PUBLIC int BOFS_MakeFS(struct BOFS_SuperBlock *superBlock,
     
     struct BOFS_DirEntry rootDirEntry;
 
-    BOFS_CreateDirEntry(&rootDirEntry, 0, BOFS_FILE_TYPE_DIRECTORY, 0, ".");
+    BOFS_CreateDirEntry(&rootDirEntry, 0, BOFS_FILE_TYPE_DIRECTORY, ".");
 
     memset(iobuf, 0, blockSize);
     memcpy(iobuf, &rootDirEntry, sizeof(struct BOFS_DirEntry));

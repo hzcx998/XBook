@@ -12,43 +12,28 @@
 #include <share/stdint.h>
 #include <share/stddef.h>
 
-#define S_IFMT   0170000    //文件类型的位遮罩
-#define S_IFSOCK 0140000    //scoket
-#define S_IFLNK 0120000     //符号连接
-#define S_IFREG 0100000     //一般文件
-#define S_IFBLK 0060000     //区块装置
-#define S_IFDIR 0040000     //目录
-#define S_IFCHR 0020000     //字符装置
-#define S_IFIFO 0010000     //先进先出
+/* 高4位是属性位 */
+#define S_IFSOCK 0x90    //scoket
+#define S_IFLNK 0x50     //符号连接
+#define S_IFIFO 0x30     //先进先出
+#define S_IFBLK 0x80     //区块装置
+#define S_IFCHR 0x40     //字符装置
+#define S_IFDIR 0x20     //目录
+#define S_IFREG 0x10     //一般文件
 
-#define S_ISUID 04000     //文件的(set user-id on execution)位
-#define S_ISGID 02000     //文件的(set group-id on execution)位
-#define S_ISVTX 01000     //文件的sticky位
-
-
-#define S_IREAD 00400     //文件所有者具可读取权限
-#define S_IWRITE 00200    //文件所有者具可写入权限
-#define S_IEXEC 00100     //文件所有者具可执行权限
-
-#define S_IRUSR S_IREAD     //文件所有者具可读取权限
-#define S_IWUSR S_IWRITE    //文件所有者具可写入权限
-#define S_IXUSR S_IEXEC     //文件所有者具可执行权限
-
-#define S_IRGRP 00040             //用户组具可读取权限
-#define S_IWGRP 00020             //用户组具可写入权限
-#define S_IXGRP 00010             //用户组具可执行权限
-
-#define S_IROTH 00004             //其他用户具可读取权限
-#define S_IWOTH 00002             //其他用户具可写入权限
-#define S_IXOTH 00001             //其他用户具可执行权限
+#define S_IREAD 0x04     //文件所有者具可读取权限
+#define S_IWRITE 0x02    //文件所有者具可写入权限
+#define S_IEXEC 0x01     //文件所有者具可执行权限
 
 //上述的文件类型在POSIX中定义了检查这些类型的宏定义：
-#define S_ISLNK (st_mode)    //判断是否为符号连接
-#define S_ISREG (st_mode)    //是否为一般文件
-#define S_ISDIR (st_mode)    //是否为目录
-#define S_ISCHR (st_mode)    //是否为字符装置文件
-#define S_ISBLK (s3e)        //是否为先进先出
-#define S_ISSOCK (st_mode)   //是否为socket
+
+#define S_ISREG (st_mode & S_IFREG)    //是否为一般文件
+#define S_ISDIR (st_mode & S_IFDIR)    //是否为目录
+#define S_ISCHR (st_mode & S_IFCHR)    //是否为字符设备
+#define S_ISBLK (st_mode & S_IFBLK)        //是否为块设备
+#define S_ISFIFO (st_mode & S_IFIFO)     //先进先出
+#define S_ISLNK (st_mode & S_IFLNK)    //判断是否为符号连接
+#define S_ISSOCK (st_mode & S_IFSOCK)   //是否为socket
 
 struct stat {
 	size_t st_size;         //以字节为单位的文件容量

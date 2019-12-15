@@ -25,13 +25,13 @@ struct BOFS_Drive {
 /* 把哪个设备映射成根磁盘符 */
 #define BOFS_ROOT_DRIVE_DEV       DEV_HDA
 
-/* 把哪个设备映射成临时磁盘符 */
-#define BOFS_TMP_DRIVE_DEV        DEV_RDA
+/* 把哪个设备映射成系统磁盘符 */
+#define BOFS_SYS_DRIVE_DEV        DEV_RDA
 
 /* 根磁盘符的名字 */
 #define BOFS_ROOT_DRIVE_NAME        "root"
-/* 临时磁盘符的名字 */
-#define BOFS_TMP_DRIVE_NAME         "tmp"
+/* 系统磁盘符的名字 */
+#define BOFS_SYS_DRIVE_NAME         "sys"
 
 PUBLIC int BOFS_AddDrive(char *name,
     struct BOFS_SuperBlock *sb,

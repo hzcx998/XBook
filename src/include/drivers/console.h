@@ -10,10 +10,10 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
+#include <book/chr-dev.h>
 
 /*
-color set
-
+颜色生成方法
 MAKE_COLOR(BLUE, RED)
 MAKE_COLOR(BLACK, RED) | BRIGHT
 MAKE_COLOR(BLACK, RED) | BRIGHT | FLASH
@@ -36,23 +36,35 @@ MAKE_COLOR(BLACK, RED) | BRIGHT | FLASH
 #define SCREEN_WIDTH 80
 #define SCREEN_HEIGHT 25
 
-#define SCREEN_SIZE (SCREEN_WIDTH * SCREEN_HEIGHT)
+#define SCREEN_SIZE (80 * 25)
 
 #define MAX_CONSOLE_BUF_SIZE (80*25)
 
+/* 最多4个控制台 */
+#define MAX_CONSOLE_NR	    CONSOLE_MINORS
+
+/* 控制台结构 */
+typedef struct Console {
+    unsigned int currentStartAddr;      /* 当前显示到了什么位置 */
+    unsigned int originalAddr;          /* 控制台对应的显存的位置 */
+    unsigned int videoMemorySize;       /* 控制台占用的显存大小 */
+    unsigned int cursor;                /* 当前光标的位置 */
+    unsigned char color;                /* 字符的颜色 */
+
+    /* 字符设备，由于初始化console的时候还没有内存分配，所以直接占用空间 */
+    struct CharDevice chrdev;
+} Console_t;
+
+EXTERN Console_t consoleTable[];
+
 void ConsoleInit();
 
-//调试输出
-PUBLIC int ConsolePrint(const char *fmt, ...);
-PUBLIC int ConsoleFliter(char *buf, unsigned int count);
-
-PUBLIC void ConsoleWrite(char *buf, unsigned int count);
-PUBLIC void ConsoleRead(char *buf, unsigned int count);
-
-PUBLIC void ConsoleGotoXY(unsigned short x, unsigned short y);
-PUBLIC void ConsoleSetColor(unsigned char color);
-PUBLIC void ConsoleReadGotoXY(unsigned short x, unsigned short y);
-
-PUBLIC int SysLog(char *buf);
+enum {
+    CON_CMD_SET_COLOR = 1,
+    CON_CMD_SELECT_CON,
+    CON_CMD_SCROLL,
+    CON_CMD_CLEAN,
+    CON_CMD_GOTO,
+};
 
 #endif   /*_DRIVER_CONSOLE_H*/

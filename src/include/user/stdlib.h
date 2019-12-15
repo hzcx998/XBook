@@ -28,7 +28,7 @@ int malloc_usable_size(void *ptr);
 void *calloc(size_t count, size_t size);
 void *realloc(void *ptr, size_t size);
 
-
+int pipe(int fd[2]);
 
 
 #endif  /* _USER_LIB_STDLIB_H */

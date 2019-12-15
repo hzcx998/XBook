@@ -1,5 +1,8 @@
-# Book-OS-X*(XBook) Finished task.  
+# Book-OS-X*(XBook) Finished task.
 
+* bosh
+* tty
+--2019.12.11--
 * new file system（BOFS v0.3）
 --2019.12.1--
 * synclock

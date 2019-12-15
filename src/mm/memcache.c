@@ -63,12 +63,6 @@ PRIVATE struct CacheSize cacheSizes[] = {
 	#endif
 #endif
 
-/* 最大的mem的对象的大小 */
-#ifdef CONFIG_LARGE_ALLOCS 
-	#define MAX_MEM_CACHE_SIZE (4*MB)
-#else
-	#define MAX_MEM_CACHE_SIZE (128*KB)
-#endif
 
 
 /* 最开始的groupcache */

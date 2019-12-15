@@ -163,7 +163,7 @@ PRIVATE void InitInterruptDescriptor()
 	 */
 	SetGateDescriptor(&idt[SYSCALL_INTERRUPT_NR], SyscallHandler, KERNEL_CODE_SEL, DA_386IGate, DA_GATE_DPL3);
 	 
-	//LoadIDTR(IDT_LIMIT, IDT_VADDR);
+	LoadIDTR(IDT_LIMIT, IDT_VADDR);
 
 }
 
@@ -180,58 +180,58 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
       	return;		//IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
    	}
 	
-	ConsoleSetColor(TEXT_RED);
-	ConsolePrint("! Exception messag start.\n");
-	ConsoleSetColor(TEXT_GREEN);
-	ConsolePrint("name: %s \n", interruptNameTable[frame->vec_no]);
+	DebugColor(TEXT_RED);
+	printk("! Exception messag start.\n");
+	DebugColor(TEXT_GREEN);
+	printk("name: %s \n", interruptNameTable[frame->vec_no]);
 
-	ConsolePrint("frame:\n");
+	printk("frame:\n");
 	
-	ConsolePrint("vec: %x\n", 
+	printk("vec: %x\n", 
 			frame->vec_no);
 	//Panic("expection");
-	ConsolePrint("edi: %x esi: %x ebp: %x esp: %x\n", 
+	printk("edi: %x esi: %x ebp: %x esp: %x\n", 
 			frame->edi, frame->esi, frame->ebp, frame->esp);
-	ConsolePrint("ebx: %x edx: %x ecx: %x eax: %x\n", 
+	printk("ebx: %x edx: %x ecx: %x eax: %x\n", 
 			frame->ebx, frame->edx, frame->ecx, frame->eax);
-	ConsolePrint("gs: %x fs: %x es: %x ds: %x\n", 
+	printk("gs: %x fs: %x es: %x ds: %x\n", 
 			frame->gs, frame->fs, frame->es, frame->ds);
-	ConsolePrint("err: %x eip: %x cs: %x eflags: %x\n", 
+	printk("err: %x eip: %x cs: %x eflags: %x\n", 
 			frame->errorCode, frame->eip, frame->cs, frame->eflags);
-	ConsolePrint("esp: %x ss: %x\n", 
+	printk("esp: %x ss: %x\n", 
 			frame->esp, frame->ss);
 	
 	if(frame->errorCode != 0xFFFFFFFF){
-		ConsolePrint("Error code:%x\n", frame->errorCode);
+		printk("Error code:%x\n", frame->errorCode);
 		
 		if(frame->errorCode&1){
-			ConsolePrint("    External Event: NMI,hard interruption,ect.\n");
+			printk("    External Event: NMI,hard interruption,ect.\n");
 		}else{
-			ConsolePrint("    Not External Event: inside.\n");
+			printk("    Not External Event: inside.\n");
 		}
 		if(frame->errorCode&(1<<1)){
-			ConsolePrint("    IDT: selector in idt.\n");
+			printk("    IDT: selector in idt.\n");
 		}else{
-			ConsolePrint("    IDT: selector in gdt or ldt.\n");
+			printk("    IDT: selector in gdt or ldt.\n");
 		}
 		if(frame->errorCode&(1<<2)){
-			ConsolePrint("    TI: selector in ldt.\n");
+			printk("    TI: selector in ldt.\n");
 		}else{
-			ConsolePrint("    TI: selector in gdt.\n");
+			printk("    TI: selector in gdt.\n");
 		}
-		ConsolePrint("    Selector: idx %d\n", (frame->errorCode&0xfff8)>>3);
+		printk("    Selector: idx %d\n", (frame->errorCode&0xfff8)>>3);
 	}
-	/*ConsolePrint("    task %s %x kstack %x.\n", task->name, task, task->kstack);
-	ConsolePrint("    pgdir %x cr3 %x\n", task->pgdir, PageAddrV2P((uint32_t)task->pgdir));
+	/*printk("    task %s %x kstack %x.\n", task->name, task, task->kstack);
+	printk("    pgdir %x cr3 %x\n", task->pgdir, PageAddrV2P((uint32_t)task->pgdir));
 	*/	
    	if (frame->vec_no == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
       	unsigned int pageFaultVaddr = 0; 
 		pageFaultVaddr = ReadCR2();
 
-		ConsolePrint("page fault addr is: %x\n", pageFaultVaddr);
+		printk("page fault addr is: %x\n", pageFaultVaddr);
    	}
-	ConsoleSetColor(TEXT_RED);
-	ConsolePrint("! Exception Messag done.\n");
+	DebugColor(TEXT_RED);
+	printk("! Exception Messag done.\n");
   	// 能进入中断处理程序就表示已经处在关中断情况下,
   	// 不会出现调度进程的情况。故下面的死循环不会再被中断。
    	Panic("expection");

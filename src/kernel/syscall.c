@@ -12,9 +12,14 @@
 #include <drivers/clock.h>
 #include <fs/fs.h>
 
+PRIVATE void SysNull()
+{
+    /* 空系统调用 */
+}
+
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
-    SysLog,                 /* 0 */
+    SysNull,                /* 0 */
     SysMmap,                /* 1 */
     SysMunmap,              /* 2 */
     SysFork,                /* 3 */
@@ -47,4 +52,5 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysAccess,              /* 30 */
     SysFcntl,               /* 31 */
     SysFsync,               /* 32 */
+    SysPipe,                /* 33 */
 };

@@ -8,6 +8,10 @@
 #ifndef _SHARE_CONST_H
 #define _SHARE_CONST_H
 
+/* 系统信息 */
+#define OS_NAME     "Book OS -X"
+#define OS_VERSION  "v0.6.3"
+
 /* 内存常量的定义 */
 #define KB      1024
 #define MB      (1024*KB)
@@ -15,5 +19,11 @@
 
 /* 扇区大小的定义 */
 #define SECTOR_SIZE      512
+
+/* 路径长度 */
+#define MAX_PATH_LEN 256
+
+/* 管道缓冲区的大小 */
+#define PIPE_BUF      4096
 
 #endif  /*_SHARE_CONST_H*/

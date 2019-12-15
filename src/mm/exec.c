@@ -422,7 +422,15 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
 {
     //printk(PART_TIP "execv: path %s\n", path);
     int ret = 0;
+
     /* 1.读取文件 */
+
+    /* 检测是否可执行 */
+    if (SysAccess(path, X_OK)) {
+        printk(PART_ERROR "exec: not a executeable file!\n");
+        return -1;
+    }
+
     /* 打开文件 */
     int fd = SysOpen(path, O_RDONLY);
     if (fd == -1) {
@@ -435,7 +443,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         printk(PART_ERROR "SysExecv: fstat %s failed!\n", path);
         return -1;
     }
- 
+
     //printk("file info:\n size:%d inode:%d\n", fstat.st_size, fstat.st_ino);
 
     /* 2.读取elf头 */
@@ -481,7 +489,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     后面可能释放内存资源，导致参数消失，
     所以要在释放资源之前解析参数
     */
-        
+
     /* 当argv不为NULL才解析
     先存放到一个缓冲中
      */
@@ -517,7 +525,6 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 只释放占用的栈和堆，而代码，数据，bss都不释放（当进程重新加载时可以提高速度） */
     MemoryManagerRelease(current->mm, VMS_STACK | VMS_HEAP);
     
-    
     /* 6.加载程序段 */
     if (LoadElfBinary(current->mm, &elfHeader, fd)) {
         printk(PART_ERROR "SysExecv: load elf binary failed!\n");
@@ -526,6 +533,8 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         goto ToEnd;
     }
     
+    enum InterruptStatus oldStatus = InterruptDisable();
+
     //printk("end load\n");
     /* 7.设置中断栈 */
     
@@ -551,16 +560,47 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     frame->ecx = argc;
     frame->eip = (uint32_t)elfHeader.e_entry;
 
+    //printk("entry point:%x\n", frame->eip);
+
     /* 9.设置其他内容 */
     /*
     printk(PART_TIP "task %s pid %d execv path %s", 
         current->name, current->pid, path
     ); */
     
+    /* 执行新进程之前，先把旧的进程删除 */
+    if (DelTaskFromFS(current->name, current->pid)) {
+        //printk("task not exist in fs!\n");
+    }
+    
     /* 修改进程的名字 */
     memset(current->name, 0, MAX_TASK_NAMELEN);
+
+    /* 传入的可能时绝对路径，也可能时相对路径。
+    如果最后面有'/'符号，就需要定位到最后一个'/'。例如: "/test", "./test", "root:/test/abc"
+    如果没有，那么，就直接是名字开始，例如: "test"
+     */
+
+    char *p = strrchr(name, '/');
+    if (p == NULL) {    /* 字符串中没有'/'符号 */
+        p = name;   /* 直接指向名字 */
+    } else {    /* 字符末尾有'/'符号 */
+        p++;    /* 跨过'/'就是名字 */
+    }
+
     /* 这里复制前面备份好的名字 */
-    strcpy(current->name, name);
+    strcpy(current->name, p);
+    
+    //printk("task name:%s\n", current->name);
+
+    if (AddTaskToFS(current->name, current->pid)) {
+        ret = -1;
+        goto ToEnd;
+    }
+
+    /*
+    修改进程表
+    */
     
     /*
     printk(PART_TIP "VMspace->\n");
@@ -581,9 +621,19 @@ ToEnd:
     // 释放参数缓冲
     kfree(argBuf);
 
+    /* 不修改标准输入，输出，错误 */
+    unsigned char idx = 3;
+    while (idx < MAX_OPEN_FILES_IN_PROC) {
+        current->fdTable[idx] = -1;      /* 设置为-1表示未使用 */
+        idx++;
+    }
+
+    InterruptSetStatus(oldStatus);
+
     /* 返回值为-1就返回-1，其实还应该释放之前分配的数据 */
     if (ret)
         return -1;
+    
     /* 没有错误，切换到进程空间运行 */
     SwitchToUser(frame);
     /* 这里是不需要返回的，但为了让编译器不发出提醒，就写一个返回值 */

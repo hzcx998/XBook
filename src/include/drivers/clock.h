@@ -35,7 +35,7 @@ struct SystemDate
 EXTERN struct SystemDate systemDate;
 
 /* 时钟频率 */
-#define TIMER_QUICKEN     1		/* 如果切换过快，可能调度要忙坏。:(  */
+#define TIMER_QUICKEN     5		/* 如果切换过快，可能调度要忙坏。:(  */
 #define HZ             (100*TIMER_QUICKEN)	//1000 快速 100 普通0.001
 
 /* 1 ticks 对应的毫秒数 */

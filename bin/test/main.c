@@ -26,9 +26,59 @@ int main(int argc, char *argv[])
 		printf("args %s ", argv[i]);
 		i++;
 	}
-    //return 0;
-	printf("I will do some test and exit\n");	
 
+    printf("I will do some test and exit\n");	
+
+    printf("----pipe test----\n");
+    
+    int pipefd[2];
+    if (pipe(pipefd) < 0) {
+        printf("make pipe failed!\n");
+        return -1;
+    }
+    printf("pipe 0:%d 1:%d\n", pipefd[0], pipefd[1]);
+    
+    char buf[20];
+
+    char *q = "test for pipe\n";
+
+    /**/
+    int pid = fork();
+
+    if (pid == -1) {
+        printf("fork faied!\n");
+        return -1;
+    } else if (pid == 0) {
+        printf("I am child, my pid is %d\n", getpid());
+        /* child read */
+        close(pipefd[1]);   /* close write */
+
+        memset(buf, 0, 20);
+        int len = read(pipefd[0], buf, strlen(q));
+        printf("read %s len %d\n", buf, len);
+
+        close(pipefd[0]);   /* close read */
+
+        printf("child close pipe\n");
+
+    } else {
+        printf("I am parent, my pid is %d, my child is %d\n", getpid(), pid);
+        
+        /* parent write */
+        close(pipefd[0]);   /* close read */
+        
+        write(pipefd[1], q, strlen(q));
+        //_wait(NULL);
+
+        printf("parent close pipe\n");
+        
+        close(pipefd[1]);   /* close write */
+
+    } 
+
+
+    return 0;
+	
 
 	printf("----file test----\n");
     
@@ -161,13 +211,7 @@ int main(int argc, char *argv[])
 	*maped = 0xfa;
 	printf("mmap %x %x.", maped, *maped);
 
-    int key = 0;
-    while (1) {
-        key = 0;
-        if (read(0, &key, 1)) {
-            printf("%c", key);
-        }
-    }
+    
     printf("I will exit now!\n");
 
 	return 0;

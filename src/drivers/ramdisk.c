@@ -32,12 +32,15 @@
 
 #define MAX_SECTORS			10240
 
+#define MAX_RAMDISK_NR			1
+
+
 PRIVATE struct RamdiskDevice {
 	struct Disk *disk;
 	struct RequestQueue *requestQueue;
 	unsigned char *data;
 	unsigned int size;
-}devices[2];
+}devices[MAX_RAMDISK_NR];
 
 /**
  * RamdiskReadSector - 读扇区
@@ -54,7 +57,7 @@ PRIVATE int RamdiskReadSector(struct RamdiskDevice *dev,
 	unsigned int count)
 {
 	/* 检查设备是否正确 */
-	if (dev < devices || dev >= &devices[1]) {
+	if (dev < devices || dev >= &devices[MAX_RAMDISK_NR]) {
 		return -1;
 	} else if (lba + count > dev->size) {
 		return -1;
@@ -80,7 +83,7 @@ PRIVATE int RamdiskWriteSector(struct RamdiskDevice *dev,
 	unsigned int count)
 {
 	/* 检查设备是否正确 */
-	if (dev < devices || dev >= &devices[1]) {
+	if (dev < devices || dev >= &devices[MAX_RAMDISK_NR]) {
 		return -1;
 	} else if (lba + count > dev->size) {
 		return -1;
@@ -264,7 +267,7 @@ PRIVATE struct DeviceOperations opSets = {
  */
 PRIVATE int RamdiskCreateDevice(struct RamdiskDevice *dev, int major, int idx)
 {
-	dev->disk = AllocDisk(2);
+	dev->disk = AllocDisk(1);
 	if (dev->disk == NULL)
 		return -1;
 	
@@ -349,7 +352,7 @@ PUBLIC int InitRamdiskDriver()
 
 	/* 创建一个块设备 */
 	int i;
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < MAX_RAMDISK_NR; i++) {
 		status = RamdiskCreateDevice(&devices[i], RAMDISK_MAJOR, i);
 		if (status < 0)
 			return status;

@@ -1044,8 +1044,10 @@ PRIVATE int IdeReadSector(struct IdeDevice *dev,
 	unsigned char error;
 	/* 检查设备是否正确 */
 	if (dev < devices || dev >= &devices[3] || dev->reserved == 0) {
-		return -1;
+		printk("device error!\n");
+        return -1;
 	} else if (lba + count > dev->size && dev->type == IDE_ATA) {
+        printk("out of range!\n");
 		return -1;
 	} else {
 
@@ -1057,10 +1059,10 @@ PRIVATE int IdeReadSector(struct IdeDevice *dev,
 		
 		/* 打印驱动错误信息 */
 		if(IdePrintError(dev, error)) {
-			return -1;
+			printk("ide read error!\n");
+            return -1;
 		}
 	}
-
 	return 0;
 }
 

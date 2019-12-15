@@ -10,6 +10,8 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/task.h>
+#include <fs/fs.h>
+#include <fs/bofs/file.h>
 
 /* 中断返回 */
 EXTERN void InterruptExit();
@@ -30,8 +32,11 @@ PRIVATE int CopyStructAndKstack(struct Task *childTask, struct Task *parentTask)
     childTask->list.next = childTask->list.prev = NULL;
     childTask->globalList.next = childTask->globalList.prev = NULL;
     
+    /* 和父进程有一样的ttydev */
+    childTask->ttydev = parentTask->ttydev;
+
     /* 复制名字，在后面追加fork表明是一个fork的进程，用于测试 */
-    strcat(childTask->name, "_fork");
+    //strcat(childTask->name, "_fork");
     return 0;
 }
 
@@ -252,7 +257,8 @@ PRIVATE int CopyTask(struct Task *childTask, struct Task *parentTask)
     //Spin("BuildChildStack");
     // printk(PART_TIP "BuildChildStack\n");
 
-    /* 5.更新打开的文件 */
+    /* 更新打开节点文件 */
+    BOFS_UpdateInodeOpenCounts(childTask);
 
     return 0;
 }
@@ -260,6 +266,7 @@ PRIVATE int CopyTask(struct Task *childTask, struct Task *parentTask)
 /**
  * SysFork - fork系统调用
  * 
+ * 如果失败，应该回滚回收之前分配的内存
  * 创建一个和自己一样的进程
  * 返回-1则失败，返回0表示子进程自己，返回>0表示父进程
  */
@@ -284,10 +291,16 @@ PUBLIC pid_t SysFork()
     /* 复制进程 */
     if (CopyTask(childTask, parentTask)) {
         printk(PART_ERROR "SysFork: copy task failed!\n");
+        kfree(childTask);
         return -1;
     }
     
-    
+    if (AddTaskToFS(childTask->name, childTask->pid)) {
+        kfree(childTask->pgdir);
+        kfree(childTask);
+        return -1;
+    }
+
     //Spin("test");
     /* 把子进程添加到就绪队列和全局链表 */
     // 保证不存在于链表中
@@ -302,10 +315,14 @@ PUBLIC pid_t SysFork()
 
     /* 恢复之前的状态 */
     InterruptSetStatus(oldStatus);
-    
+
+    /*
     printk(PART_TIP "task %s pid %d fork task %s pid %d\n", 
         parentTask->name, parentTask->pid, childTask->name, childTask->pid
-    );
+    );*/
+    
+
+    //printk("fork return!\n");
     /* 返回子进程的pid */
     return childTask->pid;
 }

@@ -41,7 +41,8 @@ void ThreadDiskFlush(void *arg)
         /* 执行块同步操作 */
         count = Bsync();
         if (count) {
-            printk(">>>sync disk for %d count.\n", count);
+            /* 显示同步信息，有助于调试 */
+            //printk(">>>sync disk for %d count.\n", count);
         }
         count = 0;
         

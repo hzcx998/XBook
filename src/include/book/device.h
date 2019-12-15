@@ -12,6 +12,7 @@
 #include <book/atomic.h>
 #include <share/stddef.h>
 enum {
+    DEV_TYPE_UNKNOWN = 0,
     DEV_TYPE_BLOCK,
     DEV_TYPE_CHAR,
     DEV_TYPE_NET,
@@ -28,31 +29,44 @@ enum {
 #define MINOR(dev) ((dev) & MINORMASK)
 
 /* 设备号 */
-#define CONSOLE_MAJOR      1
-#define KEYBOARD_MAJOR     2
-#define IDE_MAJOR          3
-#define RAMDISK_MAJOR      4
+#define CONSOLE_MAJOR       1
+#define KEYBOARD_MAJOR      2
+#define IDE_MAJOR           3
+#define RAMDISK_MAJOR       4
+#define TTY_MAJOR           5
+
+/* 字符设备数量 */
+#define CONSOLE_MINORS      3    /* 4个控制台 */
+#define TTY_MINORS          3    /* 4个tty */
 
 /* 设备分区数 */
-#define IDE_PARTS          8
-#define RAMDISK_PARTS      8
+#define IDE_PARTS           8
+#define RAMDISK_PARTS       8
 
 /* 从设备号 */
 #define IDE_MINOR(x)        (x * (IDE_PARTS + 1))
 #define RAMDISK_MINOR(x)    (x * (RAMDISK_PARTS + 1)) 
 
 /* 设备号合成 */
+#define DEV_CON0            MKDEV(CONSOLE_MAJOR, 0)       /* 控制台设备0 */
+#define DEV_CON1            MKDEV(CONSOLE_MAJOR, 1)       /* 控制台设备1 */
+#define DEV_CON2            MKDEV(CONSOLE_MAJOR, 2)       /* 控制台设备2 */
+#define DEV_CON3            MKDEV(CONSOLE_MAJOR, 3)       /* 控制台设备3 */
 
-#define DEV_CONSOLE         MKDEV(CONSOLE_MAJOR, 0)       /* 控制台设备 */
 #define DEV_KEYBOARD        MKDEV(KEYBOARD_MAJOR, 0)       /* 键盘设备 */
 
-#define DEV_HDA             MKDEV(IDE_MAJOR, IDE_MINOR(0))       /* IDE硬盘：主通道0磁盘 */
-#define DEV_HDB             MKDEV(IDE_MAJOR, IDE_MINOR(1))       /* IDE硬盘：主通道1磁盘 */
-#define DEV_HDC             MKDEV(IDE_MAJOR, IDE_MINOR(2))       /* IDE硬盘：从通道0磁盘 */
-#define DEV_HDD             MKDEV(IDE_MAJOR, IDE_MINOR(3))       /* IDE硬盘：从通道1磁盘 */
+#define DEV_HDA             MKDEV(IDE_MAJOR, IDE_MINOR(0))  /* IDE硬盘：主通道0磁盘 */
+#define DEV_HDB             MKDEV(IDE_MAJOR, IDE_MINOR(1))  /* IDE硬盘：主通道1磁盘 */
+#define DEV_HDC             MKDEV(IDE_MAJOR, IDE_MINOR(2))  /* IDE硬盘：从通道0磁盘 */
+#define DEV_HDD             MKDEV(IDE_MAJOR, IDE_MINOR(3))  /* IDE硬盘：从通道1磁盘 */
 
-#define DEV_RDA            MKDEV(RAMDISK_MAJOR, RAMDISK_MINOR(0))       /* RAMDISK设备 */
-#define DEV_RDB            MKDEV(RAMDISK_MAJOR, RAMDISK_MINOR(1))       /* RAMDISK设备 */
+#define DEV_RDA            MKDEV(RAMDISK_MAJOR, RAMDISK_MINOR(0))   /* RAMDISK设备 */
+#define DEV_RDB            MKDEV(RAMDISK_MAJOR, RAMDISK_MINOR(1))   /* RAMDISK设备 */
+
+#define DEV_TTY0            MKDEV(TTY_MAJOR, 0)       /* tty设备0 */
+#define DEV_TTY1            MKDEV(TTY_MAJOR, 1)       /* tty设备1 */
+#define DEV_TTY2            MKDEV(TTY_MAJOR, 2)       /* tty设备2 */
+#define DEV_TTY3            MKDEV(TTY_MAJOR, 3)       /* tty设备3 */
 
 #define DEVICE_NAME_LEN 24
 

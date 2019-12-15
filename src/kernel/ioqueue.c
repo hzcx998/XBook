@@ -23,16 +23,20 @@ PUBLIC struct IoQueue *CreateIoQueue()
  * IoQueueInit - io队列的初始化
  * @ioQueue: io队列
  */
-PUBLIC int IoQueueInit(struct IoQueue *ioQueue)
+PUBLIC int IoQueueInit(struct IoQueue *ioQueue, 
+    unsigned int *buf, unsigned int buflen)
 {
 	//初始化队列锁
 	SynclockInit(&ioQueue->lock);
 	//初始化缓冲区
-	ioQueue->buf = (unsigned int *)kmalloc(IO_QUEUE_BUF_LEN*4, GFP_KERNEL);
+	/*ioQueue->buf = (unsigned int *)kmalloc(buflen, GFP_KERNEL);
 	if (ioQueue->buf == NULL) {
 		return -1;
-	}
-	memset(ioQueue->buf, 0, IO_QUEUE_BUF_LEN*4);
+	}*/
+    ioQueue->buf = buf;
+    ioQueue->buflen = buflen;
+    
+	memset(ioQueue->buf, 0, buflen);
 
 	/* 把头指针和尾指针都指向buf */
 	ioQueue->head = ioQueue->tail = ioQueue->buf;
@@ -84,7 +88,7 @@ PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data)
 	ioQueue->head++;	//改变指针位置
 	ioQueue->size++;	//数据数量增加
 	//修复越界
-	if(ioQueue->head >= ioQueue->buf + IO_QUEUE_BUF_LEN){
+	if(ioQueue->head >= ioQueue->buf + ioQueue->buflen / sizeof(int)){
 		ioQueue->head = ioQueue->buf;
 	}
 
@@ -120,7 +124,7 @@ PUBLIC unsigned int IoQueueGet(struct IoQueue *ioQueue)
 	ioQueue->size--;
 
 	/* 如果到达了最后面，就跳到最前面，形成一个环 */
-	if(ioQueue->tail >= ioQueue->buf + IO_QUEUE_BUF_LEN){
+	if(ioQueue->tail >= ioQueue->buf + ioQueue->buflen / sizeof(int)){
 		ioQueue->tail = ioQueue->buf;
 	}
 

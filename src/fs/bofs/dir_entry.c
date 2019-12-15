@@ -19,13 +19,11 @@
 PUBLIC void BOFS_CreateDirEntry(struct BOFS_DirEntry *dirEntry,
     unsigned int inode,
     unsigned short type,
-	unsigned int mount,
     char *name)
 {
 	memset(dirEntry, 0, sizeof(struct BOFS_DirEntry));
 	dirEntry->inode = inode;
 	dirEntry->type = type;
-	dirEntry->mount = mount;
 	strcpy(dirEntry->name, name);
 }
 
@@ -208,12 +206,10 @@ PUBLIC int BOFS_SyncDirEntry(struct BOFS_DirEntry *parentDir,
 				*/
 				retval = 1;
 				goto ToEnd;
-			}else if(!strcmp(dirEntry[i].name, childDir->name) &&\
-				dirEntry[i].type == BOFS_FILE_TYPE_INVALID){
-				/*same dir entry
-				
+			}else if(dirEntry[i].type == BOFS_FILE_TYPE_INVALID){
+				/*
+                无效的目录项
 				new dir entry pos
-				
 				*/
 				memcpy(&dirEntry[i], childDir, sizeof(struct BOFS_DirEntry));
 				//sector_write(lba, sb->iobuf, 1);
@@ -281,7 +277,15 @@ PUBLIC void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
 	//BOFS_DumpInode(&childInode);
 
 	/*release child data*/
-	BOFS_ReleaseInodeData(sb, &childInode);
+
+    /* 普通文件才会释放节点数据 */
+    if (childDir->type == BOFS_FILE_TYPE_NORMAL) {
+        BOFS_ReleaseInodeData(sb, &childInode);
+    } else if (childDir->type == BOFS_FILE_TYPE_FIFO) {
+        /* fifo命名管道文件就释放数据区 */
+        kfree((void *)childInode.blocks[0]);
+    }
+    /* 字符设备，块设备，任务文件都不用释放节点数据 */
 	
 	/*free inode bitmap*/
 	BOFS_FreeBitmap(sb, BOFS_BMT_INODE, childDir->inode);

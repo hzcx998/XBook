@@ -21,8 +21,8 @@ void Panic(const char *fmt, ...)
 
 	vsprintf(buf, fmt, arg);
 
-    ConsoleSetColor(MAKE_COLOR(TEXT_GREEN,TEXT_BLACK));
-	
+    DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_GREEN,TEXT_BLACK));
+    
 	printk("\n> Panic: %s", buf);
 	DisableInterrupt();
 	while(1){
@@ -34,8 +34,8 @@ void Panic(const char *fmt, ...)
 void AssertionFailure(char *exp, char *file, char *baseFile, int line)
 {
 
-    ConsoleSetColor(MAKE_COLOR(TEXT_RED,TEXT_BLACK));
-	
+	DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_RED,TEXT_BLACK));
+    
 	printk("\nassert(%s) failed:\nfile: %s\nbase_file: %s\nln%d",
 	exp, file, baseFile, line);
 
@@ -53,3 +53,41 @@ void Spin(char * functionName)
 		CpuHlt();
 	}
 }
+
+/**
+ * ConsolePrint - 控制台格式化输出
+ * @fmt: 格式
+ * @...: 参数
+ * 
+ * 返回缓冲区长度
+ */
+PUBLIC int ConsolePrint(const char *fmt, ...)
+{
+	int i;
+	char buf[256];
+	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
+	i = vsprintf(buf, fmt, arg);
+
+	//ConsoleWrite((char *)buf, i);
+
+    DeviceWrite(DEV_CON0, 0, buf, i);
+
+	return i;
+}
+
+PUBLIC void DebugColor(unsigned int color)
+{
+	DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, color);
+}
+
+/**
+ * InitDebugPrint - 初始化调试打印
+ * 
+ */
+PUBLIC void InitDebugPrint()
+{
+    /* 先打开第一个控制台，用来调试输出 */
+    DeviceOpen(DEV_CON0, 0);
+    
+    printk = &ConsolePrint;
+} 

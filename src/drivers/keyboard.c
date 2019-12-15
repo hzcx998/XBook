@@ -15,6 +15,9 @@
 #include <book/device.h>
 #include <share/string.h>
 #include <book/chr-dev.h>
+#include <drivers/console.h>
+#include <book/ioqueue.h>
+#include <drivers/tty.h>
 
 /* I/O port for keyboard data
 Read : Read Output Buffer
@@ -38,21 +41,6 @@ Write: Write Input Buffer(8042 Command)
 
 #define DEVNAME "keyboard"
 
-/* 按键的一些标志 */
-#define FLAG_BREAK	0x0080		/* Break Code			*/
-#define FLAG_SHIFT_L	0x0200		/* Shift key			*/
-#define FLAG_SHIFT_R	0x0400		/* Shift key			*/
-#define FLAG_CTRL_L	0x0800		/* Control key			*/
-#define FLAG_CTRL_R	0x1000		/* Control key			*/
-#define FLAG_ALT_L	0x2000		/* Alternate key		*/
-#define FLAG_ALT_R	0x4000		/* Alternate key		*/
-#define FLAG_PAD	0x8000		/* keys in num pad		*/
-
-/* raw key value = code passed to tty & MASK_RAW
-the value can be found either in the keymap column 0
-or in the list below */
-#define MASK_RAW	0x01FF		
-
 /*
 键盘的私有数据
 */
@@ -69,39 +57,12 @@ struct KeyboardPrivate {
 	int	scrollLock;	/* Scroll Lock	 */
 	int	column;		/* 数据位于哪一列 */
 	
-	int rowData;	/* 原始数据 */
-	int keyData;	/* 解析后的数据 */
-
-	char workMode;	/* 工作模式 */
-	struct WaitQueue callerWaitQueue;		/* 调用者等待队列 */
+    struct IoQueue ioqueue; /* io队列 */
 	struct CharDevice *chrdev;	/* 字符设备 */
 };
 
 /* 键盘的私有数据 */
 PRIVATE struct KeyboardPrivate keyboardPrivate;
-
-/**
- * SetKeyData - 设置字符的数据
- * @key: 键值
- */
-PRIVATE void SetKeyData(unsigned int key)
-{
-	keyboardPrivate.keyData = key;
-	/* 唤醒等待队列中的一个任务 */
-	WaitQueueWakeUp(&keyboardPrivate.callerWaitQueue);
-}
-
-/**
- * GetKeyData - 获取字符的数据
- * 
- * 把键盘值返回给调用者
- */
-PRIVATE unsigned int GetKeyData()
-{
-	unsigned int data = keyboardPrivate.keyData;
-	keyboardPrivate.keyData = KEYCODE_NONE;
-	return data;
-}
 
 /**
  * KeyboardControllerWait - 等待 8042 的输入缓冲区空
@@ -135,7 +96,7 @@ PRIVATE void SetLeds()
 {
 	/* 先合成成为一个数据，后面写入寄存器 */
 	unsigned char leds = (keyboardPrivate.capsLock << 2) | 
-			(keyboardPrivate.numLock << 1) | keyboardPrivate.scrollLock;
+        (keyboardPrivate.numLock << 1) | keyboardPrivate.scrollLock;
 	
 	/* 数据指向LED_CODE */
 	KeyboardControllerWait();
@@ -153,126 +114,18 @@ PRIVATE void SetLeds()
  */
 PRIVATE unsigned char GetByteFromBuf()       
 {
-	unsigned int rowData = keyboardPrivate.rowData;
-	keyboardPrivate.rowData = 0;
-	return (unsigned char)rowData;
-}
-/**
- * KeyCharProcess - 对单独的按键进行处理
- * @key: 按键 
- */
-PRIVATE void KeyCharProcess(unsigned int key)
-{
-	/* 没有扩展数据，就直接写入对应的key */
-	if (!(key & FLAG_EXT)) {
-		
-		SetKeyData(key);
-	} else {
-		/* 有扩展的数据，需要解析 */
-		int raw_code = key & MASK_RAW;
-		
-		switch(raw_code) {
-			case ENTER:
-				SetKeyData('\n');
-				break;
-			case BACKSPACE:
-				SetKeyData( '\b');
-				break;
-			case TAB:
-				
-				break;
-			case F1:
-				SetKeyData( F1);
-				/*if(key & FLAG_altLeft || key & FLAG_altRight){
-					select_console(0);
-				}*/
-				break;
-			case F2:
-				SetKeyData( F2);
-				
-				break;
-				
-			case F3:
-				//shft +f4 关闭窗口程序
-				SetKeyData( F3);
-				
-				break;
-			case F4:
-				//alt +f4 关闭程序
-				SetKeyData( F4);
-				break;	
-			case F5:
-				SetKeyData( F5);
+    unsigned char scanCode;
 
-				break;	  
-			case F6:
-				SetKeyData( F6);
-				break;	   
-			case F7:
-				SetKeyData( F7);
-				break;	  
-			case F8:
-				SetKeyData( F8);
-				break;	  
-			case F9:
-				SetKeyData( F9);
-				break;	  
-			case F10:
-				SetKeyData( F10);
-				break;	  
-			case F11:
-				SetKeyData( F11);
-				break;	  
-			case F12:  
-				SetKeyData( F12);
-				break;
-			case ESC:
-				SetKeyData(ESC);
-				
-				break;	
-			case UP:
-				SetKeyData(UP);
-				
-				break;
-			case DOWN:
-				SetKeyData(DOWN);
-				
-				break;
-			case LEFT:
-				
-				SetKeyData(LEFT);
-				break;
-			case RIGHT:
-				SetKeyData(RIGHT);
-				break;
-			case PAGEUP:
-				SetKeyData(PAGEUP);
-				break;
-			case PAGEDOWN:
-				SetKeyData(PAGEDOWN);
-				break;	
-			case HOME:
-				SetKeyData(HOME);
-				break;	
-			case END:
-				SetKeyData(END);
-				break;	
-			case INSERT:
-				SetKeyData(INSERT);
-				break;	
-			case DELETE:
-				SetKeyData(DELETE);
-				break;	
-			default:
-				break;
-		}
-	}
+    /* 从队列中获取一个数据 */
+    scanCode = IoQueueGet(&keyboardPrivate.ioqueue);
+    
+    return scanCode;
 }
 
 /**
  * AnalysisKeyboard - 按键分析 
  */
-PRIVATE void AnalysisKeyboard()
+PUBLIC unsigned int KeyboardDoRead()
 {
 	unsigned char scanCode;
 	int make;
@@ -472,36 +325,17 @@ PRIVATE void AnalysisKeyboard()
 			key |= keyboardPrivate.altLeft	? FLAG_ALT_L	: 0;
 			key |= keyboardPrivate.altRight	? FLAG_ALT_R	: 0;
 			key |= pad      ? FLAG_PAD      : 0;
-			KeyCharProcess(key);
+			
+            /* 把按键输出 */
+            return key;
 		}else{
 			/* 暂时不处理弹起按键 */
 
-			//KeyCharProcess(0);
-			
+			return KEYCODE_NONE;
 		}
 	}
+    return KEYCODE_NONE;
 }
-
-/**
- * TaskAssistHandler - 任务协助函数
- * @data: 传递的数据
- */
-PRIVATE void TaskAssistHandler(unsigned int data)
-{
-	/* 先解析键值 */
-	AnalysisKeyboard();
-	
-	/* 获取解析后的键值 */
-	/*unsigned int keyData = GetKeyData();
-	if (keyData != 0) {
-		printk("%c", keyData);
-		// 应该在这里把按键值传递给其他地方。
-
-	}*/
-}
-
-/* 键盘任务协助 */
-PRIVATE struct TaskAssist keyboardAssist;
 
 /**
  * KeyboardHandler - 时钟中断处理函数
@@ -511,73 +345,29 @@ PRIVATE struct TaskAssist keyboardAssist;
 PRIVATE void KeyboardHandler(unsigned int irq, unsigned int data)
 {
 	/* 先从硬件获取按键数据 */
-	keyboardPrivate.rowData = In8(PORT_KEYDAT);
+	unsigned char scanCode = In8(PORT_KEYDAT);
 
 	//printk("<%x>", keyboardPrivate.rowData);
 
-	/* 调度任务协助 */
-	TaskAssistSchedule(&keyboardAssist);
+    /* 把数据放到io队列 */
+    IoQueuePut(&keyboardPrivate.ioqueue, scanCode);
+
 }
 
 /**
- * KeyboardRead - 键盘读取
- * @device: 设备项
- * 
- * 获取字符有2中模式
- * 1.同步：获取字符，有数据就返回数据，不然就休眠
- * 2.异步：获取字符，有数据就返回数据，没有数据就直接诶返回
- * 
- * 成功返回0，失败返回-1
+ * KeyboardGetc - 从键盘获取一个按键
+ * @device: 设备
  */
-PRIVATE int KeyboardRead(struct Device *device, unsigned int lba, void *buffer, unsigned int count)
+PRIVATE int KeyboardGetc(struct Device *device)
 {
-	struct Task *current = CurrentTask();
-	int ret = KEYCODE_NONE;
-	int keyData;
-	char *_buf = buffer;
-	if (keyboardPrivate.workMode == KBD_MODE_SYNC) {
-		/* 查看是否已经有数据了 */
-		keyData = GetKeyData();
-		/* 有效的数据 */
-		if (keyData == KEYCODE_NONE) {
-			/* 添加到等待队列 */
-			WaitQueueAdd(&keyboardPrivate.callerWaitQueue, current);
-			/* 设置为阻塞状态 */
-			current->status = TASK_BLOCKED;
-			/* 调度任务，让自己休眠 */
-			Schedule();
-			
-			/* 唤醒后获取一个数据并返回 */
-			keyData = GetKeyData();
-		}
-		/* 复制按键信息 */
-		*_buf = keyData;
-		//memcpy(_buf, data, count);
-
-		ret = 0;
-	} else if (keyboardPrivate.workMode == KBD_MODE_ASYNC) {
-		/* 直接获取并返回 */
-		keyData = GetKeyData();
-		
-		/* 复制按键信息 */
-		*_buf = keyData;
-		//memcpy(_buf, data, count);
-
-		if (keyData == KEYCODE_NONE)
-			ret = -1;
-		else 
-			ret = 0;
-	}
-	
-	return ret;
+    return KeyboardDoRead();    /* 读取键盘 */
 }
 
 /**
  * KeyboardIoctl - 键盘的IO控制
  * @device: 设备项
  * @cmd: 命令
- * @arg1: 参数1
- * @arg2: 参数2
+ * @arg: 参数
  * 
  * 成功返回0，失败返回-1
  */
@@ -586,14 +376,7 @@ PRIVATE int KeyboardIoctl(struct Device *device, int cmd, int arg)
 	int retval = 0;
 	switch (cmd)
 	{
-	case KBD_IO_MODE:
-		/* 如果是模式命令就设置模式 */
-		if (arg == KBD_MODE_SYNC || arg == KBD_MODE_ASYNC)
-			keyboardPrivate.workMode = arg;
-		else 
-			retval = -1;	/* 失败 */
-		break;
-		
+	
 	default:
 		/* 失败 */
 		retval = -1;
@@ -605,7 +388,7 @@ PRIVATE int KeyboardIoctl(struct Device *device, int cmd, int arg)
 
 PRIVATE struct DeviceOperations keyboardOpSets = {
 	.ioctl = KeyboardIoctl, 
-	.read = KeyboardRead,
+    .getc = KeyboardGetc,
 };
 
 /**
@@ -639,13 +422,13 @@ PUBLIC int InitKeyboardDriver()
 	keyboardPrivate.capsLock   = 0;
 	keyboardPrivate.numLock    = 1;
 	keyboardPrivate.scrollLock = 0;
-	
-	keyboardPrivate.keyData = 0;
-	keyboardPrivate.rowData = 0;
 
-	keyboardPrivate.workMode = KBD_MODE_SYNC;
-	WaitQueueInit(&keyboardPrivate.callerWaitQueue, NULL);
-
+	unsigned int *buf = kmalloc(IO_QUEUE_BUF_LEN, GFP_KERNEL);
+    if (buf == NULL)
+        return -1;
+    /* 初始化io队列 */
+    IoQueueInit(&keyboardPrivate.ioqueue, buf, IO_QUEUE_BUF_LEN);
+    
 	/* 初始化键盘控制器 */
 	KeyboardControllerWait();
 	Out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
@@ -657,9 +440,6 @@ PUBLIC int InitKeyboardDriver()
 
 	/* 注册时钟中断并打开中断 */	
 	RegisterIRQ(IRQ1_KEYBOARD, KeyboardHandler, IRQF_DISABLED, "IRQ1", DEVNAME, 0);
-
-	/* 初始化任务协助 */
-	TaskAssistInit(&keyboardAssist, TaskAssistHandler, 0);
 
 	return 0;
 }

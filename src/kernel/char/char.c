@@ -13,37 +13,11 @@
 #include <book/task.h>
 
 #include <drivers/keyboard.h>
+#include <drivers/tty.h>
 
 #define _DEBUG_TEST
 
 EXTERN struct List allCharDeviceList;
-
-/**
- * CharDeviceTest - 对字符设备进行测试
- * 
- */
-PUBLIC void CharDeviceTest(void *arg)
-{
-    //PART_START("Test");
-    #ifdef _DEBUG_TEST
-    
-	int key = 0;
-
-	DeviceOpen(DEV_KEYBOARD, 0);
-
-    /* 异步方式打开 */
-	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_ASYNC);
-    
-	while (1) {
-		key = 0;
-		/*if (!DeviceRead(DEV_KEYBOARD, 0, &key, 1)) {
-			//printk("%c", key); 
-		}*/
-	};
-
-    #endif
-    //PART_END();
-}
 
 /**
  * InitCharDevice - 初始化字符设备层
@@ -59,12 +33,8 @@ PUBLIC void InitCharDevice()
     }
 	#endif
 	
-    /* 开启一个键盘线程，来处理键盘中断 */
-    //ThreadStart("keyboard", 3, CharDeviceTest, "NULL");
-    DeviceOpen(DEV_KEYBOARD, 0);
-    /* 异步方式打开 */
-	DeviceIoctl(DEV_KEYBOARD, KBD_IO_MODE, KBD_MODE_ASYNC);
-    
-    
+    /* 开启tty任务 */
+    ThreadStart("tty", 3, TaskTTY, "NULL");
+
     PART_END();
 }

@@ -11,6 +11,7 @@
 #include <share/stdint.h>
 #include <share/types.h>
 #include <fs/bofs/super_block.h>
+#include <book/task.h>
 
 #define BOFS_MAX_FD_NR 128
 
@@ -21,6 +22,8 @@
 #define BOFS_O_TRUNC 0x10 /*file open with trunc file size to 0*/
 #define BOFS_O_APPEDN 0x20 /*file open with append pos to end*/
 #define BOFS_O_EXEC 0x80 /*file open with execute*/
+
+#define BOFS_FLAGS_PIPE 0x100   /* 管道文件标志 */
 
 #define BOFS_SEEK_SET 1 	/*set a pos from 0*/
 #define BOFS_SEEK_CUR 2		/*set a pos from cur pos*/
@@ -76,6 +79,12 @@ PUBLIC void BOFS_InitFdTable();
 PUBLIC int BOFS_AllocFdGlobal();
 PUBLIC void BOFS_FreeFdGlobal(int fd);
 PUBLIC struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
+PUBLIC void BOFS_GlobalFdAddFlags(unsigned int globalFd, unsigned int flags);
+PUBLIC void BOFS_GlobalFdDelFlags(unsigned int globalFd, unsigned int flags);
+PUBLIC int BOFS_GlobalFdHasFlags(unsigned int globalFd, unsigned int flags);
+PUBLIC uint32_t FdLocal2Global(uint32_t localFD);
+PUBLIC int TaskInstallFD(int globalFdIdx);
+
 
 PUBLIC void BOFS_DumpFD(int fd);
 PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_SuperBlock *sb);
@@ -95,6 +104,9 @@ PUBLIC int BOFS_Stat(const char *pathname,
     struct BOFS_SuperBlock *sb);
 
 PUBLIC void BOFS_InitFile();
+
+PUBLIC void BOFS_UpdateInodeOpenCounts(struct Task *task);
+PUBLIC void BOFS_ReleaseTaskFiles(struct Task *task);
 
 #endif
 

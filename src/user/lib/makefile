@@ -14,4 +14,4 @@ obj-y	+= brk.o
 obj-y	+= malloc.o
 obj-y	+= file.o
 obj-y	+= dir.o
-	
+obj-y	+= pipe.o

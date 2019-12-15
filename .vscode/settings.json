@@ -46,7 +46,23 @@
         "stdlib.h": "c",
         "vmspace.h": "c",
         "conio.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "task.h": "c",
+        "schedule.h": "c",
+        "console.h": "c",
+        "ioqueue.h": "c",
+        "keyboard.h": "c",
+        "chr-dev.h": "c",
+        "block.h": "c",
+        "ide.h": "c",
+        "time.h": "c",
+        "bosh.h": "c",
+        "cmd.h": "c",
+        "dir_entry.h": "c",
+        "tty.h": "c",
+        "fs.h": "c",
+        "pipe.h": "c",
+        "fifo.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

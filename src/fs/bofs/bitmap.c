@@ -13,6 +13,7 @@
 #include <drivers/ide.h>
 #include <fs/bofs/bitmap.h>
 #include <book/blk-buffer.h>
+#include <book/vmarea.h>
 
 /**
  * BOFS_LoadBitmap - 加载位图
@@ -25,8 +26,16 @@ PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
 {
     /* 位图长度是格式化的时候就已经写入了的，这里不需要设定值，直接用就是了 */
     
-    sb->sectorBitmap.bits = (unsigned char *)kmalloc(sb->sectorBitmap.btmpBytesLen,
-        GFP_KERNEL);
+    /*
+    如果磁盘比较大，位图就打，用kmalloc就会出问题。
+    所以需要判断一下，然后选择kmalloc还是vmalloc
+    */
+    if (sb->sectorBitmap.btmpBytesLen > MAX_MEM_CACHE_SIZE)
+        sb->sectorBitmap.bits = (unsigned char *)vmalloc(sb->sectorBitmap.btmpBytesLen);
+    else 
+        sb->sectorBitmap.bits = (unsigned char *)kmalloc(sb->sectorBitmap.btmpBytesLen,
+            GFP_KERNEL);
+
     if (sb->sectorBitmap.bits == NULL) {
         return -1;
     }
@@ -42,17 +51,20 @@ PUBLIC int BOFS_LoadBitmap(struct BOFS_SuperBlock *sb)
 		}
 	}
 
-	sb->inodeBitmap.bits = (uint8 *)kmalloc(sb->inodeBitmap.btmpBytesLen,
-        GFP_KERNEL);
-        
-    if (sb->sectorBitmap.bits == NULL) {
+    if (sb->inodeBitmap.btmpBytesLen > MAX_MEM_CACHE_SIZE)
+        sb->inodeBitmap.bits = (unsigned char *)vmalloc(sb->inodeBitmap.btmpBytesLen);
+    else 
+        sb->inodeBitmap.bits = (unsigned char *)kmalloc(sb->inodeBitmap.btmpBytesLen,
+            GFP_KERNEL);
+    
+    if (sb->inodeBitmap.bits == NULL) {
         return -1;
     }    
     //printk("inode bitmap %x len %x\n", sb->inodeBitmap.bits, sb->inodeBitmap.btmpBytesLen);
 	
 	BitmapInit(&sb->inodeBitmap);
     
-	for (i = 0; i < sb->sectorBitmapSectors; i++) {
+	for (i = 0; i < sb->inodeBitmapSectors; i++) {
 		if (BlockRead(sb->devno, sb->inodeBitmapLba + i, sb->inodeBitmap.bits + i * sb->blockSize)) {
 			
 			printk(PART_ERROR "device read failed!\n");
@@ -75,9 +87,15 @@ PUBLIC int BOFS_UnloadBitmap(struct BOFS_SuperBlock *sb)
     if (sb->sectorBitmap.bits == NULL || sb->inodeBitmap.bits == NULL) {
         return -1;
     }
-    kfree(sb->sectorBitmap.bits);
-    kfree(sb->inodeBitmap.bits);
-    
+    if (sb->sectorBitmap.btmpBytesLen > MAX_MEM_CACHE_SIZE)
+        vfree(sb->sectorBitmap.bits);
+    else
+        kfree(sb->sectorBitmap.bits);
+
+    if (sb->inodeBitmap.btmpBytesLen > MAX_MEM_CACHE_SIZE)
+        vfree(sb->inodeBitmap.bits);
+    else
+        kfree(sb->inodeBitmap.bits);
     return 0;
 }
 

@@ -31,6 +31,13 @@
 +-----------+
 */
 
+/* 最大的mem的对象的大小 */
+#ifdef CONFIG_LARGE_ALLOCS 
+	#define MAX_MEM_CACHE_SIZE (4*MB)
+#else
+	#define MAX_MEM_CACHE_SIZE (128*KB)
+#endif
+
 struct MemGroup {
     struct List list;           // 指向cache中的某个链表（full, partial, free）
     struct Bitmap map;          // 管理对象分配状态的位图

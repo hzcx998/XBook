@@ -26,6 +26,7 @@ struct CharDevice {
 #define SIZEOF_CHAR_DEVICE sizeof(struct CharDevice)
 
 PUBLIC struct CharDevice *AllocCharDevice(dev_t devno);
+PUBLIC void CharDeviceSetDevno(struct CharDevice *chrdev, dev_t devno);
 PUBLIC void CharDeviceInit(struct CharDevice *chrdev,
     unsigned int count,
     void *private);

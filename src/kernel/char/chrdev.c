@@ -59,9 +59,19 @@ PUBLIC struct CharDevice *AllocCharDevice(dev_t devno)
         return NULL;
     
     device->super.devno = devno;
-    device->super.type = DEV_TYPE_CHAR;
     
     return device;
+}
+
+/**
+ * AllocCharDevice - 分配一个字符设备
+ * @devno: 表示字符设备号
+ * 
+ * 分配一个和字符设备号对应的字符设备
+ */
+PUBLIC void CharDeviceSetDevno(struct CharDevice *chrdev, dev_t devno)
+{
+    chrdev->super.devno = devno;
 }
 
 /**
@@ -79,6 +89,9 @@ PUBLIC void CharDeviceInit(struct CharDevice *chrdev,
 
     /* 设备的私有数据就是字符设备的地址 */
     chrdev->super.private = chrdev;
+
+    /* 标识成字符设备 */
+    chrdev->super.type = DEV_TYPE_CHAR;
 }
 
 /**

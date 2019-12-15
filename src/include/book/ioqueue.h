@@ -13,7 +13,8 @@
 #include <book/synclock.h>
 #include <book/task.h>
 
-#define IO_QUEUE_BUF_LEN 64
+/* 默认的缓冲区大小 */
+#define IO_QUEUE_BUF_LEN 64*4
 
 #define IQ_QUEUE_IDLE 0
 #define IQ_QUEUE_MOVE 1
@@ -23,7 +24,8 @@
 */
 struct IoQueue {
     struct Synclock lock;
-    unsigned int *buf;			    // 缓冲区大小
+    unsigned int *buf;			    // 缓冲区
+    unsigned int buflen;            // 缓冲区大小
     unsigned int *head;			    // 队首,数据往队首处写入
     unsigned int *tail;			    // 队尾,数据从队尾处读出
 	size_t size;
@@ -33,11 +35,19 @@ struct IoQueue {
 
 #define IO_QUEUE_SIZE sizeof(struct IoQueue)
 
+#define IO_QUEUE_LENGTH(ioqueue) \
+        (ioqueue)->size 
+
+
 PUBLIC struct IoQueue *CreateIoQueue();
-PUBLIC int IoQueueInit(struct IoQueue *ioQueue);
+PUBLIC int IoQueueInit(struct IoQueue *ioQueue, 
+    unsigned int *buf, unsigned int buflen);
 
 PUBLIC unsigned int IoQueueGet(struct IoQueue *ioQueue);
 PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data); 
+
+
+
 
 PRIVATE INLINE bool IoQueueEmpty(struct IoQueue *ioQueue)
 {

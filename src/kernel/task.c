@@ -166,17 +166,19 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     thread->stackMagic = TASK_STACK_MAGIC;
 
     /* 设置文件描述符，预留标准输入输出 */
-    thread->fdTable[0] = 0;     /* 输入 */
-    thread->fdTable[1] = 1;     /* 输出 */
-    thread->fdTable[2] = 2;     /* 错误 */
+    //thread->fdTable[0] = 0;     /* 输入 */
+    //thread->fdTable[1] = 1;     /* 输出 */
+    //thread->fdTable[2] = 2;     /* 错误 */
     
     /* 其余的文件描述符全部设置为-1 */
-    unsigned char idx = 3;
+    unsigned char idx = 0;
     while (idx < MAX_OPEN_FILES_IN_PROC) {
         thread->fdTable[idx] = -1;      /* 设置为-1表示未使用 */
         idx++;
     }
-    
+
+    thread->ttydev = DEV_TTY0;  /* 默认都是tty0 */
+    DeviceOpen(thread->ttydev, 0);
 }
 /**
  * AllocTaskMemory - 初始化任务的内存管理

@@ -13,11 +13,19 @@
 #include <share/math.h>
 #include <book/vmarea.h>
 
+#include <drivers/ide.h>
+#include <drivers/ramdisk.h>
+
 #include <book/blk-dev.h>
 #include <fs/bofs/bofs.h>
 #include <fs/bofs/drive.h>
 #include <fs/bofs/dir.h>
 #include <fs/bofs/file.h>
+#include <fs/bofs/device.h>
+#include <fs/bofs/task.h>
+#include <fs/bofs/pipe.h>
+#include <fs/bofs/fifo.h>
+
 #include <share/file.h>
 
 #include <fs/fs.h>
@@ -36,10 +44,10 @@
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
-	#define FILE_SECTORS 30
+	#define FILE_SECTORS 40
 #elif FILE_ID == 2
 	#define FILE_NAME "root:/shell"
-	#define FILE_SECTORS 30
+	#define FILE_SECTORS 100
 #elif FILE_ID == 3
 	#define FILE_NAME "root:/test"
 	#define FILE_SECTORS 50
@@ -56,7 +64,7 @@ PRIVATE void WriteDataToFS()
 	}
 	
 	/* 把文件加载到文件系统中来 */
-	int fd = SysOpen(FILE_NAME, O_CREAT | O_RDWR);
+	int fd = SysOpen(FILE_NAME, O_CREAT | O_RDWR | O_EXEC);
     if (fd < 0) {
         printk("file open failed!\n");
 		return;
@@ -96,6 +104,263 @@ PRIVATE void WriteDataToFS()
 	#endif
 }
 
+/**
+ * MakeDeviceFile - 生成设备文件
+ * 
+ */
+PRIVATE void MakeDeviceFile()
+{
+    /* 创建设备目录 */
+    if (SysMakeDir(SYS_PATH_DEV)) {
+        printk("make tmp dir failed!\n");
+        return;
+    }
+    SysSync();
+    /* 扫描设备 */
+    struct Device *device;
+    char devType;
+    char devpath[64];
+
+    /* 设备扇区数 */
+    size_t devSectors;
+
+    ListForEachOwner(device, &allDeviceListHead, list) {
+        //printk("device:%s type:%d devno:%x\n", device->name, device->type, device->devno);
+        devSectors = 0;
+        memset(devpath, 0, 64);
+
+        strcat(devpath, SYS_PATH_DEV);
+        strcat(devpath, "/");
+        strcat(devpath, device->name);
+
+        /* 需要打开设备，才可以操作 */
+        DeviceOpen(device->devno, 0);
+
+        switch (device->type)
+        {
+        case DEV_TYPE_CHAR:
+            devType = D_CHAR;
+            break;
+        case DEV_TYPE_BLOCK:
+            devType = D_BLOCK;
+            
+            if (device->name[0] == 'h' && device->name[1] == 'd') {
+                /* hdx - ide磁盘*/
+
+                if (DeviceIoctl(device->devno, IDE_IO_SECTORS, (int)&devSectors)) {
+                    printk("ide io sectors failed!\n");
+                }
+               
+            } else if (device->name[0] == 'r' && device->name[1] == 'd') {
+                /* rdx - ramdisk磁盘*/
+
+                if (DeviceIoctl(device->devno, RAMDISK_IO_SECTORS, (int)&devSectors)) {
+                    printk("ramdisk io sectors failed!\n");
+                }
+            }
+            //printk("sectors %d block size %d dev size %d\n", devSectors, blockSize, devSize);
+            break;
+        default:
+            devType = D_UNKNOWN;
+            break;
+        }
+
+        if (SysMakeDev(devpath, devType, MAJOR(device->devno), MINOR(device->devno), devSectors)) {
+            printk("make dev failed!\n");
+        }
+
+        /* 使用完后关闭设备 */
+        DeviceClose(device->devno);
+    }
+
+    /* 强制同步，使得内存中的内容可以进入磁盘 */
+    SysSync();
+
+    //SysListDir("tmp:/dev");
+
+    /* 打开文件 */
+    /*int fd = SysOpen("tmp:/dev/console0", O_RDWR);
+    if (fd < 0)
+        printk("open failed!\n");
+    printk("open fd %d!\n", fd);
+    
+    char buf[32];
+    strcpy(buf, "hello, I am come from China.\n");
+
+    SysWrite(fd, buf, strlen(buf));
+
+    fd = SysOpen("tmp:/dev/console1", O_RDWR);
+    if (fd < 0)
+        printk("open failed!\n");
+    printk("open fd %d!\n", fd);
+     
+    SysWrite(fd, buf, strlen(buf));
+
+    fd = SysOpen("tmp:/dev/hda", O_RDWR);
+    if (fd < 0)
+        printk("open failed!\n");
+    
+    int blksize = 0;
+
+    if (SysIoctl(fd, IDE_IO_BLKZE, (int)&blksize)) {
+        printk("fd %d do ioctl failed!\n", fd);
+    }
+    printk("blksz %d\n", blksize);
+
+    char *sbuf = kmalloc(blksize, GFP_KERNEL);
+    if (sbuf == NULL) {
+        Panic("kmalloc for sbuf failed!\n");
+    }
+    SysLseek(fd, 2, SEEK_SET);
+    if (SysRead(fd, sbuf, 1)) {
+        printk("read sbuf failed!\n");
+    }
+    
+    printk("%x %x %x %x\n", sbuf[0], sbuf[128], sbuf[256], sbuf[511]);
+    memset(sbuf, 0xff, 512);
+    
+    SysLseek(fd, -2, SEEK_END);
+    if (SysWrite(fd, sbuf, 1)) {
+        printk("read sbuf failed!\n");
+    }
+    memset(sbuf, 0, 512);
+    
+    if (SysRead(fd, sbuf, 1)) {
+        printk("read sbuf failed!\n");
+    }
+    printk("%x %x %x %x\n", sbuf[0], sbuf[128], sbuf[256], sbuf[511]);
+    
+    SysClose(fd);*/
+
+    //Spin("test");
+}
+
+
+EXTERN struct List taskGlobalList;
+
+/**
+ * MakeTaskFile - 生成任务文件
+ * 
+ */
+PRIVATE void MakeTaskFile()
+{
+    /* 创建设备目录 */
+    if (SysMakeDir(SYS_PATH_TASK)) {
+        printk("make tsk dir failed!\n");
+        return;
+    }
+    SysSync();
+
+    /* 扫描任务 */
+    struct Task *task;
+
+    ListForEachOwner (task, &taskGlobalList, globalList) {
+        //printk("task name:%s pid:%d status:%d\n", task->name, task->pid, task->status);
+        AddTaskToFS(task->name, task->pid);
+    }
+
+    //SysListDir("tmp:/tsk");
+
+    //Spin("test");
+}
+
+/* 磁盘符链表头 */
+EXTERN struct List driveListHead;
+
+/**
+ * MakeDriveFile - 生成磁盘符文件
+ * 磁盘符文件就是普通文件，只是用来表明在系统中有哪些磁盘符。
+ */
+PRIVATE void MakeDriveFile()
+{
+    /* 创建设备目录 */
+    if (SysMakeDir(SYS_PATH_DRIVE)) {
+        printk("make drv dir failed!\n");
+        return;
+    }
+    SysSync();
+
+    //printk("list drives\n");
+    
+    char drvpath[64];
+
+    int fd;
+    struct BOFS_Drive *drive;
+    ListForEachOwner(drive, &driveListHead, list) {
+        //printk("drive: %s\n", drive->name); 
+        memset(drvpath, 0, 64);
+        strcat(drvpath, SYS_PATH_DRIVE);
+        strcat(drvpath, "/");
+        strcat(drvpath, drive->name);
+
+        fd = SysOpen(drvpath, O_CREAT | O_RDONLY);
+        if (fd < 0) {
+            //printk("create file %s failed!\n", drive->name);
+        } else {
+            SysClose(fd);
+        }
+    }
+
+    //SysListDir("tmp:/drv");
+
+    //Spin("test");
+}
+
+/**
+ * MakeFifoFile - 生成管道文件
+ */
+PRIVATE void MakeFifoFile()
+{
+    /* 创建设备目录 */
+    if (SysMakeDir(SYS_PATH_PIPE)) {
+        printk("make pipe dir failed!\n");
+        return;
+    }
+    SysSync();
+    
+    if (SysMakeFifo("sys:/pip/fifo.pip", O_RDWR)) {
+        printk("make fifo file failed!\n");
+    }
+    SysSync();
+    
+    int fd = SysOpen("sys:/pip/fifo.pip", O_RDWR);
+    if (fd < 0) {
+        printk("open pipe file failed!\n");
+    }
+
+    char buf[32];
+    SysRead(fd, buf, 32);
+    SysWrite(fd, buf, 32);
+
+    close(fd);
+}
+
+/**
+ * ConfigFiles - 配置文件
+ * 
+ */
+PRIVATE void ConfigFiles()
+{
+    /* 初始化表 */
+    
+    /* 创建配置目录 */
+    //SysMakeDir("root:/config");
+
+    /* 初始化配置 */
+    /*int fd = SysOpen("root:/config/init.cfg", O_CREAT | O_RDWR);
+    if (fd < 0) {
+        printk("open root:/config/init.cfg failed!\n");
+    }
+    
+    char cfg[32];
+    memset(cfg, 0, 32);
+    strcpy(cfg, "init");
+    SysWrite();
+    */
+
+}
+
+
 PRIVATE void Test();
 
 /**
@@ -112,7 +377,49 @@ PUBLIC void InitFileSystem()
 
     WriteDataToFS();
 
+    MakeDeviceFile();
+    MakeTaskFile();
+    MakeDriveFile();
+    MakeFifoFile();
+
+    ConfigFiles();
+/*
+    int fd[2];
+    if (SysPipe(fd) < 0) {
+        printk("pipe failed!\n");
+    }
+
+    printk("fd0 %d, fd1 %d\n", fd[0], fd[1]);
+
+    char buf[20] = {0};
+    strcpy(buf, "hello, world!\n");
+    SysWrite(fd[1], buf, strlen(buf));
+
+    memset(buf, 0, 20);
+    SysRead(fd[0], buf, 20);
+    printk(buf);
+
+    SysClose(fd[0]);
+    SysClose(fd[1]);*/
+    //Spin("InitFileSystem");
 	PART_END();
+}
+
+PUBLIC void SysListDir(const char *pathname)
+{
+    DIR *dir = SysOpenDir(pathname);
+    if (dir == NULL) {
+        Panic("open dir failed!");
+    }
+    SysRewindDir(dir);
+
+    dirent de;
+    do {
+        if (SysReadDir(dir, &de))
+            break;
+        printk("name:%s inode:%d type:%x\n", de.name, de.inode, de.type);
+    } while (1);
+    SysCloseDir(dir);
 }
 
 PRIVATE void Test()
@@ -249,6 +556,148 @@ PRIVATE void Test()
 
     文件系统识别的路径：/abc/a/c
     */
+}
+
+PUBLIC int SysPipe(int fd[2])
+{
+    return BOFS_Pipe(fd);
+}
+
+PUBLIC int SysMakeDev(const char *pathname, char type,
+        int major, int minor, size_t size)
+{
+    char absPath[MAX_PATH_LEN] = {0};
+
+    /* 生成绝对路径 */
+    BOFS_MakeAbsPath(pathname, absPath);
+    
+    /* 获取磁盘符 */
+    struct BOFS_Drive *drive = BOFS_GetDriveByPath(absPath);
+    if (drive == NULL) {
+        printk("get drive by path %s failed!\n", absPath);
+        return -1;
+    }
+
+    char finalPath[MAX_PATH_LEN] = {0};
+    /* 移动到第一个'/'处，也就是根目录处 */
+    char *path = strchr(absPath, '/');
+    /*现在获得了绝对路径，需要清理路径中的.和..*/ 
+    BOFS_WashPath(path, finalPath);
+
+    char newType;
+
+    switch (type) {
+    case D_BLOCK:
+        newType = DEV_TYPE_BLOCK;
+        break;
+    case D_CHAR:
+        newType = DEV_TYPE_CHAR;
+        break;
+    default:
+        newType = DEV_TYPE_UNKNOWN;
+        break;
+    }
+
+    return BOFS_MakeDevice(finalPath, newType, MKDEV(major, minor), size, drive->sb);
+}
+
+PUBLIC int AddTaskToFS(char *name, pid_t pid)
+{
+    char taskpath[MAX_TASK_NAMELEN + 24];
+    memset(taskpath, 0, MAX_TASK_NAMELEN + 24);
+    strcat(taskpath, SYS_PATH_TASK);
+    strcat(taskpath, "/");
+    strcat(taskpath, name);
+    strcat(taskpath, "\\");
+
+    char numstr[8];
+    memset(numstr, 0, 8);
+    char *p = &numstr[0];
+    itoa(&p, pid, 10);
+    strcat(taskpath, numstr);
+    //printk("task path %s\n", taskpath);
+    if (SysMakeTsk(taskpath, pid)) {
+        //printk("make task file at %s failed!\n", taskpath);
+        return -1;
+    }
+    return 0;
+}
+
+PUBLIC int DelTaskFromFS(char *name, pid_t pid)
+{
+    char taskpath[MAX_TASK_NAMELEN + 24];
+    memset(taskpath, 0, MAX_TASK_NAMELEN + 24);
+    strcat(taskpath, SYS_PATH_TASK);
+    strcat(taskpath, "/");
+    strcat(taskpath, name);
+    strcat(taskpath, "\\");
+
+    char numstr[8];
+    memset(numstr, 0, 8);
+    char *p = &numstr[0];
+    itoa(&p, pid, 10);
+    strcat(taskpath, numstr);
+    //printk("task path %s\n", taskpath);
+    if (SysRemove(taskpath)) {
+        //printk("remove task file at %s failed!\n", taskpath);
+        return -1;
+    }
+    return 0;
+}
+
+PUBLIC int SysMakeTsk(const char *pathname, pid_t pid)
+{
+    char absPath[MAX_PATH_LEN] = {0};
+
+    /* 生成绝对路径 */
+    BOFS_MakeAbsPath(pathname, absPath);
+    
+    /* 获取磁盘符 */
+    struct BOFS_Drive *drive = BOFS_GetDriveByPath(absPath);
+    if (drive == NULL) {
+        printk("get drive by path %s failed!\n", absPath);
+        return -1;
+    }
+
+    char finalPath[MAX_PATH_LEN] = {0};
+    /* 移动到第一个'/'处，也就是根目录处 */
+    char *path = strchr(absPath, '/');
+    /*现在获得了绝对路径，需要清理路径中的.和..*/ 
+    BOFS_WashPath(path, finalPath);
+    return BOFS_MakeTask(finalPath, pid, drive->sb);
+}
+
+PUBLIC int SysMakeFifo(const char *pathname, mode_t mode)
+{
+    char absPath[MAX_PATH_LEN] = {0};
+
+    /* 生成绝对路径 */
+    BOFS_MakeAbsPath(pathname, absPath);
+    
+    /* 获取磁盘符 */
+    struct BOFS_Drive *drive = BOFS_GetDriveByPath(absPath);
+    if (drive == NULL) {
+        printk("get drive by path %s failed!\n", absPath);
+        return -1;
+    }
+
+    char finalPath[MAX_PATH_LEN] = {0};
+    /* 移动到第一个'/'处，也就是根目录处 */
+    char *path = strchr(absPath, '/');
+    /*现在获得了绝对路径，需要清理路径中的.和..*/ 
+    BOFS_WashPath(path, finalPath);
+
+    mode_t newMode = 0;
+    
+    if (mode & O_RDONLY) {
+        newMode |= BOFS_O_RDONLY;
+    } else if (mode & O_WRONLY) {
+        newMode |= BOFS_O_WRONLY;
+    } else if (mode & O_RDWR) {
+        newMode |= BOFS_O_RDWR;
+    }
+
+    return BOFS_MakeFifo(finalPath, mode, drive->sb);
 }
 
 PUBLIC int SysGetCWD(char* buf, unsigned int size)
@@ -393,13 +842,13 @@ PUBLIC int SysStat(const char *pathname, struct stat *buf)
     mode_t newMode = 0;
 
     if (bstat.mode & BOFS_IMODE_R) {
-        newMode |= S_IRUSR;
+        newMode |= S_IREAD;
     }
     if (bstat.mode & BOFS_IMODE_W) {
-        newMode |= S_IWUSR;
+        newMode |= S_IWRITE;
     }
     if (bstat.mode & BOFS_IMODE_X) {
-        newMode |= S_IXUSR;
+        newMode |= S_IEXEC;
     }
     if (bstat.mode & BOFS_IMODE_F) {
         newMode |= S_IFREG;
@@ -441,14 +890,13 @@ PUBLIC int SysRemove(const char *pathname)
     char *path = strchr(absPath, '/');
     /*现在获得了绝对路径，需要清理路径中的.和..*/ 
     BOFS_WashPath(path, finalPath);
-    
+    //printk("remove path %s\n", finalPath);
     return BOFS_Remove(finalPath, drive->sb);
 }
 
 PUBLIC int SysIoctl(int fd, int cmd, int arg)
 {
-
-	return 0;
+    return BOFS_Ioctl(fd, cmd, arg);
 }
 
 PUBLIC int SysFcntl(int fd, int cmd, int arg)
@@ -460,6 +908,11 @@ PUBLIC int SysFcntl(int fd, int cmd, int arg)
 PUBLIC int SysFsync(int fd)
 {
     return BOFS_Fsync(fd);
+}
+
+PUBLIC int SysSync()
+{
+    return BlockSync();
 }
 
 
@@ -529,13 +982,13 @@ PUBLIC int SysGetMode(const char* pathname)
     mode_t newMode = 0;
 
     if (mode & BOFS_IMODE_R) {
-        newMode |= S_IRUSR;
+        newMode |= S_IREAD;
     }
     if (mode & BOFS_IMODE_W) {
-        newMode |= S_IWUSR;
+        newMode |= S_IWRITE;
     }
     if (mode & BOFS_IMODE_X) {
-        newMode |= S_IXUSR;
+        newMode |= S_IEXEC;
     }
     if (mode & BOFS_IMODE_F) {
         newMode |= S_IFREG;
@@ -570,13 +1023,13 @@ PUBLIC int SysChangeMode(const char* pathname, int mode)
 
     mode_t newMode = 0;
 
-    if (mode & S_IRUSR) {
+    if (mode & S_IREAD) {
         newMode |= BOFS_IMODE_R;
     }
-    if (mode & S_IWUSR) {
+    if (mode & S_IWRITE) {
         newMode |= BOFS_IMODE_W;
     }
-    if (mode & S_IXUSR) {
+    if (mode & S_IEXEC) {
         newMode |= BOFS_IMODE_X;
     }
 
@@ -657,8 +1110,7 @@ PUBLIC int SysChangeName(const char *pathname, char *name)
     /*现在获得了绝对路径，需要清理路径中的.和..*/ 
     BOFS_WashPath(path, finalPath);
     
-    BOFS_ResetName(finalPath, name, drive->sb);
-	return 0;
+    return BOFS_ResetName(finalPath, name, drive->sb);
 }
 
 PUBLIC DIR *SysOpenDir(const char *pathname)
@@ -694,7 +1146,7 @@ PUBLIC void SysCloseDir(DIR *dir)
     BOFS_CloseDir((struct BOFS_Dir *)dir);
 }
 
-PUBLIC int SysReadDir(DIR *dir, DIRENT *buf)
+PUBLIC int SysReadDir(DIR *dir, dirent *buf)
 {
     struct BOFS_Dir *bdir = (struct BOFS_Dir *)dir;
     off_t off = bdir->pos;

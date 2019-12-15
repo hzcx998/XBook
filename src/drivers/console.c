@@ -8,9 +8,14 @@
 
 #include <book/debug.h>
 #include <share/vsprintf.h>
+#include <share/math.h>
 #include <book/arch.h>
 #include <share/string.h>
 #include <book/memcache.h>
+#include <drivers/console.h>
+#include <drivers/tty.h>
+#include <share/string.h>
+#include <share/vsprintf.h>
 
 #define DISPLAY_VRAM 0x800b8000
 
@@ -23,18 +28,13 @@
 #define	V_MEM_BASE	DISPLAY_VRAM	/* base of color video memory */
 #define	V_MEM_SIZE	0x8000	/* 32K: B8000H -> BFFFFH */
 
+#define DEVNAME "console"
 
-/*
- * 私有数据结构
- */
-PRIVATE struct Private {
-	unsigned int currentStartAddr;
-	unsigned int vramAddr;
-	unsigned int vramLimit;
-	unsigned int cursor;
-	unsigned char color;
-	unsigned int cursorRead;
-}private;
+/* 控制台表 */
+Console_t consoleTable[MAX_CONSOLE_NR];
+
+/* 当前控制台的id，用于对多个控制台进行选择和判断 */
+int currentConsoleID;
 
 PRIVATE unsigned short GetCursor()
 {
@@ -48,7 +48,7 @@ PRIVATE unsigned short GetCursor()
 	return (posHigh<<8 | posLow);	//返回合成后的值
 }
 
-PRIVATE void SetCursor(unsigned short cursor_pos)
+PRIVATE void SetCursor(unsigned short cursor)
 {
 	//设置光标位置 0-2000
 
@@ -56,14 +56,14 @@ PRIVATE void SetCursor(unsigned short cursor_pos)
 	enum InterruptStatus oldStatus = InterruptDisable();
 
 	Out8(CRTC_ADDR_REG, CURSOR_H);			//光标高位
-	Out8(CRTC_DATA_REG, (cursor_pos >> 8) & 0xFF);
+	Out8(CRTC_DATA_REG, (cursor >> 8) & 0xFF);
 	Out8(CRTC_ADDR_REG, CURSOR_L);			//光标低位
-	Out8(CRTC_DATA_REG, cursor_pos & 0xFF);
+	Out8(CRTC_DATA_REG, cursor & 0xFF);
 	//恢复之前的flags状态
 	InterruptSetStatus(oldStatus);
 }
 
-PRIVATE void SetVideoStartAdr(unsigned short addr)
+PRIVATE void SetVideoStartAddr(unsigned short addr)
 {
 	//执行前保存flags状态，然后关闭中断
 	enum InterruptStatus oldStatus = InterruptDisable();
@@ -76,198 +76,344 @@ PRIVATE void SetVideoStartAdr(unsigned short addr)
 	InterruptSetStatus(oldStatus);
 }
 
-PRIVATE void Flush()
+
+/**
+ * IsCurrentConsole - 判断是否为当前控制台
+ * @console: 控制台指针
+ * 
+ * 是则返回1，不是则返回0
+ */
+PRIVATE int IsCurrentConsole(Console_t *console)
 {
-	SetCursor(private.cursor);
-	SetVideoStartAdr(private.currentStartAddr);
+    /* 如果传入的控制台是当前id对应得控制台，那么就是真 */
+	return (console == &consoleTable[currentConsoleID]);
 }
 
 
-PRIVATE void CleanScreen()
+/**
+ * Flush - 刷新光标和起始位置
+ * @console: 控制台
+ */
+PRIVATE void Flush(Console_t *console)
 {
-	private.cursor = private.vramAddr;
-	private.currentStartAddr = private.vramAddr;
-	Flush();
-	uint8_t *vram = (uint8_t *)(V_MEM_BASE + private.cursor *2) ;
-	int i;
-	for(i = 0; i < private.vramLimit*2; i+=2){
-		*vram = 0;
-		vram += 2;
+    /* 如果是当前控制台才刷新 */
+	if (IsCurrentConsole(console)) {
+		SetCursor(console->cursor);
+		SetVideoStartAddr(console->currentStartAddr);
 	}
 }
 
-PRIVATE void ScrollScreen(int direction)
+/**
+ * ConsoleClean - 清除控制台
+ * @console: 控制台
+ */
+PRIVATE void ConsoleClean(Console_t *console)
+{
+    /* 设置光标和视频起始为0 */
+	/*SetCursor(console->originalAddr);
+	SetVideoStartAddr(console->originalAddr);
+    */
+    /* 指向显存 */
+    unsigned char *vram = (unsigned char *)(V_MEM_BASE + console->originalAddr * 2);
+	int i;
+	for(i = 0; i < console->videoMemorySize; i++){
+		*vram++ = 0;  /* 所有字符都置0 */
+        *vram++ = COLOR_DEFAULT;  /* 颜色设置为黑白 */
+	}
+    console->cursor = console->originalAddr;
+    console->currentStartAddr = console->originalAddr;
+    Flush(console);
+}
+
+PRIVATE void DumpConsole(Console_t *console)
+{
+    printk(PART_TIP "----Console----\n");
+    printk(PART_TIP "origin:%d size:%d current:%d cursor:%d color:%x chrdev:%x\n",
+        console->originalAddr, console->currentStartAddr, console->currentStartAddr, 
+        console->cursor, console->color, console->chrdev);
+}
+
+/**
+ * ConsoleScrollScreen - 滚屏
+ * @console: 控制台
+ * @direction: 滚动方向
+ *             - SCREEN_UP: 向上滚动
+ *             - SCREEN_DOWN: 向下滚动
+ * 
+ */
+PRIVATE void ConsoleScrollScreen(Console_t *console, int direction)
 {
 	if(direction == SCREEN_UP){
-		if(private.currentStartAddr > private.vramAddr){
-			private.currentStartAddr -= SCREEN_WIDTH;
+		if(console->currentStartAddr > console->originalAddr){
+			console->currentStartAddr -= SCREEN_WIDTH;
 		}
 	}else if(direction == SCREEN_DOWN){
-		if(private.currentStartAddr + SCREEN_SIZE < private.vramAddr + private.vramLimit){
-			private.currentStartAddr += SCREEN_WIDTH;
+		if(console->currentStartAddr + SCREEN_SIZE < 
+            console->originalAddr + console->videoMemorySize){
+			console->currentStartAddr += SCREEN_WIDTH;
 		}
 	}
-	Flush();
+	Flush(console);
 }
 
-PRIVATE void SetChar(unsigned char ch)
+/**
+ * ConsolePutChar - 控制台上输出一个字符
+ * @console: 控制台
+ * @ch: 字符
+ */
+PRIVATE void ConsolePutChar(Console_t *console, char ch)
 {
-	unsigned char *vram = (unsigned char *)(V_MEM_BASE + private.cursor *2) ;
+	unsigned char *vram = (unsigned char *)(V_MEM_BASE + 
+        console->cursor *2) ;
 	switch(ch){
 		case '\n':
-			if(private.cursor < private.vramAddr + private.vramLimit - SCREEN_WIDTH){
-				//如果是回车，那还是要把回车写进去
-				*vram++ = '\n';
-				*vram = 0;
-				private.cursor = private.vramAddr + SCREEN_WIDTH*((private.cursor - private.vramAddr)/SCREEN_WIDTH+1);
+			if(console->cursor < console->originalAddr + 
+                console->videoMemorySize - SCREEN_WIDTH){
+				// 如果是回车，那还是要把回车写进去
+				/**vram++ = '\n';
+				*vram = 0;*/
+				console->cursor = console->originalAddr + SCREEN_WIDTH *
+                    ((console->cursor - console->originalAddr) / 
+                    SCREEN_WIDTH + 1);
 			}
 			break;
 		case '\b':
-			if(private.cursor > private.vramAddr){
-				private.cursor--;
+			if(console->cursor > console->originalAddr){
+				console->cursor--;
 				*(vram-2) = ' ';
-				*(vram-1) = private.color;
+				*(vram-1) = console->color;
 			}
 			break;
 		default: 
-			if(private.cursor < private.vramAddr + private.vramLimit - 1){
+			if(console->cursor < console->originalAddr + 
+                console->videoMemorySize - 1){
 				*vram++ = ch;
-				*vram = private.color;
-				private.cursor++;
+				*vram = console->color;
+				console->cursor++;
 			}
 			break;
 	}
-	while(private.cursor >= private.currentStartAddr + SCREEN_SIZE){
-		ScrollScreen(SCREEN_DOWN);
+
+	while(console->cursor >= console->currentStartAddr + SCREEN_SIZE){
+		ConsoleScrollScreen(console, SCREEN_DOWN);
 	}
-	Flush();
+
+	Flush(console);
 }
 
-PRIVATE unsigned char GetChar()
+/**
+ * GetCurrentConsole - 获取当前控制台
+ * 
+ * 返回控制台的指针
+ */
+PUBLIC Console_t *GetCurrentConsole()
 {
-	//如果在屏幕范围内
-	if(private.cursorRead < SCREEN_SIZE){
-		unsigned char *vram = (unsigned char *)(V_MEM_BASE + private.cursorRead *2) ;
-		private.cursorRead++;
-		return *vram;
+	return &consoleTable[currentConsoleID];
+}
+
+/**
+ * SelectConsole - 选择控制台
+ * @consoleID: 控制台id
+ * 
+ * id范围[0 ~ (MAX_CONSOLE_NR - 1)]
+ */
+PRIVATE void SelectConsole(int consoleID)
+{
+	if ((consoleID < 0) || (consoleID >= MAX_CONSOLE_NR)) {
+		return;
 	}
-	return 0;
+
+	currentConsoleID = consoleID;
+    /* 刷新成当前控制台的光标位置 */
+	Flush(&consoleTable[consoleID]);
 }
 
-PUBLIC void ConsoleInit()
+/**
+ * ConsoleWrite - 控制台写入数据
+ * @device: 设备
+ * @off: 偏移（未使用）
+ * @buf: 缓冲区
+ * @count: 字节数量
+ * 
+ */
+PUBLIC int ConsoleWrite(struct Device *device, unsigned int off, void *buffer, unsigned int count)
 {
-   	/*
-	初始化基于硬件抽象层的显示器
-	*/
-	private.vramAddr = 0;
-	private.vramLimit = V_MEM_SIZE>>1;
-	private.currentStartAddr = 0;
-	
-	private.cursor = 80*5;
-	private.cursorRead = 0;
-
-	private.color = COLOR_DEFAULT;
-	
-	SetCursor(private.cursor);
-
-	CleanScreen();
-	
-   	//设定打印函数指针
-   	printk = &ConsolePrint;
-
-	filterk = &ConsoleFliter;
-}
-
-PUBLIC void ConsoleWrite(char *buf, unsigned int count)
-{
+    /* 获取控制台 */
+    struct CharDevice *chrdev = (struct CharDevice *)device;
+    Console_t *console = (Console_t *)chrdev->private;
+    
+    char *buf = (char *)buffer;
 
 	while (count > 0 && *buf) {
-		SetChar(*buf);
+		/* 输出字符到控制台 */
+        ConsolePutChar(console, *buf);
 		buf++;
 		count--;
 	}
+    return 0;
 }
 
-PUBLIC void ConsoleRead(char *buf, unsigned int count)
-{
-	//HalRead("display",(unsigned char *)buf, count);
-
-	int i = 0;
-	while (i < count)
-	{
-		//从显存中获取一个字符
-		buf[i] = GetChar();
-		i++;
-	}
-}
-
-PUBLIC int ConsolePrint(const char *fmt, ...)
-{
-	int i;
-	char buf[256];
-	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
-	i = vsprintf(buf, fmt, arg);
-
-	ConsoleWrite((char *)buf, i);
-
-	return i;
-}
-
-/*
- * ConsoleFliter - 控制台信息过滤
- * @buf: 过滤到哪个部分
- * @count: 要求过滤多少数据
- * 
- * 返回实际过滤到的字符数量
- * 注：它需要和ConsoleReadGotoXY一起使用，才能达到最好的效果
+/**
+ * ConsolePutc - 往控制台设备输出一个字符
+ * @device: 设备
+ * @ch: 字符
  */
-PUBLIC int ConsoleFliter(char *buf, unsigned int count)
+PRIVATE int ConsolePutc(struct Device *device, unsigned int ch)
 {
-	//申请一样大的内存来暂时存放
-	char *tmp = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    /* 获取控制台 */
+    struct CharDevice *chrdev = (struct CharDevice *)device;
+    Console_t *console = (Console_t *)chrdev->private;
+    
+    ConsolePutChar(console, ch);
+    return 0;
+}
+
+/**
+ * ConsoleGotoXY - 光标移动到一个指定位置
+ * @xy: 位置，x是高16位，y是低16位
+ */
+PUBLIC void ConsoleGotoXY(Console_t *console, unsigned int xy)
+{
+    unsigned short x = (xy >> 16) & 0xffff, y = xy & 0xffff;
+    /* 设置到起始位置 */
+    SetVideoStartAddr(console->originalAddr);
 	
-	//整个读取过来
-	ConsoleRead(tmp, count);
-	//过滤出非0的字符
-	int i = 0, j = 0;
-	while (j < count)
+    /* 设置为起始位置的某个偏移位置 */
+    console->cursor = console->originalAddr + y * SCREEN_WIDTH + x;
+	SetCursor(console->cursor);
+}
+
+/**
+ * ConsoleSetColor - 设置控制台字符颜色
+ * @color: 颜色
+ */
+PUBLIC void ConsoleSetColor(Console_t *console, unsigned char color)
+{
+	console->color = color;
+}
+
+/**
+ * ConsoleIoctl - 控制台的IO控制
+ * @device: 设备
+ * @cmd: 命令
+ * @arg: 参数
+ * 
+ * 成功返回0，失败返回-1
+ */
+PRIVATE int ConsoleIoctl(struct Device *device, int cmd, int arg)
+{
+    /* 获取控制台 */
+    struct CharDevice *chrdev = (struct CharDevice *)device;
+    Console_t *console = (Console_t *)chrdev->private;
+    
+	int retval = 0;
+	switch (cmd)
 	{
-		if (tmp[j] != '\0') {
-			buf[i] = tmp[j];
-			i++;
-		}
-		j++;
+    case CON_CMD_SET_COLOR:
+        ConsoleSetColor(console, arg);
+        break;
+    case CON_CMD_SELECT_CON:
+        SelectConsole(arg);
+        break;
+    case CON_CMD_SCROLL:
+        ConsoleScrollScreen(console, arg);
+        break;
+    case CON_CMD_CLEAN:
+        ConsoleClean(console);
+        break;
+    case CON_CMD_GOTO:
+        ConsoleGotoXY(console, arg);
+        break;
+	default:
+		/* 失败 */
+		retval = -1;
+		break;
 	}
-	//释放
-	kfree(tmp);
 
-	//在buf的最后添加一个0，表示字符结束
-	buf[count - 1] = '\0';
-	return i;
+	return retval;
 }
 
-PUBLIC void ConsoleGotoXY(unsigned short x, unsigned short y)
+
+PRIVATE struct DeviceOperations consoleOpSets = {
+	.ioctl = ConsoleIoctl, 
+	.putc = ConsolePutc,
+    .write = ConsoleWrite,
+};
+
+/**
+ * ConsoleInitScreen - 初始化控制台屏幕
+ * @tty: 控制台所属的终端
+ */
+PUBLIC void ConsoleInitOne(Console_t *console, int id)
 {
+    /* 添加字符设备 */
 
-	private.cursor = y * SCREEN_WIDTH + x;
-	SetCursor(private.cursor);
+    /* 初始化控制台的时候还没有内存分配，不能调用AllocCharDevice */
 
+    /* 设置一个字符设备号 */
+    CharDeviceSetDevno(&console->chrdev, MKDEV(CONSOLE_MAJOR, id));
+
+	/* 初始化字符设备信息 */
+	CharDeviceInit(&console->chrdev, 1, console);
+	CharDeviceSetup(&console->chrdev, &consoleOpSets);
+
+    char devname[DEVICE_NAME_LEN] = {0};
+    sprintf(devname, "%s%d", DEVNAME, id);
+	CharDeviceSetName(&console->chrdev, devname);
+    
+	/* 把字符设备添加到系统 */
+	AddCharDevice(&console->chrdev);
+
+	int videoMemorySize = V_MEM_SIZE >> 1;	/* 显存总大小 (in WORD) */
+
+	/* 
+    设置控制台显存大小，进行一次向下取行数，
+    可以保证不跨越到其它的控制台 
+    */
+    int consoleVideoMemorySize = DIV_ROUND_UP(videoMemorySize / 
+        MAX_CONSOLE_NR, SCREEN_WIDTH) * SCREEN_WIDTH;
+    
+	/* 控制台起始地址 */
+    console->originalAddr      = id * consoleVideoMemorySize;
+	/* 控制台占用的显存大小 */
+    console->videoMemorySize   = consoleVideoMemorySize;
+	/* 控制台的开始地址 */
+    console->currentStartAddr  = console->originalAddr;
+	/* 默认光标位置在最开始处 */
+	console->cursor = console->originalAddr;
+    /* 设置默认颜色 */
+    console->color = COLOR_DEFAULT;
+
+	if (id == 0) {
+        ConsoleClean(console);
+
+        /*ConsolePutChar(console, id + '0');
+		ConsolePutChar(console, '#');*/
+        //设定打印函数指针
+        //printk = &ConsolePrint;
+
+	} else {
+        /* 输出控制台标号 */
+		/*ConsolePutChar(console, id + '0');
+		ConsolePutChar(console, '#');*/
+	}
+
+	SetCursor(console->cursor);
 }
 
-PUBLIC void ConsoleSetColor(unsigned char color)
+/**
+ * ConsoleInit - 初始化控制台
+ */
+PUBLIC void ConsoleInit()
 {
-	private.color = color;
-	
-}
+   	int i;
+    /* 初始化所有控制台 */
+    for (i = 0; i < MAX_CONSOLE_NR; i++) {
+        ConsoleInitOne(&consoleTable[i], i);
+    }
+    /* 选择第一个控制台 */
+    SelectConsole(0);
 
-PUBLIC void ConsoleReadGotoXY(unsigned short x, unsigned short y)
-{
-	private.cursorRead = y * SCREEN_WIDTH + x;
-	
-}
-
-PUBLIC int SysLog(char *buf)
-{
-	ConsoleWrite(buf, strlen(buf));
-	return 0;
+    /* 初始化调试输出，可以使用printk */
+    InitDebugPrint();
 }

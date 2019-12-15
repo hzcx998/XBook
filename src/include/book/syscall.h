@@ -45,6 +45,7 @@ enum {
     SYS_ACCESS,             /* 30 */
     SYS_FCNTL,              /* 31 */
     SYS_FSYNC,              /* 32 */
+    SYS_PIPE,               /* 33 */
     MAX_SYSCALL_NR,
 };
 
