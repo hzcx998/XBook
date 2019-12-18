@@ -35,6 +35,11 @@
 #define S_ISLNK (st_mode & S_IFLNK)    //判断是否为符号连接
 #define S_ISSOCK (st_mode & S_IFSOCK)   //是否为socket
 
+/* 文件模式 */
+#define M_IREAD  (1 << 2)     //文件可读取权限
+#define M_IWRITE (1 << 1)    //文件可写入权限
+#define M_IEXEC  (1 << 0)     //文件可执行权限
+
 struct stat {
 	size_t st_size;         //以字节为单位的文件容量
 	mode_t st_mode;         //文件访问权限

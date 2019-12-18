@@ -36,11 +36,18 @@
 #include <share/types.h>
 
 #include <fs/bofs/super_block.h>
+#include <fs/bofs/pipe.h>
 
 PUBLIC int BOFS_MakeFifo(const char *pathname, mode_t mode, struct BOFS_SuperBlock *sb);
+
+PUBLIC int BOFS_FifoOpen(int fd, flags_t flags);
+
+PUBLIC int BOFS_FifoClose(struct BOFS_Pipe *pipe);
+
 PUBLIC int BOFS_FifoRead(struct BOFS_FileDescriptor *file, void *buffer, size_t count);
 PUBLIC int BOFS_FifoWrite(struct BOFS_FileDescriptor *file, void *buffer, size_t count);
 
+PUBLIC int BOFS_FifoUpdate(struct BOFS_Pipe *pipe, struct Task *task);
 
 #endif  /* _BOFS_FIFO_H */
 

@@ -376,11 +376,11 @@ PRIVATE int TTY_InitOne(TTY_t *tty)
 	/* 把字符设备添加到系统 */
 	AddCharDevice(tty->chrdev);
 
-    unsigned int *buf = kmalloc(IO_QUEUE_BUF_LEN, GFP_KERNEL);
+    unsigned char *buf = kmalloc(IQ_BUF_LEN_8, GFP_KERNEL);
     if (buf == NULL)
         return -1;
     /* 初始化io队列 */
-    IoQueueInit(&tty->ioqueue, buf, IO_QUEUE_BUF_LEN);
+    IoQueueInit(&tty->ioqueue, buf, IQ_BUF_LEN_8, IQ_FACTOR_8);
     
     /* 生成控制台设备号 */
     tty->conDevno = MKDEV(CONSOLE_MAJOR, id);

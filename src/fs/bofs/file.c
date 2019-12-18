@@ -158,6 +158,7 @@ PUBLIC int TaskInstallFD(int globalFdIdx)
 PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
+    flags_t flags,
 	struct BOFS_SuperBlock *sb)
 {
 	/**
@@ -236,7 +237,10 @@ PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 		BOFS_GlobalFdTable[fd].inode = inode;
 		
 		BOFS_GlobalFdTable[fd].pos = 0;
-		BOFS_GlobalFdTable[fd].flags |= mode;
+
+        AtomicSet(&BOFS_GlobalFdTable[fd].reference, 1);
+		
+		BOFS_GlobalFdTable[fd].flags = flags;
 
 		BOFS_GlobalFdTable[fd].superBlock = sb;
 		
@@ -297,6 +301,7 @@ PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence)
 PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
+    flags_t flags,
 	struct BOFS_SuperBlock *sb)
 {
 	/*1.alloc memory for dir entry and inode*/
@@ -338,7 +343,8 @@ PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 		
 		BOFS_GlobalFdTable[fd].pos = 0;
 		
-		BOFS_GlobalFdTable[fd].flags |= mode;
+		AtomicSet(&BOFS_GlobalFdTable[fd].reference, 1);
+		BOFS_GlobalFdTable[fd].flags = flags;
 
 		BOFS_GlobalFdTable[fd].superBlock = sb;
 		
@@ -450,7 +456,7 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 	if(flags & BOFS_O_CREAT) {	
 		/* 没有重打开才进行创建 */
 		if(!reopen){
-			fd = BOFS_CreateFile(record.parentDir, name, mode, record.superBlock);
+			fd = BOFS_CreateFile(record.parentDir, name, mode, flags, record.superBlock);
 			
 			if(fd != -1){
 				/*create sucess! we can't close record parent dir, we will use in fd_parent*/
@@ -489,15 +495,18 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
             record.childDir->type == BOFS_FILE_TYPE_CHAR) {
             
             /* 打开文件描述符 */
-            fd = BOFS_OpenFile(record.parentDir, name, mode, record.superBlock);
+            fd = BOFS_OpenFile(record.parentDir, name, mode, flags, record.superBlock);
             
             /* 设备文件需要打开设备 */
             if (record.childDir->type == BOFS_FILE_TYPE_BLOCK || 
             record.childDir->type == BOFS_FILE_TYPE_CHAR) {
                 /* 打开设备 */
-                if (DeviceOpen(BOFS_GlobalFdTable[FdLocal2Global(fd)].inode->blocks[0], 0)) {
+                if (DeviceOpen(BOFS_GlobalFdTable[FdLocal2Global(fd)].inode->blocks[0], flags)) {
                     printk("device open failed!\n");
                 }
+            } else if (record.childDir->type == BOFS_FILE_TYPE_FIFO) {
+                BOFS_FifoOpen(fd, flags);
+                //printk("open fifo\n");
             }
         }
 		if(fd != -1){
@@ -562,42 +571,35 @@ PUBLIC int BOFS_Fsync(int fd)
  */
 PUBLIC int BOFS_Close(int fd)
 {
+    //printk("pid %d close\n", CurrentTask()->pid);
 	int ret = -1;   // defaut -1,error
 	if (fd >= 0 && fd < MAX_OPEN_FILES_IN_PROC) {
         
         unsigned int globalFD = FdLocal2Global(fd);
 
         struct BOFS_FileDescriptor *fdec = &BOFS_GlobalFdTable[globalFD];
-        
-        if (BOFS_IsPipe(fd)) {
-            
-            /* 如果引用计数为0，就需要释放管道 */
-            if (--fdec->pos == 0) {
-                printk("close pipe local %d global %d\n", fd, globalFD);
-                kfree(fdec->inode);
 
-                /* 释放全局描述符 */
-                BOFS_FreeFdGlobal(globalFD);
+        /* 如果是设备文件，就需要关闭设备 */
+        if (fdec->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
+            fdec->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
+            //printk("close device %x\n", fdec->inode->blocks[0]);
+            DeviceClose(fdec->inode->blocks[0]);
+        } else if (fdec->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
+            if (BOFS_FifoClose((struct BOFS_Pipe *)fdec->inode->blocks[0]) == -1) {
+                printk("close fifo file failed!\n");    
             }
-            ret = 0;
-        } else {
-            /* 如果是设备文件，就需要关闭设备 */
-            if (fdec->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
-                fdec->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
-                printk("close device %x\n", fdec->inode->blocks[0]);
-                DeviceClose(fdec->inode->blocks[0]);
-            }
-
-            /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
-            BlockSync();
-
-            /* 关闭全局文件描述符表中的文件 */
-            ret = BOFS_CloseFile(fdec);
-            /* 释放全局描述符 */
-            BOFS_FreeFdGlobal(globalFD);
-
-            //printk("close fd:%d success!\n", fd);
         }
+
+        /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
+        BlockSync();
+
+        /* 关闭全局文件描述符表中的文件 */
+        ret = BOFS_CloseFile(fdec);
+        /* 释放全局描述符 */
+        BOFS_FreeFdGlobal(globalFD);
+    
+        //printk("close fd:%d success!\n", fd);
+    
         /* 释放局部文件描述符，置-1表示未使用 */
         CurrentTask()->fdTable[fd] = -1; 
         
@@ -883,9 +885,8 @@ PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count)
                     }
                 } else if (wrFile->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
                     //printk("fifo write!\n");
-                    BOFS_FifoWrite(wrFile, buf, count);
+                    ret = BOFS_FifoWrite(wrFile, buf, count);
 
-                    ret = 0;
                 }
 
             }else{
@@ -893,6 +894,7 @@ PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count)
             }
         } else {
             printk("bofs fwrite: not allowed to write file without flag BOFS_O_RDWR or BOFS_O_WRONLY\n");
+            printk("task %s pid %d\n", CurrentTask()->name, CurrentTask()->pid);
         }
     }
 	return ret;
@@ -1074,9 +1076,8 @@ PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count)
                     }
                 } else if (rdFile->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
                     //printk("fifo read!\n");
-                    BOFS_FifoRead(rdFile, buf, count);
+                    ret = BOFS_FifoRead(rdFile, buf, count);
                     
-                    ret = 0;
                 }
             }else{
                 printk("not allowed to read inode without BOFS_IMODE_R.\n");
@@ -1325,14 +1326,32 @@ PUBLIC int BOFS_Stat(const char *pathname,
 PUBLIC void BOFS_UpdateInodeOpenCounts(struct Task *task)
 {
     int localFd = 0, globalFd = 0;
+    struct BOFS_FileDescriptor *file;
     while (localFd < MAX_OPEN_FILES_IN_PROC) {
         globalFd = task->fdTable[localFd];
         ASSERT(globalFd < BOFS_MAX_FD_NR);
         
         /* 是已经使用中的文件 */
         if (globalFd != -1) {
-            if (BOFS_IsPipe(localFd)) {
-                BOFS_GlobalFdTable[globalFd].pos++;
+            file = BOFS_GetFileByFD(globalFd);
+            /* 增加引用，子进程继承父进程的文件时需要 */
+
+            AtomicInc(&file->reference);
+
+            /* 设备文件需要打开设备 */
+            if (file->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
+            file->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
+                /* 打开设备 */
+                //printk("fork device %x->", file->inode->blocks[0]);
+                if (DeviceOpen(file->inode->blocks[0], file->flags)) {
+                    printk("device open failed!\n");
+                }
+                //printk("fork open device\n");
+            } else if (file->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
+                //printk("fork fifo\n");
+                if (BOFS_FifoUpdate((struct BOFS_Pipe *)file->inode->blocks[0], task) == -1) {
+                    printk("fifo update failed!\n");
+                }
             }
         }
         localFd++;
@@ -1341,31 +1360,46 @@ PUBLIC void BOFS_UpdateInodeOpenCounts(struct Task *task)
 
 PUBLIC void BOFS_ReleaseTaskFiles(struct Task *task)
 {
+    //printk("task %s %d release file.\n", task->name, task->pid);
+    
     int localFd = 0, globalFd = 0;
     while (localFd < MAX_OPEN_FILES_IN_PROC) {
         globalFd = task->fdTable[localFd];
         ASSERT(globalFd < BOFS_MAX_FD_NR);
         /* 是已经使用中的文件 */
         if (globalFd != -1) {
-            if (BOFS_IsPipe(localFd)) {
-                /* 如果引用计数为0，就需要释放管道 */
-                if (--BOFS_GlobalFdTable[globalFd].pos == 0) {
-                    printk("close pipe local %d global %d\n", localFd, globalFd);
-                
-                    kfree(BOFS_GlobalFdTable[globalFd].inode);
-
-                    /* 释放全局描述符 */
-                    BOFS_FreeFdGlobal(globalFd);
-                }
-            } else {
-                /* 其它文件，直接关闭 */
+            struct BOFS_FileDescriptor *file = BOFS_GetFileByFD(globalFd);
+            
+            /* 退出时释放文件的引用 */
+            AtomicDec(&file->reference);
+            if (AtomicGet(&file->reference) <= 0) {
+                //printk("task %s %d close fd\n", task->name, task->pid);
+                /* 真正关闭 */
                 BOFS_Close(localFd);
+            } else {
+                /* 设备文件需要关闭设备 */
+                if (file->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
+                file->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
+                    /* 关闭设备 */
+                    //printk("exit device %x->", file->inode->blocks[0]);
+                    if (DeviceClose(file->inode->blocks[0])) {
+                        printk("close close failed!\n");
+                    }
+                    //printk("exit close device\n");
+                } else if (file->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
+                    //printk("close fifo\n");
+                    //printk("release ref %d\n", AtomicGet(&file->reference));
+                    
+                    if (BOFS_FifoClose((struct BOFS_Pipe *)file->inode->blocks[0]) == -1) {
+                        printk("close fifo file failed!\n");    
+                    }
+                }
             }
         }
+        
         localFd++;
     }
 }
-
 
 /**
  * BOFS_InitFile - 初始化文件相关

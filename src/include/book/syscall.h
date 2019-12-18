@@ -46,6 +46,7 @@ enum {
     SYS_FCNTL,              /* 31 */
     SYS_FSYNC,              /* 32 */
     SYS_PIPE,               /* 33 */
+    SYS_FIFO,               /* 34 */
     MAX_SYSCALL_NR,
 };
 

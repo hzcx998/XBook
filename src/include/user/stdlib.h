@@ -29,6 +29,6 @@ void *calloc(size_t count, size_t size);
 void *realloc(void *ptr, size_t size);
 
 int pipe(int fd[2]);
-
+int mkfifo(const char *path, mode_t mode);
 
 #endif  /* _USER_LIB_STDLIB_H */

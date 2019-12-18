@@ -19,11 +19,45 @@
 
 #include <share/stdint.h>
 #include <share/types.h>
+#include <book/atomic.h>
+#include <book/ioqueue.h>
+
+/* 一个管道最多能被多少个任务占用 */
+#define MAX_PIPE_PER_TASK_NR    32
+
+/* 管道大小为1个页的大小 */
+#define PIPE_SIZE    4096
+
+
+
+/* 进程间通信管道 */
+struct BOFS_Pipe {
+    struct IoQueue ioqueue;     /* 输入输出队列 */
+    Atomic_t readReference;     /* 读端引用 */
+    Atomic_t writeReference;    /* 写端引用 */
+    struct List waitList;       /* 打开时的等待队列 */
+
+    /* 使用通道的任务的进程id */
+    
+    /* 读任务 */
+    pid_t readTaskTable[MAX_PIPE_PER_TASK_NR];
+    /* 写任务 */
+    pid_t writeTaskTable[MAX_PIPE_PER_TASK_NR];
+};
+
+PUBLIC int BOFS_PipeInit(struct BOFS_Pipe *pipe);
 
 PUBLIC bool BOFS_IsPipe(unsigned int localFd);
 PUBLIC int BOFS_Pipe(int fd[2]);
 PUBLIC unsigned int BOFS_PipeRead(int fd, void *buffer, size_t count);
 PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count);
+PUBLIC int BOFS_PipeInTable(struct BOFS_Pipe *pipe, pid_t pid);
+
+PUBLIC int BOFS_PipeRecordReadTask(struct BOFS_Pipe *pipe, pid_t pid);
+PUBLIC int BOFS_PipeRecordWriteTask(struct BOFS_Pipe *pipe, pid_t pid);
+PUBLIC int BOFS_PipeEraseReadTask(struct BOFS_Pipe *pipe, pid_t pid);
+PUBLIC int BOFS_PipeEraseWriteTask(struct BOFS_Pipe *pipe, pid_t pid);
+
 
 #endif  /* _BOFS_PIPE_H */
 

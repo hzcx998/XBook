@@ -19,7 +19,7 @@ PRIVATE void SysNull()
 
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
-    SysNull,                /* 0 */
+    PrintTask,              /* 0 */
     SysMmap,                /* 1 */
     SysMunmap,              /* 2 */
     SysFork,                /* 3 */
@@ -53,4 +53,5 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysFcntl,               /* 31 */
     SysFsync,               /* 32 */
     SysPipe,                /* 33 */
+    SysMakeFifo,                /* 34 */
 };

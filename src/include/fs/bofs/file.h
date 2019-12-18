@@ -50,6 +50,7 @@ struct BOFS_FileDescriptor
 	unsigned int pos;	/*file cursor pos*/
 	unsigned int flags; 		/*file operate flags*/
 	
+    Atomic_t reference; /* 引用 */
 	struct BOFS_SuperBlock *superBlock;	/* 文件所在的超级块 */
 	struct BOFS_DirEntry *dirEntry;		/* dir entry */
 	struct BOFS_DirEntry *parentEntry;	/* parent dir entry */

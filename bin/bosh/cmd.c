@@ -383,10 +383,12 @@ void cmd_ps(uint32_t argc, char** argv)
 		printf("ps: no argument support!\n");
 		return;
 	}
+    
+    log("");
 
-	printf("=====Task Info=====\n");
+	//printf("=====Task Info=====\n");
 
-    cmd_ls_sub("sys:/tsk", 1);
+    //cmd_ls_sub("sys:/tsk", 1);
     /*
 	struct thread *buf = thread_connect();
 
@@ -616,6 +618,9 @@ void cmd_ls_sub(char *pathname, int detail)
                     break;
                 case DIR_TASK:
                     type = 't';
+                    break;
+                case DIR_FIFO:
+                    type = 'f';
                     break;
                 default:
                     type = 'x';

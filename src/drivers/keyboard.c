@@ -423,11 +423,11 @@ PUBLIC int InitKeyboardDriver()
 	keyboardPrivate.numLock    = 1;
 	keyboardPrivate.scrollLock = 0;
 
-	unsigned int *buf = kmalloc(IO_QUEUE_BUF_LEN, GFP_KERNEL);
+	unsigned char *buf = kmalloc(IQ_BUF_LEN_32, GFP_KERNEL);
     if (buf == NULL)
         return -1;
     /* 初始化io队列 */
-    IoQueueInit(&keyboardPrivate.ioqueue, buf, IO_QUEUE_BUF_LEN);
+    IoQueueInit(&keyboardPrivate.ioqueue, buf, IQ_BUF_LEN_32, IQ_FACTOR_32);
     
 	/* 初始化键盘控制器 */
 	KeyboardControllerWait();

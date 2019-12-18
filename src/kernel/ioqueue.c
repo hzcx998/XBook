@@ -24,7 +24,7 @@ PUBLIC struct IoQueue *CreateIoQueue()
  * @ioQueue: io队列
  */
 PUBLIC int IoQueueInit(struct IoQueue *ioQueue, 
-    unsigned int *buf, unsigned int buflen)
+    unsigned char *buf, unsigned int buflen, char factor)
 {
 	//初始化队列锁
 	SynclockInit(&ioQueue->lock);
@@ -34,7 +34,11 @@ PUBLIC int IoQueueInit(struct IoQueue *ioQueue,
 		return -1;
 	}*/
     ioQueue->buf = buf;
+
+    /* 数据区以字节为单位的长度 */
     ioQueue->buflen = buflen;
+    
+    ioQueue->factor = factor;
     
 	memset(ioQueue->buf, 0, buflen);
 
@@ -69,7 +73,7 @@ PRIVATE void IoQueueWakeUp(struct Task **waiter)
  * @ioQueue: io队列
  * @data: 数据
  */
-PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data)
+PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned long data)
 {
 	/*如果队列已经满了，就不能放入数据*/
 	while (IoQueueFull(ioQueue)) {
@@ -81,14 +85,40 @@ PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data)
 		/* 释放锁 */
 		SyncUnlock(&ioQueue->lock);
 	}
-	
-	//如果最大了就直接覆盖原有信息
-	*ioQueue->head = data;
-	
-	ioQueue->head++;	//改变指针位置
+    unsigned char *p = (unsigned char *)&data;
+	switch (ioQueue->factor)
+    {
+    case IQ_FACTOR_8:
+        *ioQueue->head++ = *p++;
+        break;
+    case IQ_FACTOR_16:
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        break;
+    case IQ_FACTOR_32:
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        
+        break;
+    case IQ_FACTOR_64:
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        *ioQueue->head++ = *p++;
+        break;
+    default:
+        break;
+    }
+
 	ioQueue->size++;	//数据数量增加
 	//修复越界
-	if(ioQueue->head >= ioQueue->buf + ioQueue->buflen / sizeof(int)){
+	if(ioQueue->head >= ioQueue->buf + ioQueue->buflen){
 		ioQueue->head = ioQueue->buf;
 	}
 
@@ -102,7 +132,7 @@ PUBLIC void IoQueuePut(struct IoQueue *ioQueue, unsigned int data)
  * IoQueueGet - 从io队列中获取一个数据
  * @ioQueue: io队列
  */
-PUBLIC unsigned int IoQueueGet(struct IoQueue *ioQueue)
+PUBLIC unsigned long IoQueueGet(struct IoQueue *ioQueue)
 {
 	/*如果队列时空的，就一直等待，知道有数据产生*/
 	while (IoQueueEmpty(ioQueue)) {
@@ -113,18 +143,42 @@ PUBLIC unsigned int IoQueueGet(struct IoQueue *ioQueue)
 		/* 释放锁 */
 		SyncUnlock(&ioQueue->lock);
 	}
+    unsigned long data;
+    unsigned char *p = (unsigned char *)&data;
+	switch (ioQueue->factor)
+    {
+    case IQ_FACTOR_8:
+        *p++ = *ioQueue->tail++;
+        break;
+    case IQ_FACTOR_16:
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        break;
+    case IQ_FACTOR_32:
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        break;
+    case IQ_FACTOR_64:
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        *p++ = *ioQueue->tail++;
+        break;
+    default:
+        break;
+    }
 
-	/* 从尾部获取一个数据 */
-	unsigned int data = *ioQueue->tail;
-	
-	//改变指针位置
-	ioQueue->tail++;	
-	
 	//数据数量减少
 	ioQueue->size--;
 
 	/* 如果到达了最后面，就跳到最前面，形成一个环 */
-	if(ioQueue->tail >= ioQueue->buf + ioQueue->buflen / sizeof(int)){
+	if(ioQueue->tail >= ioQueue->buf + ioQueue->buflen){
 		ioQueue->tail = ioQueue->buf;
 	}
 

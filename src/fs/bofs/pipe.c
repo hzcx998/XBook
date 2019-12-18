@@ -43,6 +43,118 @@ PUBLIC bool BOFS_IsPipe(unsigned int localFd)
     }
 }
 
+PUBLIC int BOFS_PipeRecordReadTask(struct BOFS_Pipe *pipe, pid_t pid)
+{
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        /* 如果已经存在，再次记录就会出错 */
+        if (pipe->readTaskTable[i] == pid) {
+            return -1;
+        }
+        if (pipe->readTaskTable[i] == -1) {
+            break;
+        }
+    }
+    if (i >= MAX_PIPE_PER_TASK_NR) 
+        return -1;
+    
+    /* 记录pid */
+    pipe->readTaskTable[i] = pid;
+    return 0;
+}
+
+PUBLIC int BOFS_PipeRecordWriteTask(struct BOFS_Pipe *pipe, pid_t pid)
+{
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        /* 如果已经存在，再次记录就会出错 */
+        if (pipe->writeTaskTable[i] == pid) {
+            return -1;
+        }
+        if (pipe->writeTaskTable[i] == -1) {
+            break;
+        }
+    }
+    if (i >= MAX_PIPE_PER_TASK_NR) 
+        return -1;
+    
+    /* 记录pid */
+    pipe->writeTaskTable[i] = pid;
+    return 0;
+}
+
+PUBLIC int BOFS_PipeEraseReadTask(struct BOFS_Pipe *pipe, pid_t pid)
+{
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        if (pipe->readTaskTable[i] == pid) {
+            pipe->readTaskTable[i] = -1;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+PUBLIC int BOFS_PipeEraseWriteTask(struct BOFS_Pipe *pipe, pid_t pid)
+{
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        if (pipe->writeTaskTable[i] == pid) {
+            pipe->writeTaskTable[i] = -1;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+/**
+ * BOFS_PipeInTable - 检测任务在哪个表中
+ * 
+ * 在读表中，返回0，
+ * 写表中，返回1，
+ * 不在表中，返回-1
+ */
+PUBLIC int BOFS_PipeInTable(struct BOFS_Pipe *pipe, pid_t pid)
+{
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        if (pipe->readTaskTable[i] == pid) {
+            return 0;
+        }
+        if (pipe->writeTaskTable[i] == pid) {
+            return 1;
+        }
+    }
+    return -1;
+}
+
+PUBLIC int BOFS_PipeInit(struct BOFS_Pipe *pipe)
+{
+    /* 分配缓冲区 */
+    unsigned char *buf = kmalloc(PIPE_SIZE, GFP_KERNEL);
+    if (buf == NULL) {
+        return -1;
+    }
+
+    /* 初始化io队列 */
+    IoQueueInit(&pipe->ioqueue, buf, PIPE_SIZE, IQ_FACTOR_8);
+
+    /* 设置引用计数位0 */
+    AtomicSet(&pipe->readReference, 0);
+    AtomicSet(&pipe->writeReference, 0);
+    
+    INIT_LIST_HEAD(&pipe->waitList);
+
+    int i;
+    for (i = 0; i < MAX_PIPE_PER_TASK_NR; i++) {
+        pipe->readTaskTable[i] = -1;    /* -1表示没有任务 */
+        pipe->writeTaskTable[i] = -1;    /* -1表示没有任务 */
+    }
+
+    return 0;
+}
+
+
 /**
  * BOFS_Pipe - 创建管道文件
  * @fd: 管道文件描述符，2个
@@ -70,7 +182,7 @@ PUBLIC int BOFS_Pipe(int fd[2])
     /* 初始化数据缓冲区 */
     struct IoQueue *ioqueue = (struct IoQueue *)file->inode;
     /* 初始化io队列，缓冲区位于ioqueue结构后面 */
-    IoQueueInit(ioqueue, (unsigned int *)(ioqueue + 1), PAGE_SIZE - sizeof(struct IoQueue));
+    IoQueueInit(ioqueue, (unsigned char *)(ioqueue + 1), PAGE_SIZE - sizeof(struct IoQueue), IQ_FACTOR_8);
 
     /* 管道标志 */
     file->flags |= BOFS_FLAGS_PIPE;

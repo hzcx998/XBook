@@ -62,7 +62,8 @@
         "tty.h": "c",
         "fs.h": "c",
         "pipe.h": "c",
-        "fifo.h": "c"
+        "fifo.h": "c",
+        "atomic.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

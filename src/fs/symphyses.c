@@ -40,7 +40,7 @@
 #define DATA_ON_IDE
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 3
+#define FILE_ID 4
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
@@ -50,6 +50,9 @@
 	#define FILE_SECTORS 100
 #elif FILE_ID == 3
 	#define FILE_NAME "root:/test"
+	#define FILE_SECTORS 50
+#elif FILE_ID == 4
+	#define FILE_NAME "root:/test2"
 	#define FILE_SECTORS 50
 #endif
 
@@ -135,7 +138,7 @@ PRIVATE void MakeDeviceFile()
 
         /* 需要打开设备，才可以操作 */
         DeviceOpen(device->devno, 0);
-
+        
         switch (device->type)
         {
         case DEV_TYPE_CHAR:
@@ -168,7 +171,6 @@ PRIVATE void MakeDeviceFile()
         if (SysMakeDev(devpath, devType, MAJOR(device->devno), MINOR(device->devno), devSectors)) {
             printk("make dev failed!\n");
         }
-
         /* 使用完后关闭设备 */
         DeviceClose(device->devno);
     }
@@ -317,22 +319,22 @@ PRIVATE void MakeFifoFile()
         return;
     }
     SysSync();
-    
+    /*
     if (SysMakeFifo("sys:/pip/fifo.pip", O_RDWR)) {
         printk("make fifo file failed!\n");
     }
     SysSync();
     
-    int fd = SysOpen("sys:/pip/fifo.pip", O_RDWR);
+    int fd = SysOpen("sys:/pip/fifo.pip", O_RDONLY);
     if (fd < 0) {
         printk("open pipe file failed!\n");
     }
 
     char buf[32];
     SysRead(fd, buf, 32);
-    SysWrite(fd, buf, 32);
+    //SysWrite(fd, buf, 32);
 
-    close(fd);
+    close(fd);*/
 }
 
 /**
@@ -620,6 +622,7 @@ PUBLIC int AddTaskToFS(char *name, pid_t pid)
         //printk("make task file at %s failed!\n", taskpath);
         return -1;
     }
+
     return 0;
 }
 
@@ -688,16 +691,15 @@ PUBLIC int SysMakeFifo(const char *pathname, mode_t mode)
     BOFS_WashPath(path, finalPath);
 
     mode_t newMode = 0;
-    
-    if (mode & O_RDONLY) {
-        newMode |= BOFS_O_RDONLY;
-    } else if (mode & O_WRONLY) {
-        newMode |= BOFS_O_WRONLY;
-    } else if (mode & O_RDWR) {
-        newMode |= BOFS_O_RDWR;
+
+    if (mode & M_IREAD) {
+        newMode |= BOFS_IMODE_R;
+    }
+    if (mode & M_IWRITE) {
+        newMode |= BOFS_IMODE_W;
     }
 
-    return BOFS_MakeFifo(finalPath, mode, drive->sb);
+    return BOFS_MakeFifo(finalPath, newMode, drive->sb);
 }
 
 PUBLIC int SysGetCWD(char* buf, unsigned int size)

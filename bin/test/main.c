@@ -17,6 +17,55 @@ int sum(int n)
 	return 0;
 }
 
+#define FIFO_PATH "sys:/pip/fifot"
+
+int pipe_read()
+{
+    int fifofd = open(FIFO_PATH, O_RDONLY);
+    if (fifofd < 0) {
+        printf("open fifo failed!\n");
+        return -1;
+    }
+
+    printf("read open fifo ok!\n");
+  
+    char buf[32];
+    memset(buf, 0, 32);
+    printf("read %d bytes.\n", read(fifofd, buf, 32));
+
+    printf("read data:%s\n", buf);
+
+    close(fifofd);
+    printf("read %d close fifo sucess!\n", getpid());
+
+    return 0;
+}
+
+int pipe_write()
+{
+    int fifofd = open(FIFO_PATH, O_WRONLY);
+    if (fifofd < 0) {
+        printf("open fifo failed!\n");
+        return -1;
+    }
+
+    printf("write open fifo ok!\n");
+
+    char buf[32];
+    memset(buf, 0, 32);
+    strcpy(buf, "hello, fifo!\n");
+
+    printf("write %d bytes.\n", write(fifofd, buf, strlen(buf)));
+    printf("write data:%s\n", buf);
+
+    close(fifofd);
+    printf("write %d close fifo sucess!\n", getpid());
+    
+    //printf("write %d bytes.\n", write(fifofd, buf, strlen(buf)));
+    
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	printf("Welcome to test. my pid %d\n", getpid());
@@ -28,6 +77,17 @@ int main(int argc, char *argv[])
 	}
 
     printf("I will do some test and exit\n");	
+
+    printf("----fifo test----\n");
+    
+    if (access(FIFO_PATH, F_OK)) {
+        if (mkfifo(FIFO_PATH, M_IREAD | M_IWRITE)) {
+            printf("mkfifo failed!\n");
+            return -1;
+        }
+    }
+
+    return pipe_write();
 
     printf("----pipe test----\n");
     
@@ -41,6 +101,12 @@ int main(int argc, char *argv[])
     char buf[20];
 
     char *q = "test for pipe\n";
+
+
+
+
+
+    
 
     /**/
     int pid = fork();

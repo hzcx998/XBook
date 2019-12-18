@@ -11,11 +11,13 @@
 #include <share/string.h>
 #include <book/device.h>
 #include <book/ioqueue.h>
+#include <share/math.h>
 
 #include <fs/bofs/inode.h>
 #include <fs/bofs/file.h>
 #include <fs/bofs/fifo.h>
 #include <fs/bofs/bitmap.h>
+#include <fs/bofs/pipe.h>
 
 /**
  * BOFS_CreateNewFifo - 创建一个新的命名管道
@@ -52,31 +54,24 @@ PRIVATE int BOFS_CreateNewFifo(struct BOFS_SuperBlock *sb,
 	BOFS_SyncBitmap(sb, BOFS_BMT_INODE, inodeID);
 
     //printk("BOFS_SyncBitmap\n");
-	
-    mode_t newMode = 0;
-
-    if (mode & BOFS_O_RDONLY) {
-        newMode |= BOFS_IMODE_R;
-    } else if (mode & BOFS_O_WRONLY) {
-        newMode |= BOFS_IMODE_W;
-    } else if (mode & BOFS_O_RDWR) {
-        newMode |= BOFS_IMODE_R;
-        newMode |= BOFS_IMODE_W;
-    }
-
-	BOFS_CreateInode(&inode, inodeID, newMode,
+	BOFS_CreateInode(&inode, inodeID, mode,
 		0, sb->devno);    
     //printk("BOFS_CreateInode\n");
 	
 	BOFS_CreateDirEntry(childDir, inodeID, BOFS_FILE_TYPE_FIFO, name);
 
-    unsigned char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
-    if (buf == NULL) 
+    struct BOFS_Pipe *pipe = kmalloc(sizeof(struct BOFS_Pipe), GFP_KERNEL);
+    if (pipe == NULL) 
         return -1;
+    
+    if (BOFS_PipeInit(pipe)) {
+        kfree(pipe);
+        return -1;
+    }
 
     /* 第一个数据区保存缓冲区首地址 */
-    inode.blocks[0] = (unsigned int)buf;
-    
+    inode.blocks[0] = (unsigned int)pipe;
+
 	BOFS_SyncInode(&inode, sb);
 
     //BOFS_DumpDirEntry(childDir);
@@ -202,6 +197,115 @@ PUBLIC int BOFS_MakeFifo(const char *pathname, mode_t mode, struct BOFS_SuperBlo
 }
 
 /**
+ * BOFS_FifoOpen - 打开管道
+ * 
+ * 如果是写打开，没有进程读取，就阻塞，直到有进程读打开
+ * 如果是读打开，没有进程写入，就阻塞，直到有进程写打开
+ * 
+ */
+PUBLIC int BOFS_FifoOpen(int fd, flags_t flags)
+{
+    int globalFd = FdLocal2Global(fd);
+    struct BOFS_FileDescriptor *file = BOFS_GetFileByFD(globalFd);
+    /*
+    约定，blocks[1]是读引用计数
+    约定，blocks[2]是写引用计数
+    但是，没有原子操作，所以需要关闭中断保证原子操作
+    */
+    enum InterruptStatus oldStatus = InterruptDisable();
+    
+    struct BOFS_Pipe *pipe = (struct BOFS_Pipe *)file->inode->blocks[0];
+
+    struct Task *task, *nextTask;
+
+    struct Task *cur = CurrentTask();
+
+    /* 读打开 */
+    if (flags & BOFS_O_RDONLY) {
+        /* 添加到读任务表 */
+        if (BOFS_PipeRecordReadTask(pipe, cur->pid)) {
+            /* 没有足够空间 */
+            return -1;
+        }
+
+        /* 读引用 */
+        AtomicInc(&pipe->readReference); 
+
+        /* 如果没有写，那么就会阻塞自己 */
+        if (AtomicGet(&pipe->writeReference) == 0) {
+            //printk("fifo open with read, no writer, block me.\n");
+
+            /* 等待队列头部 */
+            ListAdd(&cur->list, &pipe->waitList);
+            InterruptSetStatus(oldStatus);
+            /* 阻塞自己 */
+            TaskBlock(TASK_BLOCKED);
+
+            //printk("fifo open with read, has writer, unblock me.\n");
+            /* 唤醒后获取cpu占用 */
+            oldStatus = InterruptDisable();
+        }
+
+        /* 读打开的时候，发现之前有写进程已经被阻塞，那么就唤醒被阻塞的进程 */
+        if (!ListEmpty(&pipe->waitList)) {
+            /* 唤醒所有阻塞的任务 */
+            ListForEachOwnerSafe(task, nextTask, &pipe->waitList, list) {
+                //printk("fifo open with read, has waiter, unblock %s.\n", task->name);
+                /* 脱离链表 */
+                ListDel(&task->list);
+                
+                TaskUnblock(task);
+            }
+        }
+    } else if (flags & BOFS_O_WRONLY) {
+        /* 添加到读任务表 */
+        if (BOFS_PipeRecordWriteTask(pipe, cur->pid)) {
+            /* 没有足够空间 */
+            return -1;
+        }
+
+        /* 写引用 */
+        AtomicInc(&pipe->writeReference); 
+
+        /* 如果没有读，那么就会阻塞自己 */
+        if (AtomicGet(&pipe->readReference) == 0) {
+            //printk("fifo open with write, no reader, block me.\n");
+            /* 等待队列头部 */
+            
+            ListAdd(&CurrentTask()->list, &pipe->waitList);
+            InterruptSetStatus(oldStatus);
+            /* 阻塞自己 */
+            TaskBlock(TASK_BLOCKED);
+
+            //printk("fifo open with write, has reader, unblock me.\n");
+            
+            /* 唤醒后获取cpu占用 */
+            oldStatus = InterruptDisable();
+        }
+
+        /* 写打开的时候，发现之前有读进程已经被阻塞，那么就唤醒被阻塞的进程 */
+        if (!ListEmpty(&pipe->waitList)) {
+            /* 唤醒所有阻塞的任务 */
+            ListForEachOwnerSafe(task, nextTask, &pipe->waitList, list) {
+                //printk("fifo open with write, has waiter, unblock %s.\n", task->name);
+                /* 脱离链表 */
+                ListDel(&task->list);
+                
+                TaskUnblock(task);
+            }
+        }
+    } else {
+        printk("fifo open flags error!\n");
+
+        InterruptSetStatus(oldStatus); 
+        return -1;
+    }
+    
+    InterruptSetStatus(oldStatus); 
+    return 0;
+}
+
+/**
  * BOFS_FifoRead - 从管道读取
  * 
  * 
@@ -212,11 +316,52 @@ PUBLIC int BOFS_FifoRead(struct BOFS_FileDescriptor *file, void *buffer, size_t 
     1.判断写端是否已经关闭
     2.判断是否有数据
     */
-    unsigned char *buf = (unsigned char *)buffer;
-    size_t bytesRead = 0;
-    printk("BOFS_FifoRead");
+    struct BOFS_Pipe *pipe = (struct BOFS_Pipe *)file->inode->blocks[0];
 
-    return bytesRead;
+    unsigned char *buf = (unsigned char *)buffer;
+    int readBytes = 0;
+    int len = 0;
+    /* 判断写端是否关闭 */
+    if (AtomicGet(&pipe->writeReference) > 0) {
+        //printk("fifo read has writer\n");
+        
+        /* 尝试获取一个字符，如果成功，继续往后，不然就会阻塞 */
+        *buf++ = IoQueueGet(&pipe->ioqueue);
+        readBytes++;
+        
+        /* 现在缓冲区有数据，并且已经被读取了一个，
+        获取较小的数据量.
+        已经在前面获取一个字符，所以是count-1
+         */
+        len = MIN(count - 1, IO_QUEUE_LENGTH(&pipe->ioqueue));
+
+        while (len > 0) {
+            //printk("<%c>", *(buf-1));
+            /* 从缓冲中读取数据 */
+            *buf++ = IoQueueGet(&pipe->ioqueue);
+            readBytes++;
+            len--;
+        }
+        
+        //printk("fifo read buf %s\n", (char *)buffer);
+
+    } else {
+        /* 写端已经关闭 */
+        //printk("fifo read no writer\n");
+
+        /* 判断数据量，返回已有的数据量，如果为0，返回0 */
+        len = MIN(count, IO_QUEUE_LENGTH(&pipe->ioqueue));
+        while (len > 0) {
+            /* 从缓冲中读取数据 */
+            *buf++ = IoQueueGet(&pipe->ioqueue);
+            //printk("<%c>", *(buf-1));
+            readBytes++;
+            len--;
+        }
+    }
+
+    //printk("fifo read %d bytes\n", readBytes);
+    return readBytes;
 }
 
 PUBLIC int BOFS_FifoWrite(struct BOFS_FileDescriptor *file, void *buffer, size_t count)
@@ -225,9 +370,103 @@ PUBLIC int BOFS_FifoWrite(struct BOFS_FileDescriptor *file, void *buffer, size_t
     1.判断读端是否已经关闭
     2.判断是否数据已满
     */
-    unsigned char *buf = (unsigned char *)buffer;
-    size_t bytesWrite = 0;
-    printk("BOFS_FifoWrite");
+    struct BOFS_Pipe *pipe = (struct BOFS_Pipe *)file->inode->blocks[0];
 
-    return bytesWrite;
+    unsigned char *buf = (unsigned char *)buffer;
+    int writeBytes = 0;
+    int len = 0;
+    /* 判断读端是否关闭 */
+    if (AtomicGet(&pipe->readReference) > 0) {
+        //printk("fifo write has reader\n");
+
+        /* 写入长度就是传入的长度 */
+        len = count;
+        while (len > 0) {
+            /* 写入数据到管道 */
+            IoQueuePut(&pipe->ioqueue, *buf++);
+            //printk("[%c]", *(buf-1));
+            writeBytes++;
+            len--;
+        }
+
+        /* */
+        //printk("pipe data: %s\n", pipe->ioqueue.buf);
+
+    } else {
+        /* 读端已经关闭 */
+        //printk("fifo write no reader\n");
+
+        /* 此时写入是没有意义的，所以会发出SIGPIPE信号终止进程 */
+        printk(PART_ERROR "fifo write occur a SIGPIPE!");
+    }
+
+    //printk("fifo write %d bytes\n", writeBytes);
+
+    return writeBytes;
+}
+
+PUBLIC int BOFS_FifoUpdate(struct BOFS_Pipe *pipe, struct Task *task)
+{
+    int retval;
+    //printk("update fifo\n");
+    /* 获取父进程所在的 */
+    retval = BOFS_PipeInTable(pipe, task->parentPid);
+    //printk("ret val %d\n", retval);
+    if (retval == 0) {
+        /* 在读表中 */
+        AtomicInc(&pipe->readReference);
+
+        /* 添加到读任务表 */
+        if (BOFS_PipeRecordReadTask(pipe, task->pid)) {
+            /* 没有足够空间 */
+            return -1;
+        }
+        //printk("fork read ref %d\n", AtomicGet(&pipe->readReference));
+    } else if (retval == 1) {
+        /* 在写表中 */
+        AtomicInc(&pipe->writeReference);
+        //printk("write ref %d\n", AtomicGet(&pipe->writeReference));
+        /* 添加到写任务表 */
+        if (BOFS_PipeRecordWriteTask(pipe, task->pid)) {
+            /* 没有足够空间 */
+            return -1;
+        }
+        //printk("fork write ref %d\n", AtomicGet(&pipe->writeReference));
+    } else {
+        return -1;
+    }
+
+    return 0;
+}
+
+PUBLIC int BOFS_FifoClose(struct BOFS_Pipe *pipe)
+{
+    int retval;
+    
+    retval = BOFS_PipeInTable(pipe, CurrentTask()->pid);
+    if (retval == -1)
+        return retval;
+    
+    if (retval == 0) {
+        /* 在读表中 */
+        AtomicDec(&pipe->readReference);
+        /* 从表中删除记录 */
+        if (BOFS_PipeEraseReadTask(pipe, CurrentTask()->pid)) {
+            /* 当前任务不再读表中 */
+            return -1;
+        }
+        //printk("close read ref %d\n", AtomicGet(&pipe->readReference));
+        
+    } else {
+        /* 在写表中 */
+        AtomicDec(&pipe->writeReference);
+        /* 从表中删除记录 */
+        if (BOFS_PipeEraseWriteTask(pipe, CurrentTask()->pid)) {
+            /* 当前任务不再读表中 */
+            return -1;
+        }
+        //printk("close write ref %d\n", AtomicGet(&pipe->writeReference));
+    }
+
+    return 0;
 }

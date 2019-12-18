@@ -90,9 +90,9 @@ PUBLIC void SysExit(int status)
     /* 保存退出状态 */
     current->exitStatus = status;
 
-    //printk("exit del %s\n", current->name);
+    //printk("exit del %s %d\n", current->name, current->pid);
     /* 从文件系统中删除任务 */
-    DelTaskFromFS(current->name, current->pid);
+    //DelTaskFromFS(current->name, current->pid);
 
     /* 1.把子进程过继给init进程 */
     AdopeChildren(current->pid);
@@ -115,7 +115,6 @@ PUBLIC void SysExit(int status)
     InterruptSetStatus(oldStatus);
 
     //printk(PART_TIP "I am gone, don't miss me!\n");
-    
     
     /* 4.不让自己运行，调度出去 */
     TaskBlock(TASK_ZOMBIE);

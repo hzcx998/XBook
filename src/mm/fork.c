@@ -294,12 +294,12 @@ PUBLIC pid_t SysFork()
         kfree(childTask);
         return -1;
     }
-    
+    /*
     if (AddTaskToFS(childTask->name, childTask->pid)) {
         kfree(childTask->pgdir);
         kfree(childTask);
         return -1;
-    }
+    }*/
 
     //Spin("test");
     /* 把子进程添加到就绪队列和全局链表 */

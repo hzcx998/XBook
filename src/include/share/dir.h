@@ -19,13 +19,15 @@
 #define DIR_BLOCK           0X08
 #define DIR_CHAR            0X10
 #define DIR_NET             0X20
-#define DIR_INVALID         0X80
+#define DIR_FIFO            0X40
+
+#define DIR_INVALID         0X8000
 
 /* 抽象的目录 */
 typedef struct {
 	int inode; 					/* inode number 索引节点号 */
 	off_t off;                  /* 目录项在目录中的大小 */
-    unsigned char type;			/* the type of name 文件类型 */
+    unsigned short type;			/* the type of name 文件类型 */
 	char name[NAME_MAX+1]; 		/* file name (null-terminated) 文件名，最长256字符 */
 } dirent;
 

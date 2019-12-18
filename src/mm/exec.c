@@ -569,9 +569,9 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     ); */
     
     /* 执行新进程之前，先把旧的进程删除 */
-    if (DelTaskFromFS(current->name, current->pid)) {
+    /*if (DelTaskFromFS(current->name, current->pid)) {
         //printk("task not exist in fs!\n");
-    }
+    }*/
     
     /* 修改进程的名字 */
     memset(current->name, 0, MAX_TASK_NAMELEN);
@@ -592,11 +592,11 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     strcpy(current->name, p);
     
     //printk("task name:%s\n", current->name);
-
+    /*
     if (AddTaskToFS(current->name, current->pid)) {
         ret = -1;
         goto ToEnd;
-    }
+    }*/
 
     /*
     修改进程表

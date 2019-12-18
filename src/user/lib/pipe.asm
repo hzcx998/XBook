@@ -21,3 +21,19 @@ pipe:
 	
     pop ebx
     ret
+
+
+global mkfifo
+; int mkfifo(const char *path, mode_t mode);
+mkfifo:
+	push ebx
+    push ecx
+
+	mov eax, SYS_FIFO
+	mov ebx, [esp + 8 + 4]
+    mov ecx, [esp + 8 + 8]
+	int INT_VECTOR_SYS_CALL
+    
+	pop ecx
+    pop ebx
+    ret
