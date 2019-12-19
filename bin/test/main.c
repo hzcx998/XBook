@@ -60,10 +60,58 @@ int pipe_write()
 
     close(fifofd);
     printf("write %d close fifo sucess!\n", getpid());
-    
+
     //printf("write %d bytes.\n", write(fifofd, buf, strlen(buf)));
     
     return 0;
+}
+
+int pipe_test()
+{
+    printf("----pipe test----\n");
+    
+    int pipefd[2];
+    if (pipe(pipefd) < 0) {
+        printf("make pipe failed!\n");
+        return -1;
+    }
+    printf("pipe 0:%d 1:%d\n", pipefd[0], pipefd[1]);
+    int fret = fork();
+    if (fret == 0) {
+        printf("I am child, my pid is %d.\n", getpid());
+        /* 关闭读端 */
+        //close(pipefd[0]);
+        char buf[32];
+        memset(buf, 0, 32);
+        strcpy(buf, "Hello, pipe!\n");
+        /* 给父进程发送数据 */
+        printf("write %d bytes\n", write(pipefd[1], buf, strlen(buf) + 1));
+        sleep(1);
+
+        int rcount = read(pipefd[0], buf, 32);
+        printf("read %d bytes, data:%s\n", rcount, buf);
+        
+        //close(pipefd[1]);
+    } else {
+        printf("I am parent, my pid is %d.\n", getpid());
+        
+        /* 关闭写端 */
+        //close(pipefd[1]);
+        char buf[32];
+        memset(buf, 0, 32);
+        /* 读取子进程发送来的数据 */
+        int rcount = read(pipefd[0], buf, 32);
+        printf("read %d bytes, data:%s\n", rcount, buf);
+        sleep(1);
+        
+        memset(buf, 0, 32);
+        strcpy(buf, "Parent reply!\n");
+        printf("write %d bytes\n", write(pipefd[1], buf, strlen(buf) + 1));
+        
+        /* 等待子进程 */
+        _wait(NULL);
+        //close(pipefd[0]);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -78,7 +126,7 @@ int main(int argc, char *argv[])
 
     printf("I will do some test and exit\n");	
 
-    printf("----fifo test----\n");
+    /*printf("----fifo test----\n");
     
     if (access(FIFO_PATH, F_OK)) {
         if (mkfifo(FIFO_PATH, M_IREAD | M_IWRITE)) {
@@ -88,64 +136,10 @@ int main(int argc, char *argv[])
     }
 
     return pipe_write();
-
-    printf("----pipe test----\n");
+    */
+    pipe_test();
     
-    int pipefd[2];
-    if (pipe(pipefd) < 0) {
-        printf("make pipe failed!\n");
-        return -1;
-    }
-    printf("pipe 0:%d 1:%d\n", pipefd[0], pipefd[1]);
-    
-    char buf[20];
-
-    char *q = "test for pipe\n";
-
-
-
-
-
-    
-
-    /**/
-    int pid = fork();
-
-    if (pid == -1) {
-        printf("fork faied!\n");
-        return -1;
-    } else if (pid == 0) {
-        printf("I am child, my pid is %d\n", getpid());
-        /* child read */
-        close(pipefd[1]);   /* close write */
-
-        memset(buf, 0, 20);
-        int len = read(pipefd[0], buf, strlen(q));
-        printf("read %s len %d\n", buf, len);
-
-        close(pipefd[0]);   /* close read */
-
-        printf("child close pipe\n");
-
-    } else {
-        printf("I am parent, my pid is %d, my child is %d\n", getpid(), pid);
-        
-        /* parent write */
-        close(pipefd[0]);   /* close read */
-        
-        write(pipefd[1], q, strlen(q));
-        //_wait(NULL);
-
-        printf("parent close pipe\n");
-        
-        close(pipefd[1]);   /* close write */
-
-    } 
-
-
     return 0;
-	
-
 	printf("----file test----\n");
     
     //return 0;

@@ -40,7 +40,7 @@ PUBLIC void Schedule()
         //printk("-%s", current->name);
         // 检查链表情况
         // 保证不存在链表中
-        ASSERT(!ListFind(&current->list, &taskReadyList));
+        //ASSERT(!ListFind(&current->list, &taskReadyList));
         // 加入链表最后
         ListAddTail(&current->list, &taskReadyList);
         //

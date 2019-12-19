@@ -12,6 +12,7 @@
 #include <share/types.h>
 #include <fs/bofs/super_block.h>
 #include <book/task.h>
+#include <fs/bofs/pipe.h>
 
 #define BOFS_MAX_FD_NR 128
 
@@ -55,6 +56,7 @@ struct BOFS_FileDescriptor
 	struct BOFS_DirEntry *dirEntry;		/* dir entry */
 	struct BOFS_DirEntry *parentEntry;	/* parent dir entry */
 	struct BOFS_Inode *inode;			/* file inode */
+    struct BOFS_Pipe *pipe;			    /* pipe file */
 };
 
 /* 记录一些重要信息 */
@@ -83,9 +85,10 @@ PUBLIC struct BOFS_FileDescriptor *BOFS_GetFileByFD(int fd);
 PUBLIC void BOFS_GlobalFdAddFlags(unsigned int globalFd, unsigned int flags);
 PUBLIC void BOFS_GlobalFdDelFlags(unsigned int globalFd, unsigned int flags);
 PUBLIC int BOFS_GlobalFdHasFlags(unsigned int globalFd, unsigned int flags);
-PUBLIC uint32_t FdLocal2Global(uint32_t localFD);
+PUBLIC int FdLocal2Global(uint32_t localFD);
 PUBLIC int TaskInstallFD(int globalFdIdx);
-
+PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file);
+PUBLIC void BOFS_FreeFileDescriptorByPionter(struct BOFS_FileDescriptor *file);
 
 PUBLIC void BOFS_DumpFD(int fd);
 PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_SuperBlock *sb);
