@@ -381,13 +381,13 @@ ReadKernel:
 	mov	eax, [esi + 0]
 	cmp	eax, 0				; PT_NULL
 	jz	.unaction
-	push	dword [esi + 010h]		; size	┓
-	mov	eax, [esi + 04h]		;	┃
-	add	eax, KERNEL_PHY_ADDR	;	┣ ::memcpy(	(void*)(pPHdr->p_vaddr),
-	push	eax				; src	┃		uchCode + pPHdr->p_offset,
-	push	dword [esi + 08h]		; dst	┃		pPHdr->p_filesz;
-	call	memcpy				;	┃
-	add	esp, 12				;	┛
+	push	dword [esi + 010h]		; size
+	mov	eax, [esi + 04h]	
+	add	eax, KERNEL_PHY_ADDR	;	memcpy(	(void*)(pPHdr->p_vaddr),
+	push	eax				; src uchCode + pPHdr->p_offset,
+	push	dword [esi + 08h]		; dst	pPHdr->p_filesz;
+	call	memcpy
+	add	esp, 12	
 .unaction:
 	add	esi, 020h			; esi += pELFHdr->e_phentsize
 	dec	ecx
@@ -409,11 +409,11 @@ memcpy:
 	cmp	ecx, 0		; 判断计数器
 	jz	.2		; 计数器为零时跳出
 
-	mov	al, [ds:esi]		; ┓
-	inc	esi			; ┃
-					; ┣ 逐字节移动
-	mov	byte [es:edi], al	; ┃
-	inc	edi			; ┛
+	mov	al, [ds:esi]
+	inc	esi			
+					
+	mov	byte [es:edi], al
+	inc	edi
 
 	dec	ecx		; 计数器减一
 	jmp	.1		; 循环
@@ -469,5 +469,5 @@ StepPage:
 .F:
     ret	
 
-;fill it with 1kb
+;fill it with 4kb
 times (4096-($-$$)) db 0

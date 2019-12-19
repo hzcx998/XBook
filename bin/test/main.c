@@ -126,18 +126,20 @@ int main(int argc, char *argv[])
 
     printf("I will do some test and exit\n");	
 
-    /*printf("----fifo test----\n");
+    printf("----fifo test----\n");
     
     if (access(FIFO_PATH, F_OK)) {
         if (mkfifo(FIFO_PATH, M_IREAD | M_IWRITE)) {
             printf("mkfifo failed!\n");
             return -1;
         }
+        remove(FIFO_PATH);
     }
-
+    return 0;
     return pipe_write();
-    */
-    pipe_test();
+    
+
+    //pipe_test();
     
     return 0;
 	printf("----file test----\n");

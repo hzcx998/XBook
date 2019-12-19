@@ -320,7 +320,7 @@ PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file)
         if (AtomicGet(&pipe->readReference) == 0 && 
             AtomicGet(&pipe->writeReference) == 0) {
             
-            printk("will free pipe\n");
+            //printk("will free pipe\n");
             /* 释放缓冲区 */
             kfree(pipe->ioqueue.buf);
             /* 释放管道 */

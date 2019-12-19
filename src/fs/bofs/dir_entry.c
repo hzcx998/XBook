@@ -282,8 +282,9 @@ PUBLIC void BOFS_ReleaseDirEntry(struct BOFS_SuperBlock *sb,
     if (childDir->type == BOFS_FILE_TYPE_NORMAL) {
         BOFS_ReleaseInodeData(sb, &childInode);
     } else if (childDir->type == BOFS_FILE_TYPE_FIFO) {
-        /* fifo命名管道文件就释放数据区 */
+        /* fifo命名管道文件就释放数据区，对应的是Pipe结构 */
         kfree((void *)childInode.blocks[0]);
+        //printk("free fifo\n");
     }
     /* 字符设备，块设备，任务文件都不用释放节点数据 */
 	
