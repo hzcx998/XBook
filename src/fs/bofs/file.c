@@ -610,7 +610,7 @@ PUBLIC int BOFS_Close(int fd)
             struct BOFS_FileDescriptor *fdec = &BOFS_GlobalFdTable[globalFD];
             /* 管道文件比较特殊，没有目录项，所以要提前判断 */
             if (IS_PIPE_FILE(fdec)) {
-                printk("close pipe file ref %d!\n", AtomicGet(&fdec->reference));
+                //printk("close pipe file ref %d!\n", AtomicGet(&fdec->reference));
                 BOFS_PipeClose(fdec);
             } else {
                 /* 如果是设备文件，就需要关闭设备 */
@@ -634,13 +634,11 @@ PUBLIC int BOFS_Close(int fd)
                     ret = BOFS_CloseFile(fdec);
                     /* 释放全局描述符 */
                     BOFS_FreeFdGlobal(globalFD);
-                    printk("close ref zero\n");
+                    //printk("close ref zero\n");
                 } else {
                     ret = 0;
                 }
             }
-
-            
             //printk("close fd:%d success!\n", fd);
             /* 释放局部文件描述符，置-1表示未使用 */
             CurrentTask()->fdTable[fd] = -1; 

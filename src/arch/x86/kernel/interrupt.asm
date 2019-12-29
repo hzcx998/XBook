@@ -10,6 +10,7 @@
 extern interruptHandlerTable		 
 extern DoIRQ		 
 extern DoSoftirq		 
+extern DoSignal
 
 [bits 32]
 [section .text]
@@ -69,8 +70,8 @@ INTERRUPT_ENTRY 0x2f,NO_ERROR_CODE	;保留
 [section .text]
 ;导入系统调用表
 extern syscallTable	
+extern SyscallCheck
 
-section .text
 global SyscallHandler
 SyscallHandler:
 	;1 保存上下文环境
@@ -89,19 +90,39 @@ SyscallHandler:
     
    	push 0x80			; 此位置压入0x80也是为了保持统一的栈格式
     
-	;2 为系统调用子功能传入参数
+    push eax        ; 保存eax
+
+    ;2 系统调用号检测
+    push eax
+    call SyscallCheck
+    add esp, 4
+
+    cmp eax, 0      ; 如果返回值是0，说明系统调用号出错，就不执行系统调用
+    je .DoSignal
+
+    pop eax         ; 恢复eax
+
+    ;3 为系统调用子功能传入参数
+    push esp                ; 传入栈指针，可以用来获取所有陷阱栈框寄存器
     push edi                ; 系统调用中第4个参数
     push esi                ; 系统调用中第3个参数
   	push ecx			    ; 系统调用中第2个参数
    	push ebx			    ; 系统调用中第1个参数
-
-	;3 调用子功能处理函数
-   	call [syscallTable + eax*4]	    ; 编译器会在栈中根据C函数声明匹配正确数量的参数
-   	add esp, 16			    ; 跨过上面的4个参数
-
     
-	;4 将call调用后的返回值存入待当前内核栈中eax的位置
-   mov [esp + 8*4], eax	
+	;4 调用子功能处理函数
+   	call [syscallTable + eax*4]	    ; 编译器会在栈中根据C函数声明匹配正确数量的参数
+   	add esp, 20			    ; 跨过上面的5个参数
+
+	;5 将call调用后的返回值存入待当前内核栈中eax的位置
+    mov [esp + 8*4], eax	
+   
+    ; 需要完成系统调用后再进行信号处理，因为处理过程可能会影响到寄存器的值
+    ;6 signal
+.DoSignal:
+    push esp         ; 把中断栈指针传递进去
+    call DoSignal
+    add esp, 4
+
    jmp InterruptExit		    ; InterruptExit返回,恢复上下文
 
 ; 跳转到用户态执行的切换

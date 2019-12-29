@@ -14,6 +14,7 @@
 #include <drivers/timer.h>
 #include <share/math.h>
 #include <book/interrupt.h>
+#include <book/alarm.h>
 
 PUBLIC struct SystemDate systemDate;
 
@@ -24,6 +25,7 @@ PRIVATE int ticks;
  */
 PRIVATE void ClockHnadler(unsigned int irq, unsigned int data)
 {
+    /* 改变ticks计数 */
 	ticks++;
 	
 	/* 激活定时器软中断 */
@@ -94,15 +96,19 @@ PUBLIC void PrintSystemDate()
 	weekday[6] = "Sunday";
 	printk("weekday:%d", systemDate.weekDay);
 	*/
-
 }
 
 /* 定时器软中断处理 */
 PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 {
 	/* 改变系统时间 */
-	ClockChangeSystemDate();
+    if (ticks % HZ == 0) {  /* 1s更新一次 */
+        ClockChangeSystemDate();
+    }
 	
+	/* 更新闹钟 */
+    UpdateAlarmSystem();
+
 	/* 更新定时器 */
 	UpdateTimerSystem();
 }

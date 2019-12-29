@@ -46,22 +46,27 @@ OBJS =  _start.o \
 		main.o \
 		cmd.o
 
-LD_OBJS = 	$(USER_DIR)lib/log.o\
-			$(USER_DIR)lib/mmap.o\
-			$(USER_DIR)lib/fork.o\
-			$(USER_DIR)lib/printf.o\
-			$(USER_DIR)lib/getpid.o\
-			$(USER_DIR)lib/execv.o\
-			$(USER_DIR)lib/exit.o\
-			$(USER_DIR)lib/_wait.o\
-			$(USER_DIR)lib/file.o\
-			$(USER_DIR)lib/dir.o\
-			$(USER_DIR)lib/_brk.o\
-			$(USER_DIR)lib/brk.o\
-			$(USER_DIR)lib/malloc.o\
-			$(SHARE_DIR)vsprintf.o\
-			$(SHARE_DIR)string.o\
+LD_OBJS = 	$(USER_DIR)lib/log.o \
+			$(USER_DIR)lib/mmap.o \
+			$(USER_DIR)lib/fork.o \
+			$(USER_DIR)lib/printf.o \
+			$(USER_DIR)lib/getpid.o \
+			$(USER_DIR)lib/execv.o \
+			$(USER_DIR)lib/exit.o \
+			$(USER_DIR)lib/_wait.o \
+			$(USER_DIR)lib/file.o \
+			$(USER_DIR)lib/dir.o \
+			$(USER_DIR)lib/_brk.o \
+			$(USER_DIR)lib/brk.o \
+			$(USER_DIR)lib/malloc.o \
+			$(USER_DIR)lib/signal.o \
+			$(USER_DIR)lib/signal2.o \
+			$(SHARE_DIR)vsprintf.o \
+			$(SHARE_DIR)string.o \
+			$(SHARE_DIR)ctype.o \
+			$(SHARE_DIR)signal.o \
 			
+
 #First read here
 .PHONY: all
 

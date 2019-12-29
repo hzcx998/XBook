@@ -50,7 +50,7 @@
 	#define FILE_SECTORS 100
 #elif FILE_ID == 3
 	#define FILE_NAME "root:/test"
-	#define FILE_SECTORS 50
+	#define FILE_SECTORS 100
 #elif FILE_ID == 4
 	#define FILE_NAME "root:/test2"
 	#define FILE_SECTORS 50

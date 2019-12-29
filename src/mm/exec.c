@@ -591,6 +591,12 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 这里复制前面备份好的名字 */
     strcpy(current->name, p);
     
+    /* 重新初始化信号 */
+    InitSignalInTask(current);
+
+    /* 子进程的进程组默认就是父进程的id，父进程是组长 */
+    current->groupPid = current->parentPid;
+    
     //printk("task name:%s\n", current->name);
     /*
     if (AddTaskToFS(current->name, current->pid)) {

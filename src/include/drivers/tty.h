@@ -16,6 +16,7 @@
 
 enum {
     TTY_CMD_CLEAN,
+    TTY_CMD_HOLD,
 };
 
 PUBLIC void TaskTTY(void *arg);

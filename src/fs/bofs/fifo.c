@@ -12,6 +12,7 @@
 #include <book/device.h>
 #include <book/ioqueue.h>
 #include <share/math.h>
+#include <book/signal.h>
 
 #include <fs/bofs/inode.h>
 #include <fs/bofs/file.h>
@@ -398,6 +399,7 @@ PUBLIC int BOFS_FifoWrite(struct BOFS_FileDescriptor *file, void *buffer, size_t
 
         /* 此时写入是没有意义的，所以会发出SIGPIPE信号终止进程 */
         printk(PART_ERROR "fifo write occur a SIGPIPE!");
+        ForceSignal(SIGPIPE, SysGetPid());
     }
 
     //printk("fifo write %d bytes\n", writeBytes);
@@ -435,7 +437,6 @@ PUBLIC int BOFS_FifoUpdate(struct BOFS_Pipe *pipe, struct Task *task)
     } else {
         return -1;
     }
-
     return 0;
 }
 

@@ -63,7 +63,11 @@
         "fs.h": "c",
         "pipe.h": "c",
         "fifo.h": "c",
-        "atomic.h": "c"
+        "atomic.h": "c",
+        "signal.h": "c",
+        "pci.h": "c",
+        "timer.h": "c",
+        "interrupt.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

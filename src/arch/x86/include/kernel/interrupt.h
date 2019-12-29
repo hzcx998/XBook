@@ -98,4 +98,6 @@ PUBLIC void InterruptExit();
 
 EXTERN void SwitchToUser(struct TrapFrame *frame);
 
+PUBLIC void DumpTrapFrame(struct TrapFrame *frame);
+
 #endif	/*_ARCH_INTERRUPT_H*/

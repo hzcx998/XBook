@@ -11,6 +11,7 @@
 #include <share/string.h>
 #include <book/device.h>
 #include <book/ioqueue.h>
+#include <book/signal.h>
 
 #include <fs/bofs/inode.h>
 #include <fs/bofs/file.h>
@@ -234,14 +235,17 @@ PUBLIC unsigned int BOFS_PipeRead(int fd, void *buffer, size_t count)
     unsigned int globalFd = FdLocal2Global(fd);
 
     struct BOFS_FileDescriptor *file = BOFS_GetFileByFD(globalFd);
-
+    struct BOFS_Pipe *pipe = file->pipe;
+    if (pipe == NULL) {
+        return 0;
+    }
     unsigned char *buf = (unsigned char *)buffer;
     size_t bytesRead = 0;
     /* 获取输入输出队列 */
     struct IoQueue *ioqueue = (struct IoQueue *)&file->pipe->ioqueue;
     unsigned int iolen;
     /* 判断写端是否关闭 */
-    if (AtomicGet(&file->reference) > 0) {
+    if (AtomicGet(&pipe->writeReference) > 0) {
 
         /* 尝试获取一个字符，如果成功，继续往后，不然就会阻塞 */
         *buf++ = IoQueueGet(ioqueue);
@@ -275,14 +279,17 @@ PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count)
     /* 获取全局描文件述符 */
     unsigned int globalFd = FdLocal2Global(fd);
     struct BOFS_FileDescriptor *file = BOFS_GetFileByFD(globalFd);
-
+    struct BOFS_Pipe *pipe = file->pipe;
+    if (pipe == NULL) {
+        return 0;
+    }
     unsigned char *buf = (unsigned char *)buffer;
     size_t bytesWrite = 0;
     
     /* 获取输入输出队列 */
     struct IoQueue *ioqueue = (struct IoQueue *)&file->pipe->ioqueue;
     /* 判断写端是否关闭 */
-    if (AtomicGet(&file->reference) > 0) {
+    if (AtomicGet(&pipe->readReference) > 0) {
         while (count > 0) {
             IoQueuePut(ioqueue, *buf++);
             bytesWrite++;
@@ -291,7 +298,8 @@ PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count)
     } else {
         /* 读端已经关闭，发出SIGPIPE信号 */
         printk(PART_ERROR "pipe write occur a SIGPIPE!\n");
-    } 
+        ForceSignal(SIGPIPE, SysGetPid());
+    }
     return bytesWrite;
 }
 

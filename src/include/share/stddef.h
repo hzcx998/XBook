@@ -14,6 +14,7 @@
  */
 
 /* 32位操作系统 */
+typedef int pid_t;
 typedef unsigned int flags_t;
 typedef unsigned int size_t;
 typedef unsigned int register_t;    //寄存器

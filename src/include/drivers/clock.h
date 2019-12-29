@@ -35,8 +35,8 @@ struct SystemDate
 EXTERN struct SystemDate systemDate;
 
 /* 时钟频率 */
-#define TIMER_QUICKEN     5		/* 如果切换过快，可能调度要忙坏。:(  */
-#define HZ             (100*TIMER_QUICKEN)	//1000 快速 100 普通0.001
+#define CLOCK_QUICKEN     5		/* 如果切换过快，可能调度要忙坏。:(  */
+#define HZ             (100*CLOCK_QUICKEN)	//1000 快速 100 普通0.001
 
 /* 1 ticks 对应的毫秒数 */
 #define MILLISECOND_PER_TICKS (1000/ HZ)
@@ -68,7 +68,5 @@ PRIVATE INLINE unsigned int SystemDateToData()
 	unsigned short time =  TIME_TO_DATA16(systemDate.hour, systemDate.minute, systemDate.second);
 	return (date << 16) | time;
 }
-
-
 
 #endif  //_DRIVER_CHAR_CLOCK_H

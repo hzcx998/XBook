@@ -10,7 +10,10 @@
 #include <book/task.h>
 #include <book/vmspace.h>
 #include <drivers/clock.h>
+#include <book/signal.h>
+#include <book/alarm.h>
 #include <fs/fs.h>
+
 
 PRIVATE void SysNull()
 {
@@ -53,5 +56,32 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysFcntl,               /* 31 */
     SysFsync,               /* 32 */
     SysPipe,                /* 33 */
-    SysMakeFifo,                /* 34 */
+    SysMakeFifo,            /* 34 */
+    SysKill,                /* 35 */
+    SysSignalReturn,        /* 36 */
+    SysSignal,              /* 37 */ 
+    SysSignalProcessMask,   /* 38 */
+    SysSignalPending,       /* 39 */
+    SysSignalAction,        /* 40 */
+    SysAlarm,               /* 41 */
+    SysSignalPause,         /* 42 */
+    SysSignalSuspend,       /* 43 */
+    SysGetPgid,             /* 44 */
+    SysSetPgid,             /* 45 */
 };
+
+/**
+ * SyscallCheck - 检测num是否合法
+ * @num: 系统调用号
+ * 
+ * 如果合法就返回1，不合法，就会发出SIGSYS信号，并返回0
+ */
+PUBLIC int SyscallCheck(int num)
+{
+    if (num >= 0 && num < MAX_SYSCALL_NR) {
+        return 1;
+    } else {
+        ForceSignal(SIGSYS, SysGetPid());
+        return 0;
+    }
+}

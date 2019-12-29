@@ -13,10 +13,14 @@
 
 int fork();
 int32_t getpid();
+
+int setpgid(pid_t pid, pid_t pgid);
+pid_t getpgid(pid_t pid);
+
 int execv(const char *path, const char *argv[]);
 
 void msleep(int msecond);
-void sleep(int second);
+unsigned int sleep(unsigned int second);
 
 void exit(int status);
 int _wait(int *status);

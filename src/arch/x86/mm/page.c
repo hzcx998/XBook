@@ -17,6 +17,7 @@
 #include <share/math.h>
 #include <book/vmspace.h>
 #include <book/task.h>
+#include <book/signal.h>
 
 EXTERN struct MemNode *memNodeTable;
 /* 节点数量 */
@@ -349,7 +350,11 @@ PRIVATE int MakePteWrite(unsigned int addr)
  */
 PRIVATE int DoVMAreaFault(uint32_t addr)
 {
-	Panic(PART_ERROR "# segment fault!\n");
+    /* 抛出一个段故障信号 */
+    printk(PART_ERROR "# segment fault!\n");
+    ForceSignal(SIGSEGV, SysGetPid());
+	//Panic(PART_ERROR "# segment fault!\n");
+
 	return 0;
 }
 
@@ -406,7 +411,10 @@ PRIVATE int DoProtectionFault(struct VMSpace* space, address_t addr, uint32_t wr
 		//printk(PART_TIP "no write protection\n");
 		
 	}
-	Panic(PART_ERROR "# protection fault!\n");
+    printk(PART_ERROR "# protection fault!\n");
+    ForceSignal(SIGSEGV, SysGetPid());
+	//Panic(PART_ERROR "# protection fault!\n");
+    
 	return -1;
 }
 
@@ -428,7 +436,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 获取发生故障的地址
 	addr = ReadCR2();
     
-    printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
+    //printk(PART_TIP "page fault addr %x, errorCode %x\n", addr, frame->errorCode);
 
 	//Panic("DoPageFault");
 
@@ -474,7 +482,9 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 				printk(PART_TIP "no space or not VMS_STACK\n");
 
 				// 是段故障
-                Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
+                printk(PART_ERROR "stack overflow, addr: %x!\n", addr);
+                ForceSignal(SIGSTKFLT, SysGetPid());
+                //Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
 				/*if (DoHandleNoPage(addr))
 					return -1; */
             }
@@ -482,7 +492,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 		/*如果没有栈扩展， 也不是用户空间里面的内存，
 		可能是内核中的某个地方没有做虚拟地址链接导致
 		如：vmalloc
-		 */ 
+		 */
         if (!expandStack) {
 			printk(PART_TIP "no space and not expand stack\n");
 
@@ -493,9 +503,16 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 			/* 内核中引起的页故障 */
 			if (!(frame->errorCode & PAGE_ERR_USER)) {
 				//DoVMAreaFault(addr);
-				Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
+                printk(PART_ERROR "$ segment fault in kernel, addr: %x!\n", addr);
+                ForceSignal(SIGSEGV, SysGetPid());
+				//Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
+                
             	return -1;
-			}
+			} else {
+                printk(PART_ERROR "$ segment fault in user, addr: %x!\n", addr);
+                ForceSignal(SIGSEGV, SysGetPid());
+                return -1;
+            }
 			
         }
     }

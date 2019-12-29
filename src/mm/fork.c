@@ -32,9 +32,6 @@ PRIVATE int CopyStructAndKstack(struct Task *childTask, struct Task *parentTask)
     childTask->list.next = childTask->list.prev = NULL;
     childTask->globalList.next = childTask->globalList.prev = NULL;
     
-    /* 和父进程有一样的ttydev */
-    childTask->ttydev = parentTask->ttydev;
-
     /* 复制名字，在后面追加fork表明是一个fork的进程，用于测试 */
     //strcat(childTask->name, "_fork");
     return 0;

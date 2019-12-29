@@ -79,6 +79,7 @@ PUBLIC pid_t ForkPid()
 {
     return AllocatePid();
 }
+
 /**
  * CreatePageDir - 创建页目录   
  */
@@ -128,6 +129,27 @@ PRIVATE void MakeTaskStack(struct Task *thread, ThreadFunc function, void *arg)
     threadStack->esi = threadStack->edi = 0;
 }
 
+PUBLIC void InitSignalInTask(struct Task *task)
+{
+    task->signalLeft = 0;
+    task->signalCatched = 0;
+
+    SpinLockInit(&task->signals.signalLock);
+    int i;
+    for (i = 0; i < MAX_SIGNAL_NR; i++) {
+        task->signals.action[i].handler = SIG_DFL;
+        task->signals.action[i].flags = 0;
+        task->signals.sender[i] = -1;
+    }
+    AtomicSet(&task->signals.count, 0);
+    
+    /* 清空信号集 */
+    sigemptyset(&task->signalBlocked);
+    sigemptyset(&task->signalPending);
+
+    SpinLockInit(&task->signalMaskLock);
+}
+
 /**
  * TaskInit - 初始化线程
  * @thread: 线程结构地址
@@ -153,6 +175,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     thread->pgdir = NULL;
 
     thread->pid = AllocatePid();
+    thread->groupPid = 0;       // 没有进程组id
     thread->parentPid = -1;
     thread->exitStatus = -1;
 
@@ -165,11 +188,6 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
 
     thread->stackMagic = TASK_STACK_MAGIC;
 
-    /* 设置文件描述符，预留标准输入输出 */
-    //thread->fdTable[0] = 0;     /* 输入 */
-    //thread->fdTable[1] = 1;     /* 输出 */
-    //thread->fdTable[2] = 2;     /* 错误 */
-    
     /* 其余的文件描述符全部设置为-1 */
     unsigned char idx = 0;
     while (idx < MAX_OPEN_FILES_IN_PROC) {
@@ -177,9 +195,38 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
         idx++;
     }
 
-    thread->ttydev = DEV_TTY0;  /* 默认都是tty0 */
-    DeviceOpen(thread->ttydev, 0);
+    /* 信号相关 */
+    InitSignalInTask(thread);
+
+    /* 设置闹钟 */
+    thread->alarm = 0;  /* 不设置闹钟 */
+    thread->alarmTicks = 0;     /* 闹钟ticks为0 */
+    thread->alarmSeconds = 0;   /* 闹钟时间为0 */
+    
+    /* 休眠定时器 */
+    thread->sleepTimer = NULL;
 }
+
+/**
+ * AllocTaskMemory - 初始化任务的内存管理
+ * @task: 任务
+ */
+PUBLIC struct Task *FindTaskByPid(pid_t pid)
+{
+    struct Task *task;
+    /* 关闭中断 */
+    enum InterruptStatus old = InterruptDisable();
+
+    ListForEachOwner(task, &taskGlobalList, globalList) {
+        if (task->pid == pid) {
+            InterruptSetStatus(old);
+            return task;
+        }
+    }
+    InterruptSetStatus(old);
+    return NULL;
+}
+
 /**
  * AllocTaskMemory - 初始化任务的内存管理
  * @task: 任务
@@ -321,6 +368,7 @@ PUBLIC void TaskBlock(enum TaskStatus state)
     */
     ASSERT((state == TASK_BLOCKED) || 
             (state == TASK_WAITING) || 
+            (state == TASK_STOPPED) ||
             (state == TASK_ZOMBIE));
 
     // 先关闭中断，并且保存中断状态
@@ -352,7 +400,8 @@ PUBLIC void TaskUnblock(struct Task *task)
     只有它们能被唤醒, TASK_ZOMBIE只能阻塞，不能被唤醒
     */
     ASSERT((task->status == TASK_BLOCKED) || 
-            (task->status == TASK_WAITING));
+            (task->status == TASK_WAITING) ||
+            (task->status == TASK_STOPPED));
 
     // 没有就绪才能够唤醒，并且就绪
     if (task->status != TASK_READY) {
@@ -509,6 +558,39 @@ PUBLIC uint32_t SysGetPid()
 }
 
 /**
+ * SysSetPgid - 设置任务的进程组id
+ * @pid: 要设置的进程的pid
+ * @pgid: 要设置成的进程组id
+ * 
+ * 成功返回0，失败返回-1
+ */
+PUBLIC int SysSetPgid(pid_t pid, pid_t pgid)
+{
+    struct Task *task = FindTaskByPid(pid);
+    if (task == NULL) 
+        return -1;
+
+    task->groupPid = pgid;
+
+    return 0;
+}
+
+/**
+ * SysGetPgid - 设置任务的进程组id
+ * @pid: 要获取的进程的pid
+ * 
+ * 成功返回pgid，失败返回-1
+ */
+PUBLIC pid_t SysGetPgid(pid_t pid)
+{
+    struct Task *task = FindTaskByPid(pid);
+    if (task == NULL) 
+        return -1;
+
+    return task->groupPid;
+}
+
+/**
  * PrintTask - 打印所有任务
  */
 PUBLIC void PrintTask()
@@ -516,10 +598,12 @@ PUBLIC void PrintTask()
     printk(PART_TIP "\n----Task----\n");
     struct Task *task;
     ListForEachOwner(task, &taskGlobalList, globalList) {
-        printk(PART_TIP "name %s pid %d ppid %d\n", task->name, task->pid, task->parentPid);
+        printk(PART_TIP "name %s pid %d ppid %d gpid %d status %d\n", 
+            task->name, task->pid, task->parentPid, task->groupPid, task->status);
     }
 
 }
+
 /*
 PRIVATE Spinlock_t consoleLock;
 

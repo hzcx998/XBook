@@ -47,6 +47,17 @@ enum {
     SYS_FSYNC,              /* 32 */
     SYS_PIPE,               /* 33 */
     SYS_FIFO,               /* 34 */
+    SYS_KILL,               /* 35 */
+    SYS_SIGRET,             /* 36 */
+    SYS_SIGNAL,             /* 37 */
+    SYS_SIGPROCMASK,        /* 38 */
+    SYS_SIGPENDING,         /* 39 */
+    SYS_SIGACTION,          /* 40 */
+    SYS_ALARM,              /* 41 */
+    SYS_SIGPAUSE,           /* 42 */
+    SYS_SIGSUSPEND,         /* 43 */
+    SYS_GETPGID,            /* 44 */
+    SYS_SETPGID,            /* 45 */
     MAX_SYSCALL_NR,
 };
 

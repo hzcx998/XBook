@@ -20,7 +20,7 @@
  */
 PUBLIC void TaskWakeUp(struct Task *task)
 {
-    if (task->status == TASK_BLOCKED) {    
+    if ((task->status == TASK_BLOCKED) || (task->status == TASK_STOPPED)) {    
         /* 唤醒任务就是解除任务的阻塞 */
         TaskUnblock(task);
     }
@@ -60,7 +60,7 @@ PRIVATE void TaskTimeout(uint32_t data)
  * TaskSleep - 任务休眠（ticks为单位）
  * @ticks: 休眠的ticks数
  */
-PUBLIC void TaskSleep(uint32_t ticks)
+PUBLIC uint32_t TaskSleep(uint32_t ticks)
 {
     /* 保存状态并关闭中断 */
     enum InterruptStatus oldStatus = InterruptDisable();
@@ -70,6 +70,10 @@ PUBLIC void TaskSleep(uint32_t ticks)
     struct Timer timer;
     /* 初始化定时器 */
     TimerInit(&timer, ticks, (uint32_t)current, TaskTimeout);
+
+    /* 指定休眠定时器 */
+    current->sleepTimer = &timer;
+
     /* 添加定时器 */
     AddTimer(&timer);
 
@@ -82,19 +86,30 @@ PUBLIC void TaskSleep(uint32_t ticks)
     /* 调度到其他进程 */
     Schedule();
 
+    //printk("timer wake up!\n");
     /* 现在进程不能运行，因为它不再readyList中，只有定时器唤醒后才可以
     当定时器把它唤醒之后，他就会在这里执行
      */
+
+    current->sleepTimer = NULL; /* 取消休眠定时器 */
+    
+    // printk("@@@sleep wake up ticks %d\n", timer.expires);
+    return timer.expires;
 }
 
 /**
  * SysSleep - 休眠（秒为单位）
  * @second: 秒数
+ * 
+ * 休眠是可以被信号打断的
+ * 返回上次休眠剩余的秒数。如果休眠10秒，但是在6秒的时候被打断，那么返回4秒
  */
-PUBLIC int SysSleep(uint32_t second)
+PUBLIC uint32_t SysSleep(uint32_t second)
 {
     /* 把秒转换成ticks */
     uint32_t ticks = second * HZ;
-    TaskSleep(ticks);
-    return 0;
+
+    second = TaskSleep(ticks) / HZ; 
+    //printk(">>>sleep return %d\n", second);
+    return second;  /* 返回剩余秒数 */
 }

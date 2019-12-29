@@ -17,5 +17,7 @@ obj-y	+= device.o
 obj-y	+= iostream.o
 obj-y	+= spinlock.o
 obj-y	+= mutex.o
+obj-y	+= signal.o
+obj-y	+= alarm.o
 obj-y	+= block/
 obj-y	+= char/

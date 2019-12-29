@@ -12,6 +12,7 @@
 #include <book/device.h>
 #include <share/string.h>
 #include <share/vsprintf.h>
+#include <book/signal.h>
 
 #define DEVNAME "tty"
 
@@ -21,6 +22,7 @@ typedef struct TTY {
     dev_t conDevno;             /* 对应的控制台的设备号 */
     struct CharDevice *chrdev;  /* 字符设备 */
     int key;                    /* 设备按键 */
+    pid_t holdPid;              /* 持有者进程 */
 } TTY_t;
 
 /* 根据控制台数量创建tty数量 */
@@ -68,8 +70,58 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
 {
 	/* 没有扩展数据，就直接写入对应的key */
 	if (!(key & FLAG_EXT)) {
-		
-		TTY_PutKey(tty, key);
+        /* ctrl + 字符 */
+        if(key & FLAG_CTRL_L || key & FLAG_CTRL_R){
+            char ch = key & 0xff;
+            //printk("<ctr + %c>\n", ch);
+            switch (ch)
+            {
+            /* ctl + c 结束一个前台进程 */
+            case 'c':
+            case 'C':
+                if (tty->holdPid > 0) {
+                    /* 发送终止提示符 */
+                    DevicePutc(tty->conDevno, '^');
+                    DevicePutc(tty->conDevno, 'C');
+                    DevicePutc(tty->conDevno, '\n');
+                    SysKill(tty->holdPid, SIGINT);
+                }
+                break;
+            /* ctl + \ 结束一个前台进程 */
+            case '\\':
+                if (tty->holdPid > 0) {
+                    DevicePutc(tty->conDevno, '^');
+                    DevicePutc(tty->conDevno, '\\');
+                    DevicePutc(tty->conDevno, '\n');
+                    SysKill(tty->holdPid, SIGQUIT);
+                }
+                break;
+            /* ctl + z 让前台进程暂停运行 */
+            case 'z':
+            case 'Z':
+                if (tty->holdPid > 0) {
+                    DevicePutc(tty->conDevno, '^');
+                    DevicePutc(tty->conDevno, 'Z');
+                    DevicePutc(tty->conDevno, '\n');
+                    SysKill(tty->holdPid, SIGTSTP);
+                }
+                break;
+            /* ctl + x 恢复前台进程运行 */
+            case 'x':
+            case 'X':
+                if (tty->holdPid > 0) {
+                    DevicePutc(tty->conDevno, '^');
+                    DevicePutc(tty->conDevno, 'X');
+                    DevicePutc(tty->conDevno, '\n');
+                    SysKill(tty->holdPid, SIGCONT);
+                }
+                break;
+            default:
+                break;
+            }
+        } else {
+            TTY_PutKey(tty, key);
+        }
 	} else {
 		/* 有扩展的数据，需要解析 */
 		int raw_code = key & MASK_RAW;
@@ -139,9 +191,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
 				break;	  
 			case F12:  
 				
-                
                 //TTY_PutKey(tty,  F12);
-                
                 DeviceIoctl(tty->conDevno, CON_CMD_CLEAN, 0);
 				break;
 			case ESC:
@@ -237,9 +287,10 @@ PRIVATE void TTY_DoWrite(TTY_t *tty)
     /* 队列不为空，有数据才获取 */
     if (!IoQueueEmpty(&tty->ioqueue)) {
         /* 获取一个字符 */
-        unsigned int key = IoQueueGet(&tty->ioqueue);
+        IoQueueGet(&tty->ioqueue);
         /* 写入控制台 */
         //DevicePutc(tty->conDevno, key);
+        //key = 0;
     }
 }
 
@@ -260,12 +311,19 @@ PRIVATE int TTY_Getc(struct Device *device)
     int key = KEYCODE_NONE;
     /* 如果是当前控制台，才会进行键盘的读取 */
 	if (IS_CURRENT_TTY(tty)) {
-        //printk("getc");
-        /*if (!IoQueueEmpty(&tty->ioqueue)) {
-            key = IoQueueGet(&tty->ioqueue);
-        }*/
-        key = tty->key;
-        tty->key = KEYCODE_NONE;
+        if (tty->holdPid == CurrentTask()->pid) {
+            //printk("getc");
+            /*if (!IoQueueEmpty(&tty->ioqueue)) {
+                key = IoQueueGet(&tty->ioqueue);
+            }*/
+            key = tty->key;
+            tty->key = KEYCODE_NONE;
+            
+        } else {
+            /* 不是前台任务进行读取，就会产生SIGTTIN */
+            SysKill(CurrentTask()->pid, SIGTTIN);
+            
+        }
     }
     return key;
 }
@@ -285,14 +343,20 @@ PRIVATE int TTY_Write(struct Device *device, unsigned int off, void *buffer, uns
     struct CharDevice *chrdev = (struct CharDevice *)device;
     TTY_t *tty = (TTY_t *)chrdev->private;
     
-    char *p = (char *)buffer;
-    int i = len;
-    while (i) {
-        /* 输出字符到控制台 */
-        DevicePutc(tty->conDevno, *p++);
-        i--;
+    /* 前台任务 */
+    if (tty->holdPid == CurrentTask()->pid  || CurrentTask()->pid == 0) {
+        char *p = (char *)buffer;
+        int i = len;
+        while (i) {
+            /* 输出字符到控制台 */
+            DevicePutc(tty->conDevno, *p++);
+            i--;
+        }
+    } else {
+        /* 不是前台任务进行写入，就会产生SIGTTOU */
+        SysKill(CurrentTask()->pid, SIGTTOU);
+        return -1;
     }
-    
     return 0;
 }
 
@@ -310,9 +374,16 @@ PRIVATE int TTY_Putc(struct Device *device, unsigned int ch)
     struct CharDevice *chrdev = (struct CharDevice *)device;
     TTY_t *tty = (TTY_t *)chrdev->private;
     
-    /* 输出字符到控制台 */
-    DevicePutc(tty->conDevno, ch);
-
+    /* 前台任务 */
+    if (tty->holdPid == CurrentTask()->pid || CurrentTask()->pid == 0) {
+        /* 输出字符到控制台 */
+        DevicePutc(tty->conDevno, ch);
+    } else {
+        /* 不是前台任务进行写入，就会产生SIGTTOU */
+        SysKill(CurrentTask()->pid, SIGTTOU);
+        return -1;
+    }
+    
     return 0;
 }
 
@@ -336,6 +407,10 @@ PRIVATE int TTY_Ioctl(struct Device *device, int cmd, int arg)
     case TTY_CMD_CLEAN:
         DeviceIoctl(tty->conDevno, CON_CMD_CLEAN, 0);
         break;
+    case TTY_CMD_HOLD:
+        tty->holdPid = arg;
+        //printk("tty set hold pid %d\n", arg);
+        break;    
 	default:
 		/* 失败 */
 		retval = -1;
@@ -384,6 +459,8 @@ PRIVATE int TTY_InitOne(TTY_t *tty)
     
     /* 生成控制台设备号 */
     tty->conDevno = MKDEV(CONSOLE_MAJOR, id);
+
+    tty->holdPid = 0;
 
     /* 打开控制台设备 */
     if (DeviceOpen(tty->conDevno, 0)) {

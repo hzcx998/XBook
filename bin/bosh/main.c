@@ -4,6 +4,7 @@
 #include <share/const.h>
 #include <unistd.h>
 #include <conio.h>
+#include <signal.h>
 
 #include "bosh.h"
 #include "cmd.h"
@@ -15,6 +16,13 @@ char *cmd_argv[MAX_ARG_NR];
 char tty_path[MAX_PATH_LEN] = {0};
 
 int shell_next_line;
+
+int stdin; /* 标准输入文件时tty，退出时，需要抛弃持有者 */ 
+
+void signal_handler(int signo) 
+{
+    printf("get a sig no %d in user mode.\n", signo);
+}
 
 int main(int argc, char *argv0[])
 {
@@ -28,7 +36,7 @@ int main(int argc, char *argv0[])
     memset(tty_path, 0, MAX_PATH_LEN);
     strcpy(tty_path, argv0[0]);
     
-    int stdin = open(argv0[0], O_RDONLY);
+    stdin = open(argv0[0], O_RDONLY);
     if (stdin < 0)
         return -1;
 
@@ -40,6 +48,9 @@ int main(int argc, char *argv0[])
     if (stderr < 0)
         return -1;
     
+    // 把当前进程设置为tty持有者
+    ioctl(stdin, TTY_CMD_HOLD, getpid());
+
     //printf("hello, shell!\n");
 
 	memset(cwd_cache, 0, MAX_PATH_LEN);
@@ -52,9 +63,36 @@ int main(int argc, char *argv0[])
 	
 	int retva = 0;
 
+    int daemon = 0; /* 为1表示是后台进程 */
+
     /* 默认是会在执行完一个命令后进入下一行 */
 
     shell_next_line = 1;
+
+    //signal(1, signal_handler);
+    struct sigaction act, oldact;
+
+    /* get old */
+    /*sigaction(SIGINT, NULL, &oldact);
+
+    printf("old handler %x\n", oldact.sa_handler);
+
+    
+    sigaction(SIGINT, &act, NULL);*/
+    act.sa_handler = signal_handler;
+    
+    sigaction(SIGABRT, &act, &oldact);
+
+    /* 忽略信号 */
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
+    signal(SIGCONT, SIG_IGN);
+    
+    //printf("old handler %x\n", oldact.sa_handler);
+
+    //abort();
+
 
 	while(1){ 
         /* 显示提示符 */
@@ -79,12 +117,18 @@ int main(int argc, char *argv0[])
 			continue;
 		}
 
-		/*arg_idx = 0;
+        daemon = 0;
+
+		arg_idx = 0;
 		while(arg_idx < argc){
 			//printf("%s ",buf);
-			cmd_argv[arg_idx] = NULL;
+			//cmd_argv[arg_idx] = NULL;
+            if (!strcmp(cmd_argv[arg_idx], "&")) {
+                daemon = 1;     /* 是后台进程 */
+                break;
+            }
 			arg_idx++;
-		}*/
+		}
 
         /* 先执行内建命令，再选择磁盘中的命令 */
 		if (buildin_cmd(argc, cmd_argv)) {
@@ -102,10 +146,21 @@ int main(int argc, char *argv0[])
                 pid = fork();
 
                 if (pid > 0) {  /* 父进程 */
-                    /* shell程序等待子进程退出 */
-                    pid = wait(&status);
-                    printf("parent %d wait %d exit %d\n",
-                        getpid(), pid, status);
+                    if (!daemon) {
+                        // 把子进程设置为前台
+                        ioctl(stdin, TTY_CMD_HOLD, pid);
+                        
+                        /* shell程序等待子进程退出 */
+                        pid = wait(&status);
+
+                        // 恢复自己为前台
+                        ioctl(stdin, TTY_CMD_HOLD, getpid());
+
+                        printf("parent %d wait %d exit %d\n",
+                            getpid(), pid, status);
+                        
+                    }
+                    
                 } else {    /* 子进程 */
 
                     /* 子进程执行程序 */

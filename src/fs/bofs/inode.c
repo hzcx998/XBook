@@ -15,6 +15,7 @@
 #include <fs/bofs/bitmap.h>
 #include <share/math.h>
 #include <book/blk-buffer.h>
+#include <book/signal.h>
 
 /**
  * BOFS_CloseInode - 关闭一个节点
@@ -807,7 +808,8 @@ PUBLIC int BOFS_GetInodeData(struct BOFS_Inode *inode,
 			return -1;
 		}
 	} else {
-		printk(PART_ERROR "index %d out of boundary!\n");
+		printk(PART_ERROR "file block index %d out of boundary!\n");
+        ForceSignal(SIGXFSZ, SysGetPid());
 		return -1;
 	}
 	return 0;
@@ -1385,7 +1387,8 @@ PUBLIC int PutBlockByBlockIndex(struct BOFS_Inode *inode,
 			return -1;
 		}
 	} else {
-		printk(PART_ERROR "index %d out of boundary!\n");
+		printk(PART_ERROR "file block index %d out of boundary!\n");
+        ForceSignal(SIGXFSZ, SysGetPid());
 		return -1;
 	}
 	return 0;

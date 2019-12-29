@@ -1,7 +1,6 @@
-#Makefile for boot
+#Makefile for test
 #auther: Hu Zicheng
 #time: 2019/1/24
-
 
 #The tools name
 NASM 		= nasm
@@ -43,22 +42,26 @@ LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 OBJS =  _start.o \
 		main.o
 
-LD_OBJS = 	$(USER_DIR)lib/log.o\
-			$(USER_DIR)lib/mmap.o\
-			$(USER_DIR)lib/fork.o\
-			$(USER_DIR)lib/printf.o\
-			$(USER_DIR)lib/getpid.o\
-			$(USER_DIR)lib/sleep.o\
-			$(USER_DIR)lib/msleep.o\
-			$(USER_DIR)lib/exit.o\
-			$(USER_DIR)lib/_wait.o\
-			$(USER_DIR)lib/_brk.o\
-			$(USER_DIR)lib/brk.o\
-			$(USER_DIR)lib/malloc.o\
-			$(USER_DIR)lib/file.o\
-			$(USER_DIR)lib/pipe.o\
-			$(SHARE_DIR)vsprintf.o\
-			$(SHARE_DIR)string.o\
+LD_OBJS = 	$(USER_DIR)lib/log.o \
+			$(USER_DIR)lib/mmap.o \
+			$(USER_DIR)lib/fork.o \
+			$(USER_DIR)lib/printf.o \
+			$(USER_DIR)lib/getpid.o \
+			$(USER_DIR)lib/sleep.o \
+			$(USER_DIR)lib/msleep.o \
+			$(USER_DIR)lib/exit.o \
+			$(USER_DIR)lib/_wait.o \
+			$(USER_DIR)lib/_brk.o \
+			$(USER_DIR)lib/brk.o \
+			$(USER_DIR)lib/malloc.o \
+			$(USER_DIR)lib/file.o \
+			$(USER_DIR)lib/pipe.o \
+			$(USER_DIR)lib/signal.o \
+			$(USER_DIR)lib/signal2.o \
+			$(USER_DIR)lib/time.o \
+			$(SHARE_DIR)vsprintf.o \
+			$(SHARE_DIR)string.o \
+			$(SHARE_DIR)signal.o \
 			
 #First read here
 .PHONY: all

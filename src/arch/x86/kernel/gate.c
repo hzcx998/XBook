@@ -14,6 +14,9 @@
 #include <share/stddef.h>
 #include <book/debug.h>
 #include <book/task.h>
+#include <book/signal.h>
+
+#define _DEBUG_GATE
 
 /* 
  * Global Descriptor Table
@@ -180,7 +183,70 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
       	return;		//IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
    	}
 	
+    /* 支持信号后的处理 */
+    switch (frame->vec_no) {
+    case EP_DIVIDE:
+    case EP_DEVICE_NOT_AVAILABLE:
+    case EP_COPROCESSOR_SEGMENT_OVERRUN:
+    case EP_X87_FLOAT_POINT:
+    case EP_SIMD_FLOAT_POINT:
+#ifdef _DEBUG_GATE
+        printk("send SIGFPE to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGFPE, SysGetPid());
+        return;
+    case EP_OVERFLOW:
+#ifdef _DEBUG_GATE
+        printk("send SIGSTKFLT to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGSTKFLT, SysGetPid());
+        return;
+    case EP_BOUND_RANGE:
+    case EP_SEGMENT_NOT_PRESENT:
+    case EP_STACK_FAULT:
+#ifdef _DEBUG_GATE
+        printk("send SIGSEGV to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGSEGV, SysGetPid());
+        return;
+    case EP_INVALID_TSS:
+    case EP_GENERAL_PROTECTION:
+    case EP_ALIGNMENT_CHECK:
+    case EP_MACHINE_CHECK:
+#ifdef _DEBUG_GATE
+        printk("send SIGBUS to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGBUS, SysGetPid());
+        return;
+    case EP_INVALID_OPCODE:
+#ifdef _DEBUG_GATE
+        printk("send SIGILL to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGILL, SysGetPid());
+        return;
+    case EP_DEBUG:
+    case EP_BREAKPOINT:
+#ifdef _DEBUG_GATE
+        printk("send SIGTRAP to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGTRAP, SysGetPid());
+        return;
+    case EP_PAGE_FAULT:
+        /* 后面处理 */
+        break;
+    case EP_INTERRUPT:
+    case EP_DOUBLE_FAULT:
+#ifdef _DEBUG_GATE
+        printk("send SIGTRAP to %s!\n", interruptNameTable[frame->vec_no]);
+#endif
+        ForceSignal(SIGABRT, SysGetPid());
+        return;
+    }
+    
+    /* 原始处理方式 */
+
 	DebugColor(TEXT_RED);
+    
 	printk("! Exception messag start.\n");
 	DebugColor(TEXT_GREEN);
 	printk("name: %s \n", interruptNameTable[frame->vec_no]);
@@ -221,15 +287,16 @@ PUBLIC void IntrruptGeneralHandler(uint32_t esp)
 		}
 		printk("    Selector: idx %d\n", (frame->errorCode&0xfff8)>>3);
 	}
+
+    if (frame->vec_no == EP_PAGE_FAULT) {
+        unsigned int pageFaultVaddr = 0; 
+		pageFaultVaddr = ReadCR2();
+		printk("page fault addr is: %x\n", pageFaultVaddr);
+    }
 	/*printk("    task %s %x kstack %x.\n", task->name, task, task->kstack);
 	printk("    pgdir %x cr3 %x\n", task->pgdir, PageAddrV2P((uint32_t)task->pgdir));
 	*/	
-   	if (frame->vec_no == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
-      	unsigned int pageFaultVaddr = 0; 
-		pageFaultVaddr = ReadCR2();
 
-		printk("page fault addr is: %x\n", pageFaultVaddr);
-   	}
 	DebugColor(TEXT_RED);
 	printk("! Exception Messag done.\n");
   	// 能进入中断处理程序就表示已经处在关中断情况下,
@@ -267,7 +334,7 @@ PRIVATE void InitExpection(void)
 	interruptNameTable[12] = "#SS Stack Fault Exception";
 	interruptNameTable[13] = "#GP General Protection Exception";
 	interruptNameTable[14] = "#PF Page-Fault Exception";
-	// interruptNameTable[15] 第15项是intel保留项，未使用
+	interruptNameTable[15] = "Reserved"; //第15项是intel保留项，未使用
 	interruptNameTable[16] = "#MF x87 FPU Floating-Point Error";
 	interruptNameTable[17] = "#AC Alignment Check Exception";
 	interruptNameTable[18] = "#MC Machine-Check Exception";
@@ -382,6 +449,42 @@ PUBLIC enum InterruptStatus InterruptGetStatus()
    return (eflags & EFLAGS_IF) ? INTERRUPT_ON : INTERRUPT_OFF;
 }
 
+uint32_t vec_no;	 // kernel.S 宏VECTOR中push %1压入的中断号
+    uint32_t edi;
+    uint32_t esi;
+    uint32_t ebp;
+    uint32_t espDummy;	 // 虽然pushad把esp也压入,但esp是不断变化的,所以会被popad忽略
+    uint32_t ebx;
+    uint32_t edx;
+    uint32_t ecx;
+    uint32_t eax;
+    uint32_t gs;
+    uint32_t fs;
+    uint32_t es;
+    uint32_t ds;
+
+    uint32_t errorCode;		 // errorCode会被压入在eip之后
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+
+    /* 以下由cpu从低特权级进入高特权级时压入 */
+    uint32_t esp;
+    uint32_t ss;
+
+
+PUBLIC void DumpTrapFrame(struct TrapFrame *frame)
+{
+#ifdef _DEBUG_GATE
+    printk(PART_TIP "----Trap Frame----\n");
+    printk(PART_TIP "vector:%d edi:%x esi:%x ebp:%x esp dummy:%x ebx:%x edx:%x ecx:%x eax:%x\n",
+        frame->edi, frame->esi, frame->ebp, frame->espDummy, frame->ebx, frame->edx, frame->ecx, frame->eax);
+    printk(PART_TIP "gs:%x fs:%x es:%x ds:%x error code:%x eip:%x cs:%x eflags:%x esp:%x ss:%x\n",
+        frame->gs, frame->fs, frame->es, frame->ds, frame->errorCode, frame->eip, frame->cs, frame->eflags, frame->esp, frame->ss);
+#endif 
+}
+
+
 PUBLIC void InitGateDescriptor()
 {
 	PART_START("Gate descriptor");
@@ -394,5 +497,3 @@ PUBLIC void InitGateDescriptor()
 	
 	PART_END();
 }
-
-
