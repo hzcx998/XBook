@@ -1,6 +1,6 @@
 #----
 #File:		makefile
-#Auther: 	Jason Hu
+#Auther: 	Jason Hu, Yu Zhu
 #Time: 		2019/6/1
 #copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
 #----

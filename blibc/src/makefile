@@ -1,0 +1,17 @@
+obj-y	+= log.o
+obj-y	+= fork.o
+obj-y	+= mmap.o
+obj-y	+= munmap.o
+obj-y	+= getpid.o
+obj-y	+= printf.o
+obj-y	+= execv.o
+obj-y	+= sleep.o
+obj-y	+= msleep.o
+obj-y	+= exit.o
+obj-y	+= _wait.o
+obj-y	+= _brk.o
+obj-y	+= brk.o
+obj-y	+= malloc.o
+obj-y	+= file.o
+obj-y	+= dir.o
+	
