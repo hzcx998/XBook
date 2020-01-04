@@ -15,11 +15,19 @@
 #include <share/stdint.h>
 #include <share/types.h>
 
-/* 配置区域 */
-#define _LOOPBACL_DEBUG
+/***** 配置区域 *****/
 
+/* 回环测试 */
+//#define _LOOPBACL_DEBUG
 
+/* 网卡配置 */
+//#define _NIC_RTL8139
+#define _NIC_AMD79C973
 
+/* 虚拟机配置 */
+//#define _VM_VMWARE
+#define _VM_VBOX
+//#define _VM_QEMU
 
 /* 网络协议 */
 #define PROTO_IP            0x0800

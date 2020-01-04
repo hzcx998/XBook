@@ -85,15 +85,41 @@ PRIVATE int NetworkConfig()
     };
     EthernetSetAddress(ethAddr);
 #else 
-    EthernetSetAddress(Amd79c973GetMACAddress());
+
+    
+    #ifdef _NIC_RTL8139
+    EthernetSetAddress(Rtl8139GetMACAddress());
+    #endif
+
+    #ifdef _NIC_AMD79C973
+        
+        EthernetSetAddress(Amd79c973GetMACAddress());
+        
+    #endif
+    
 #endif
 
     DumpEthernetAddress(EthernetGetAddress());
 
+    unsigned int ipAddress;
+
     /* 设置本机IP地址 */
-    unsigned int ipAddress = NetworkMakeIpAddress(10,0,2,15);
-    //unsigned int ipAddress = NetworkMakeIpAddress(192,168,1,114);
-    
+    #ifdef _NIC_RTL8139
+    ipAddress = NetworkMakeIpAddress(10,253,117,249);
+    #endif
+
+    #ifdef _NIC_AMD79C973
+        #ifdef _VM_VMWARE
+        ipAddress = NetworkMakeIpAddress(192,168,70,135);
+        #endif
+        #ifdef _VM_VBOX
+        ipAddress = NetworkMakeIpAddress(10,0,2,15);
+        #endif
+        #ifdef _VM_QEMU
+        ipAddress = NetworkMakeIpAddress(192,168,70,135);
+        #endif
+    #endif
+
     NetworkSetAddress(ipAddress);
 
     DumpIpAddress(NetworkGetAddress());
@@ -103,7 +129,26 @@ PRIVATE int NetworkConfig()
 
 PRIVATE void NetwrokTest()
 {
-    //ArpRequest(NetworkMakeIpAddress(10,0,2,15));
+    #ifdef _NIC_RTL8139
+    ArpRequest(NetworkMakeIpAddress(10,253,0,1));
+    #endif
+
+    #ifdef _NIC_AMD79C973
+        #ifdef _VM_VMWARE
+        while(1){
+            ArpRequest(NetworkMakeIpAddress(192,168,70,2));
+        }
+        #endif
+        #ifdef _VM_VBOX
+        while(1){
+        ArpRequest(NetworkMakeIpAddress(10,0,2,2));
+        }
+        #endif
+         #ifdef _VM_QEMU
+        ArpRequest(NetworkMakeIpAddress(192,168,70,2));
+        #endif
+    #endif
+    
 /*
     printk("ethernet size:%d arp size:%d\n", SIZEOF_ETHERNET_HEADER, SIZEOF_ARP_HEADER);
 
@@ -149,17 +194,20 @@ PRIVATE void NetwrokTest()
  */
 PRIVATE void InitNetworkDrivers()
 {
-    /*if (InitRtl8139Driver()) {
+#ifdef _NIC_RTL8139
+    if (InitRtl8139Driver()) {
         printk("InitRtl8139Driver failed!\n");
-    }*/
-    /*
+    }
+#endif
+#ifdef _NIC_AMD79C973
     if (InitAmd79c973Driver()) {
         printk("InitAmd79c973Driver failed!\n");
-    }*/
-
+    }
+#endif
+    /*
     if (InitXXXDriver()) {
         printk("InitXXXDriver failed!\n");
-    }
+    }*/
     
     //Spin("InitNetworkDrivers Test!\n");
 }
@@ -175,15 +223,14 @@ PUBLIC int InitNetwork()
     InitNetworkDrivers();
     
     /* 初始化网络缓冲区 */
-    //InitNetBuffer();
+    InitNetBuffer();
 
     /* 初始化ARP */
-    //InitARP();
+    InitARP();
 
     /* 进行网络配置 */
-    //NetworkConfig();
+    NetworkConfig();
 
-    
     NetwrokTest();
 
     PART_END();

@@ -95,11 +95,11 @@ PUBLIC void ArpRequest(unsigned int ip)
     /* 分配网络缓冲区 */
     NetBuffer_t *buf = AllocNetBuffer(len);
     if (buf != NULL) {
-       
+        
         /* 填写网络缓冲区 */
         buf->dataLen = len;
-        printk("arp data len %d\n", buf->dataLen);
-        buf->data = (unsigned char *)buf + SIZEOF_ARP_HEADER;
+        //printk("arp data len %d\n", buf->dataLen);
+        //buf->data = (unsigned char *)buf + ASSUME_SIZEOF_NET_BUFFER;
 
         /* 复制ARP头部 */
         memcpy(buf->data, &header, len);
@@ -150,7 +150,8 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
             printk("oh, I have it\n");
 
             /* 现在，源就是本机，目标就是原来的源地址（发送者） */
-            ArpHeaderInit(header, ntohs(0x0001),                    /* ethernet */
+            ArpHeaderInit(header,
+                    ntohs(0x0001),                                  /* ethernet */
                     ntohs(PROTO_IP),                                /* IPv4 */
                     0x06,                                           /* ethernet 地址长度 */
                     0x04,                                           /* IPv4 地址长度 */
@@ -171,7 +172,6 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
         }
         break;
     case ARP_OP_REPLY:
-        /* 获取源的MAC地址 */
         
         printk("arp reply [%d.%d.%d.%d] -> [%2x:%2x:%2x:%2x:%2x:%2x]\n",
             sourceIpInByte[3], sourceIpInByte[2], sourceIpInByte[1], sourceIpInByte[0], 

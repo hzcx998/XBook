@@ -26,7 +26,7 @@
  */
 int NlltSend(NetBuffer_t *buf)
 {
-    printk("NLLT: [send] -data:%x -length:%d\n", buf->data, buf->dataLen);
+    //printk("NLLT: [send] -data:%x -length:%d\n", buf->data, buf->dataLen);
 
     //EthernetHeader_t *ethHeader = (EthernetHeader_t *)buf->data;
     
@@ -58,7 +58,13 @@ int NlltSend(NetBuffer_t *buf)
     
     NlltReceive(buf->data, buf->dataLen);
 #else 
+    #ifdef _NIC_AMD79C973
     Amd79c973Send(buf->data, buf->dataLen);
+    #endif 
+
+    #ifdef _NIC_RTL8139
+    Rtl8139Transmit(buf->data, buf->dataLen);
+    #endif 
 #endif
     return 0;
 }

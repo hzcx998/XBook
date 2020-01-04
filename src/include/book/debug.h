@@ -12,7 +12,11 @@
 #include <share/types.h>
 #include <drivers/console.h>
 
+#define CONFIG_SERIAL_DEBUG
+
+
 #define DEBUG_PART
+
 
 #ifdef DEBUG_PART
     #define PART_START(msg) printk("-> "msg" ")

@@ -168,10 +168,9 @@ qemu: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,vlan=0,model=rtl8139,macaddr=12:34:56:78:9a:be \
+		-net nic,vlan=0,model=pcnet,macaddr=12:34:56:78:9a:be \
 		-net user,vlan=0 \
-		-net nic,vlan=1,model=rtl8139,macaddr=12:34:56:78:9a:bc \
-		-net user,vlan=1
+		-serial stdio 
 
 qemudbg: disk
 	$(QEMU) -m 512M \

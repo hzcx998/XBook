@@ -30,6 +30,7 @@
 
 #include <net/ethernet.h>
 #include <net/arp.h>
+#include <net/nllt.h>
 
 #define DEVNAME "amd79c973"
 
@@ -148,7 +149,7 @@ PRIVATE void Amd79c973Handler(unsigned int irq, unsigned int data)
     if((temp & 0x0800) == 0x0800) printk("AMD am79c973 MEMORY ERROR\n");
     if((temp & 0x0400) == 0x0400) printk(" RECEIVED"); //Receive();
     if((temp & 0x0200) == 0x0200) printk(" SENT");
-                               
+
     // acknoledge
     Out16(private->registerAddressPort, 0);
     Out16(private->registerDataPort, temp);
@@ -326,7 +327,7 @@ int Amd79c973Reset(struct Amd79c973Private *private)
 
 PUBLIC void Amd79c973Send(uint8_t* buffer, int size)
 {
-    printk("In Amd79c973Send\n");
+    //printk("In Amd79c973Send\n");
     struct Amd79c973Private *private = &amd79c973Private;
 
     int sendDescriptor = private->currentSendBuffer;
@@ -338,11 +339,11 @@ PUBLIC void Amd79c973Send(uint8_t* buffer, int size)
     uint8_t *src = buffer;
     uint8_t *dst = (uint8_t*)(private->sendBuffers[sendDescriptor]);
 
-    printk("copy buf\n");
+    //printk("copy buf\n");
  
     memcpy(dst, src, size);
 
-    printk("\nSEND: ");
+    //printk("\nSEND: ");
     /*int i;
     for(i = 0; i < (size>64?64:size); i++)
     {
@@ -351,17 +352,17 @@ PUBLIC void Amd79c973Send(uint8_t* buffer, int size)
     src = buffer;
     EthernetHeader_t *ethHeader = (EthernetHeader_t *)src;
 
-    DumpEthernetHeader(ethHeader);
+    //DumpEthernetHeader(ethHeader);
 
     src += SIZEOF_ETHERNET_HEADER;
 
     ArpHeader_t *arpHeader = (ArpHeader_t *)src;
-    DumpArpHeader((ArpHeader_t *)arpHeader);
+    //DumpArpHeader((ArpHeader_t *)arpHeader);
     
     int i;
     for(i = 0; i < (size>64?64:size); i++)
     {
-        printk("%x ", buffer[i]);
+        //printk("%x ", buffer[i]);
     }
 
     private->sendBufferDescr[sendDescriptor].avail = 0;

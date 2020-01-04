@@ -14,4 +14,6 @@
 PUBLIC int InitRtl8139Driver();
 PUBLIC int Rtl8139Transmit(char *buf, uint32 len);
 
+PUBLIC unsigned char *Rtl8139GetMACAddress();
+
 #endif  /* _DRIVER_NETWORK_RTL8139_H */

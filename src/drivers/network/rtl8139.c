@@ -25,6 +25,7 @@
 #include <share/string.h>
 
 #include <net/ethernet.h>
+#include <net/nllt.h>
 
 #include <drivers/rtl8139.h>
 
@@ -212,14 +213,18 @@ void Rtl8139Receive()
     /* 如果属于主机 */
     while ((In8(private->ioAddress + RTL8139_COMMAND) & 0x01) == 0) {
         uint32 offset = cur % private->rxBufferLen;
+        uint8* buf = rx + offset;
         uint32 status = *(uint32 *) (rx + offset);
         uint32 size   = status >> 16;
-
+        
         printk("[0x%x, 0x%x] | ", offset, size);
         int i;
         for (i = 0; i < 16; i++) {
             printk("%2x ", rx[4 + i + offset]);
         }
+
+        NlltReceive(buf + 4, size - 4);
+
         /* 更新成下一个项 */
         cur = (cur + size + 7) & ~3;
 
@@ -228,6 +233,13 @@ void Rtl8139Receive()
     }
 
     private->currentRX = cur;
+}
+
+PUBLIC unsigned char *Rtl8139GetMACAddress()
+{
+    struct Rtl8139Private *private = &rtl8139Private;
+
+    return private->macAddress;
 }
 
 /**

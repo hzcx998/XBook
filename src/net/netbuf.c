@@ -43,7 +43,9 @@ PUBLIC NetBuffer_t *AllocNetBuffer(size_t len)
         if (netBufferTable[i].status == NET_BUF_UNUSED) {
             netBufferTable[i].status = NET_BUF_USING;
             buf = &netBufferTable[i];
-            printk("[-]Net Buffer Alloc At %x\n", buf);
+            buf->data = (unsigned char *)buf + ASSUME_SIZEOF_NET_BUFFER;
+            memset(buf->data, 0, NET_BUF_DATA_SIZE);
+            //printk("[-]Net Buffer Alloc At %x\n", buf);
             break;
         }
     }
@@ -63,7 +65,7 @@ PUBLIC void FreeNetBuffer(NetBuffer_t *buf)
     /* 修改状态为未使用 */
     buf->status = NET_BUF_UNUSED;
 
-    printk("[-]Net Buffer Free At %x\n", buf);
+    //printk("[-]Net Buffer Free At %x\n", buf);
 
     SpinUnlockRestoreInterrupt(&netBufferLock, oldStatus);
     

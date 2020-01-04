@@ -58,9 +58,9 @@ PUBLIC void EthernetSend(
     size_t length = len;
     
     /* 对长度进行填充，数据长度至少是46字节 */
-    /*if (length < 46) {
+    if (length < 46) {
         length = 46;
-    }*/
+    }
     /* 如果是发送给自己，那么就返回，暂不处理 */
     /*if (!memcmp(destAddr, ethernetAddress, ETH_ADDR_LEN)) {
         printk("send to myself!\n");
@@ -70,22 +70,22 @@ PUBLIC void EthernetSend(
     size_t total = length + SIZEOF_ETHERNET_HEADER;
     
 
-    printk("ethernet data len %d\n", total);    
+    //printk("ethernet data len %d\n", total);    
 
     NetBuffer_t *buf = AllocNetBuffer(total);
     
     if (buf != NULL) {
         /* 创建并初始化以太网头部 */
-        EthernetHeader_t ethHeader;
-        EthernetHeaderInit(&ethHeader, destAddr, ethernetAddress, ntohs(protocol));
+        EthernetHeader_t header;
+        EthernetHeaderInit(&header, destAddr, ethernetAddress, ntohs(protocol));
 
         /* 填写缓冲区 */
         buf->dataLen = total;
-        buf->data = (unsigned char *)buf + sizeof(NetBuffer_t);
+        //buf->data = (unsigned char *)buf + ASSUME_SIZEOF_NET_BUFFER;
         
         unsigned char *p = buf->data;
         /* 把以太网帧复制到缓冲区 */
-        memcpy(p, &ethHeader, SIZEOF_ETHERNET_HEADER);
+        memcpy(p, &header, SIZEOF_ETHERNET_HEADER);
 
         p += SIZEOF_ETHERNET_HEADER;
         
@@ -102,6 +102,8 @@ PUBLIC void EthernetSend(
 
         /* 释放缓冲区 */
         FreeNetBuffer(buf);
+    } else {
+        printk("alloc net buffer failed!\n");
     }
 }
 
@@ -117,7 +119,7 @@ PUBLIC void EthernetReceive(unsigned char *data, size_t len)
     if (buf != NULL) {
         /* 填写缓冲头 */
         buf->dataLen = len;
-        buf->data = (unsigned char *) buf + SIZEOF_ETHERNET_HEADER;
+        //buf->data = (unsigned char *) buf + ASSUME_SIZEOF_NET_BUFFER;
         /* 复制数据 */
         memcpy(buf->data, data, len);
 
@@ -195,7 +197,7 @@ PUBLIC unsigned char *EthernetGetAddress()
 
 PUBLIC void DumpEthernetAddress(unsigned char *ethAddr)
 {
-    printk(PART_TIP "Ethernet Address:");
+    //printk(PART_TIP "Ethernet Address:");
     printk(PART_TIP "%x:%x:%x:%x:%x:%x\n", ethAddr[0],
             ethAddr[1], ethAddr[2], ethAddr[3],
             ethAddr[4], ethAddr[5]);
@@ -204,7 +206,7 @@ PUBLIC void DumpEthernetAddress(unsigned char *ethAddr)
 
 PUBLIC void DumpEthernetHeader(EthernetHeader_t *header)
 {
-    printk(PART_TIP "Ethernet Header:");
+    //printk(PART_TIP "Ethernet Header:");
     DumpEthernetAddress(header->source);
     DumpEthernetAddress(header->dest);
     

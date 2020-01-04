@@ -10,6 +10,7 @@
 #include <drivers/console.h>
 #include <share/vsprintf.h>
 #include <book/arch.h>
+#include <drivers/serial.h>
 
 //停机并输出大量信息
 void Panic(const char *fmt, ...)
@@ -75,6 +76,30 @@ PUBLIC int ConsolePrint(const char *fmt, ...)
 	return i;
 }
 
+/**
+ * SerialPrint - 串口格式化输出
+ * @fmt: 格式
+ * @...: 参数
+ * 
+ * 返回缓冲区长度
+ */
+PUBLIC int SerialPrint(const char *fmt, ...)
+{
+	int i;
+	char buf[256];
+	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
+	i = vsprintf(buf, fmt, arg);
+
+    int count = i;
+    char *p = buf;
+	//ConsoleWrite((char *)buf, i);
+    while (count-- > 0) {
+        SerialPutchar(*p++);
+    }
+    
+	return i;
+}
+
 PUBLIC void DebugColor(unsigned int color)
 {
 	DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, color);
@@ -90,4 +115,8 @@ PUBLIC void InitDebugPrint()
     DeviceOpen(DEV_CON0, 0);
     
     printk = &ConsolePrint;
+
+    #ifdef CONFIG_SERIAL_DEBUG
+    printk = &SerialPrint;
+    #endif
 } 

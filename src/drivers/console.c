@@ -414,6 +414,4 @@ PUBLIC void ConsoleInit()
     /* 选择第一个控制台 */
     SelectConsole(0);
 
-    /* 初始化调试输出，可以使用printk */
-    InitDebugPrint();
 }

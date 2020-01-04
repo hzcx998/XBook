@@ -11,6 +11,7 @@
 #include <share/vsprintf.h>
 #include <share/string.h>
 #include <book/interrupt.h>
+#include <drivers/serial.h>
 
 //创建全局变量 halListHead 来管理所有的hal
 LIST_HEAD(halListHead);
@@ -42,17 +43,20 @@ PUBLIC void InitHalEnvironment()
  */
 PUBLIC void InitHalEarly()
 {
-   /*if (HalCreate(&halOfDisplay)) {
-      while(1);
-   }*/
-   // 初始化控制台，基于硬件抽象层
+
+    // 初始化控制台
 	ConsoleInit();
+
+    // 初始化串口驱动
+    InitSerialDriver();
+
+    /* 初始化调试输出，可以使用printk */
+    InitDebugPrint();
 
    /* ----从此开始调试显示信息之旅---- */
 
    if (HalCreate(&halOfCpu)) {
       Panic("Register %s name samed!\n", halOfCpu.halName);
-      
    }
    if (HalCreate(&halOfRam)) {
       Panic("Register %s name samed!\n", halOfRam.halName);
