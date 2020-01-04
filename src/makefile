@@ -19,12 +19,17 @@ LD 			= ld
 DD 			= dd
 QEMU 		= qemu-system-i386
 BOCHS 		= bochs
+VBOX_MANAGE 	= VBoxManage
+
 BOCHSDBG 	= bochsdbg
 
 # bochsrc for windows
 BXRC_WIN 		= $(BOCHS_DIR)bochsrc.win
 # bochsrc for linux
 BXRC_LINUX 		= $(BOCHS_DIR)bochsrc.linux
+
+# virtual box 虚拟机名称
+VBOX_NAME	= "Xbook"
 
 #----img----
 #img dir
@@ -80,7 +85,8 @@ else
 endif
 
 #objs
-SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/
+SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/ \
+			net/ 
 
 INCDIRS	:= include/ include/book/ $(ARCH)/include/ \
 	$(ARCH)/include/bus/ \
@@ -149,16 +155,33 @@ else
 endif
 
 #-hda $(HDA_IMG) -hdb $(HDB_IMG)
+# 网卡配置: 
+#	-net nic,vlan=0,model=rtl8139,macaddr=12:34:56:78:9a:be
+# 网络模式：
+#	1.User mode network(Slirp) :User网络
+#		-net user
+#	2.Tap/tun network : Tap网络
+#		-net tap
+# 
+#
 qemu: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
-		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a
+		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
+		-net nic,vlan=0,model=rtl8139,macaddr=12:34:56:78:9a:be \
+		-net user,vlan=0 \
+		-net nic,vlan=1,model=rtl8139,macaddr=12:34:56:78:9a:bc \
+		-net user,vlan=1
 
 qemudbg: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-S -gdb tcp::10001,ipv4 \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a
+
+# virtual box
+vbox: disk
+	$(VBOX_MANAGE) startvm $(VBOX_NAME) --type gui 
 
 #clean temporary files
 clean: $(SRCDIRS)

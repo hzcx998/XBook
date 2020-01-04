@@ -30,11 +30,11 @@ PUBLIC void InitCpu()
 	char buf[64];
 	HalIoctl("cpu", CPU_HAL_IO_STEER, CPU_HAL_VENDOR);
 	HalRead("cpu", (unsigned char *)buf, 64);
-	printk("\n |- vendor:%s \n", buf);
+	printk("\n" PART_TIP "vendor:%s", buf);
 
 	HalIoctl("cpu", CPU_HAL_IO_STEER, CPU_HAL_BRAND);
 	HalRead("cpu", (unsigned char *)buf, 64);
-	printk(" |- brand:%s \n", buf);
+	printk(PART_TIP " brand:%s \n", buf);
 	
 	#ifdef CONFIG_CPU_DEBUG
 	

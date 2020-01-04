@@ -77,10 +77,10 @@ PUBLIC void InitHalKernel()
    }*/
 
    // 查看已经创建的hal
-   struct Hal *hal;
+   /*struct Hal *hal;
    ListForEachOwner(hal, &halListHead, halList) {
-      printk(" |- Registed hal-%s\n", hal->halName);
-   }
+      printk(PART_TIP "Registed hal-%s\n", hal->halName);
+   }*/
    //printk("<-\n");
    PART_END();
 }

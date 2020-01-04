@@ -35,31 +35,6 @@ rmdir:
 	
 	ret
 
-global mount
-; int mount(const char *devpath, const char *dirpath);
-mount:
-	
-
-	mov eax, SYS_MOUNT
-	mov ebx, [esp + 4]
-	mov ecx, [esp + 8]
-	int INT_VECTOR_SYS_CALL
-	
-	
-	ret
-
-global unmount
-; int unmount(const char *dirpath);
-unmount:
-	
-
-	mov eax, SYS_UNMOUNT
-	mov ebx, [esp + 4]
-	int INT_VECTOR_SYS_CALL
-	
-	
-	ret
-
 global getcwd
 ; int getcwd(char* buf, unsigned int size);
 getcwd:

@@ -13,10 +13,14 @@
 
 int fork();
 int32_t getpid();
+
+int setpgid(pid_t pid, pid_t pgid);
+pid_t getpgid(pid_t pid);
+
 int execv(const char *path, const char *argv[]);
 
 void msleep(int msecond);
-void sleep(int second);
+unsigned int sleep(unsigned int second);
 
 void exit(int status);
 int _wait(int *status);
@@ -28,7 +32,7 @@ int malloc_usable_size(void *ptr);
 void *calloc(size_t count, size_t size);
 void *realloc(void *ptr, size_t size);
 
-
-
+int pipe(int fd[2]);
+int mkfifo(const char *path, mode_t mode);
 
 #endif  /* _USER_LIB_STDLIB_H */

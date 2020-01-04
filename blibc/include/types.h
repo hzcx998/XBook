@@ -48,5 +48,9 @@
 #define STATIC static
 #endif
 
+#ifndef PACKED
+#define PACKED __attribute__ ((packed))
+#endif
+
 
 #endif  /*_SHARE_TYPES_H*/

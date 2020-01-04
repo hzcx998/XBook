@@ -30,4 +30,9 @@
 int brk(void * addr);
 void *sbrk(int increment);
 
+int access(const char *filenpath, int mode);
+
+unsigned int alarm(unsigned int seconds);
+
+
 #endif  /*_SHARE_UNISTD_H_*/

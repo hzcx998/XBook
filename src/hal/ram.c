@@ -33,7 +33,7 @@ PRIVATE void RamHalInit()
 	PART_START("Ram hal");
 
 	private.memorySize = InitArds();
-	printk(" |- ram memory size:%x bytes %d MB\n", private.memorySize, private.memorySize / MB);
+	printk(PART_TIP "ram memory size:%x bytes %d MB\n", private.memorySize, private.memorySize / MB);
 	PART_END();
 }
 

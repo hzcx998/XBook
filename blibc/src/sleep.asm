@@ -12,13 +12,13 @@
 
 global sleep
 
-; void sleep(int second);
+; unsigned int sleep(unsigned int second);
 sleep:
-	
+	push ebx
 
 	mov eax, SYS_SLEEP
-	mov ebx, [esp + 4]
+	mov ebx, [esp + 4 + 4]
 	int INT_VECTOR_SYS_CALL
 	
-	
+	pop ebx
 	ret

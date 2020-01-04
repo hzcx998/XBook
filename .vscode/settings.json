@@ -67,7 +67,15 @@
         "signal.h": "c",
         "pci.h": "c",
         "timer.h": "c",
-        "interrupt.h": "c"
+        "interrupt.h": "c",
+        "ethernet.h": "c",
+        "net.h": "c",
+        "network.h": "c",
+        "netbuf.h": "c",
+        "inet.h": "c",
+        "nllt.h": "c",
+        "rtl8139.h": "c",
+        "arp.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

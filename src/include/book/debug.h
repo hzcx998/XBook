@@ -24,6 +24,8 @@
     #define PART_START(msg) 
     #define PART_END() 
     #define PART_TIP 
+    #define PART_WARRING
+    #define PART_ERROR
 #endif
 
 //内核打印函数的指针

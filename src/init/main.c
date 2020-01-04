@@ -17,6 +17,7 @@
 #include <book/block.h>
 #include <book/char.h>
 #include <fs/fs.h>
+#include <net/network.h>
 
 /*
  * 功能: 内核的主函数
@@ -61,6 +62,9 @@ int main()
 	/* 初始化块设备 */	
 	InitBlockDevice();
 
+    /* 初始化网络 */
+    InitNetwork();
+    
 	/* 初始化文件系统 */
     InitFileSystem();
 	
