@@ -142,7 +142,7 @@ PRIVATE void NetwrokTest()
             ArpRequest(NetworkMakeIpAddress(169,254,44,2));
             //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
             //printk("sleep");
-            //SysMSleep(100);
+            SysMSleep(1000);
 
             //SysSleep(1);
             //printk("wakeup");

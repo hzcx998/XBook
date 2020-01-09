@@ -593,43 +593,6 @@ PRIVATE int Rtl8139GetInfoFromPCI(struct Rtl8139Private *private)
     return 0;
 }
 
-unsigned char NextDesc(unsigned char CurrentDescriptor)
-{
-    // (CurrentDescriptor == TX_BUFFER_NR-1) ? 0 : (1 + CurrentDescriptor);
-    if(CurrentDescriptor == RTL8139_NUM_TX_BUFFER-1) {
-        return 0;
-    } else {
-        return ( 1 + CurrentDescriptor);
-    }
-}
-
-uint32_t CheckTSDStatus(unsigned char Desc)
-{
-    struct Rtl8139Private *private = &rtl8139Private;
-
-    uint32_t Offset = Desc << 2;
-    uint32_t tmpTSD;
-
-    tmpTSD = In32(private->ioAddress + RTL8139_TX_STATUS0 + Offset);
-    switch ( tmpTSD & (RTL8139_TSD_OWN | RTL8139_TSD_TOK) )
-    {
-    case (RTL8139_TSD_BOTH): return (RTL8139_TSD_BOTH);
-    case (RTL8139_TSD_TOK) : return RTL8139_TSD_TOK;
-    case (RTL8139_TSD_OWN) : return RTL8139_TSD_OWN;
-    case 0 : return 0;
-    }
-    return 0;
-}
-
-void IssueCMD(unsigned char descriptor, uint32_t phyAddr, uint32_t len)
-{
-    struct Rtl8139Private *private = &rtl8139Private;
-
-    unsigned long offset = descriptor << 2;
-    Out32(private->ioAddress + RTL8139_TX_ADDR0 + offset, phyAddr);
-    Out32(private->ioAddress + RTL8139_TX_STATUS0 + offset , len);
-}
-
 /**
  * Rtl8139NextDesc - 获取下一个传输项
  * @currentDesc: 当前传输项
@@ -807,343 +770,6 @@ PRIVATE int Rtl8139TxInterrupt(struct Rtl8139Private *private)
     return 0;
 }
 
-
-
-PUBLIC int Rtl8139Transmit3(char *buf, uint32 len)
-{
-    printk("tx: len %d\n", len);
-    struct Rtl8139Private *private = &rtl8139Private;
-    //enum InterruptStatus oldStatus = InterruptDisable();
-
-    DisableInterrupt();
-    if (AtomicGet(&private->txFreeNR) > 0) {
-        uint32 tsd = In32(private->ioAddress + RTL8139_TX_STATUS0 + (private->txSetup << 2));
-        
-        /* 如果该传输项还未被使用，就不传输 */
-        if (!(tsd & (RTL8139_TSD_TOK | RTL8139_TSD_TUN | RTL8139_TSD_TABT)))
-			return -1;
-
-        /* 如果有错误，就不操作该项 */
-
-        /* 复制数据到当前的传输项 */
-        memcpy(private->txBuffer[private->txSetup], buf, len);
-
-        uint32 status = In16(private->ioAddress + RTL8139_INTR_STATUS);
-
-        printk(">>>transmit TX_STATUS%d: %x, INTR_STATUS: %x\n", private->txSetup, 
-                In32(private->ioAddress + RTL8139_TX_STATUS0 + (private->txSetup << 2)), status);
-        
-        IssueCMD(private->txSetup, Vir2Phy(private->txBuffer[private->txSetup]), len);
-        
-        printk("<<<after transmit TX_STATUS%d: TSD %x\n", private->txSetup, 
-                In32(private->ioAddress + RTL8139_TX_STATUS0 + (private->txSetup << 2)));
-        
-        private->txSetup = NextDesc(private->txSetup);
-
-        AtomicDec(&private->txFreeNR);
-        //private->txFreeNR--;
-        EnableInterrupt();
-        //InterruptSetStatus(oldStatus);
-        return -1;
-    } else {
-        printk("!!!no free desc!!!\n");
-    }
-    EnableInterrupt();
-    //InterruptSetStatus(oldStatus);
-    return 0;
-}
-
-PUBLIC int Rtl8139Transmit2(char *buf, uint32 len)
-{
-    
-    struct Rtl8139Private *private = &rtl8139Private;
-    /* 复制数据到当前的传输项 */
-    memcpy(private->txBuffer[private->currentTX], buf, len);
-    
-    //uint32 status = In16(private->ioAddress + RTL8139_INTR_STATUS);
-    /*printk("transmit TX_STATUS0: 0x%x, INTR_STATUS: %x\n", 
-            In32(private->ioAddress + RTL8139_TX_STATUS0), status);
-    */
-    enum InterruptStatus oldStatus = InterruptDisable();
-    /* 把当前数据项对应的缓冲区的物理地址写入寄存器 */
-    //Out32(private->ioAddress + RTL8139_TX_ADDR0 + private->currentTX * 4, Vir2Phy(private->txBuffers[private->currentTX]));
-    
-    /* 往传输状态寄存器写入传输的状态
-    数据长度是0~12位。
-     */
-    Out32(private->ioAddress + RTL8139_TX_STATUS0 + private->currentTX * 4, (256 << 16) | 0x0 | (len & 0X1FFF));
-    
-    //printk("after transmit TX_STATUS0: 0x%x\n", In32(private->ioAddress + RTL8139_TX_STATUS0 + private->currentTX * 4));
-    
-    /* 指向下一个传输项 */
-    private->currentTX = (private->currentTX + 1) % 4;
-
-    InterruptSetStatus(oldStatus);
-
-    return 0;
-}
-
-bool PacketOK(uint16_t status, uint16_t length)
-{
-    uint16_t badPacket = (status & (1<<4)) || /* RUNT */
-        (status & (1<<5)) || /* ISE */
-        (status & (1<<3)) || /* LONG */
-        (status & (1<<2)) ||    /* CRC */
-        (status & (1<<1));      /* FAE */
-    
-    //uint16_t badPacket = 0;
-    
-    if( ( !badPacket ) && ( status & 0x01) ) {
-        if ( (length > RX_MAX_PACKET_LENGTH ) ||
-                (length < RX_MIN_PACKET_LENGTH ) ) {
-            return false; 
-        }
-        //PacketReceivedGood++;
-        //ByteReceived += pktHeader->PacketLength;
-        //printk("@@@");
-        return true;
-    } else {
-        return false;
-    }
-}
-
-PRIVATE int TxInterruptHandler()
-{
-    struct Rtl8139Private *private = &rtl8139Private;
-
-    /*while ((CheckTSDStatus(private->txFinish) == RTL8139_TSD_BOTH) &&
-        (private->txFreeNR < TX_BUFFER_NR)) 
-    {*/
-        uint32 tx_status = In32(private->ioAddress + RTL8139_TX_STATUS0 + private->txFinish * 4);
-        /*printk("TXOK, TX_STATUS%d: %x ->", private->txFinish, tx_status);
-
-        if (tx_status & (1<<13)) printk("OWN ");
-        if (tx_status & (1<<14)) printk("TUN ");
-        if (tx_status & (1<<15)) printk("TOK ");
-        if (tx_status & (1<<29)) printk("OWC ");
-        if (tx_status & (1<<30)) printk("TABT ");
-        if (tx_status & (1<<31)) printk("CRS ");*/
-        
-        tx_status &= ~0x1fffUL;
-        Out32(private->ioAddress + RTL8139_TX_STATUS0 + private->txFinish * 4 , tx_status);
-
-        private->txFinish = NextDesc(private->txFinish);
-        //private->txFreeNR++;
-        AtomicInc(&private->txFreeNR);
-    //}
-    return 0;
-}
-
-BOOLEAN RxInterruptHandler()
-{
-    struct Rtl8139Private *private = &rtl8139Private;
-
-    unsigned char TmpCMD;
-    unsigned int length;
-    unsigned char *incomePacket, *RxReadPtr;
-    //struct RxPacketHeader *packetHeader;
-    uint32 cur;
-    //printk("<<<");
-
-    /*  1.获取上次读取的位置
-        2.分析这次的数据
-        3.移动到下一次的位置
-     */
-
-    /*if ((In8(private->ioAddress + RTL8139_COMMAND) & RTL8139_CMD_BUFE) == 0) {
-        printk("\n$BUFFER DATA$\n");
-
-    }*/
-
-    while ((In8(private->ioAddress + RTL8139_COMMAND) & RTL8139_CMD_BUFE) == 0) {
-        
-        cur = private->currentRX;
-        //uint32 offset = cur % private->rxBufferLen; /* 避免越界判断 */
-        uint32 offset = cur;
-
-        uint8* rx = private->rxBuffer + offset; /* 获取数据区域 */
-        uint32_t status = *(uint32_t *)rx;      /* 获取状态以及长度 */
-        length = status >> 16;
-        uint16_t base = In16(private->ioAddress + RTL8139_RX_BUF_ADDR);
-        if (status & 1) printk("ROK ");
-        if (status & (1<<1)) printk("FAE ");
-        if (status & (1<<2)) printk("CRC ");
-        if (status & (1<<3)) printk("LONG ");
-        if (status & (1<<4)) printk("RUNT ");
-        if (status & (1<<5)) printk("ISE ");
-        if (status & (1<<13)) printk("BAR ");
-        if (status & (1<<14)) printk("PAM ");
-        if (status & (1<<15)) printk("MAR ");
-    
-        //length = base - cur;;
-        if (length == 0 && status == 0) {
-            printk("EMPTY!\n");
-            //break;
-        }
-            
-        /* 打印状态以及长度 */
-        printk("offset:%x status:%x length:%x\n",
-            offset, status, length);
-
-        /* 移动到下一个位置 */
-        cur = (cur + length + 4 + 3) & ~3;
-
-        printk("[write:%x ->(read:%x, next:%x) size:%x]\n", base, offset, cur, base - cur);
-        
-        /* 打印数据 */
-        int i;
-        for (i = 0; i < 16; i++) {
-            printk("%x ", rx[4 + i]);
-        }
-        printk("\n\n");
-
-
-        //-4:avoid overflow
-        //Out16(private->ioAddress + RTL8139_RX_BUF_PTR, cur - 0x10); 
-
-        /* 保存修改后的位置 */
-        private->currentRX = cur;
-    }
-    //printk(">>>");
-    return 0;
-
-
-
-
-
-    printk("RXOK, ");
-    
-    while (!(In8(private->ioAddress + RTL8139_COMMAND) & RTL8139_CMD_BUFE)) {
-        /*TmpCMD = In8(private->ioAddress + RTL8139_COMMAND);
-        if (TmpCMD & RTL8139_CMD_BUFE) 
-            break;*/
-            
-        //printk("b");
-        //do {
-            RxReadPtr = private->rxBuffer + cur;
-            uint32 offset = cur % private->rxBufferLen;
-            uint32_t status = *(uint32_t *)RxReadPtr;
-            length = status >> 16;
-            
-            incomePacket = RxReadPtr + 4;
-            //length = packetHeader->length; //this length include CRC
-            printk("header:%x, %x\n", status, length);
-
-            if(length == 0)
-                break;
-
-            //printk("header:%x, %x\n", status, length);
-            /*   if (status & 1) printk("ROK ");
-                if (status & (1<<1)) printk("FAE ");
-                if (status & (1<<2)) printk("CRC ");
-                if (status & (1<<3)) printk("LONG ");
-                if (status & (1<<4)) printk("RUNT ");
-                if (status & (1<<5)) printk("ISE ");
-                if (status & (1<<13)) printk("BAR ");
-                if (status & (1<<14)) printk("PAM ");
-                if (status & (1<<15)) printk("MAR ");
-            
-            if (PacketOK(status, length)) {
-
-                printk("\n");
-                int i;
-                for (i = 0; i < 32; i++) {
-                    printk("%x ", incomePacket[i]);
-                }
-                
-                printk("\n");
-            }*/
-            
-            //update Read Pointer
-            //4:for header length(length include 4 bytes CRC)
-            //3:for dword alignment
-            cur = (cur + length + 4 + 3) & ~3;
-            //-4:avoid overflow
-            Out16(private->ioAddress + RTL8139_RX_BUF_PTR, private->currentRX - 0x10); 
-
-
-            if (PacketOK(status, length)) {
-            /* 是正确的包才投递 */
-            
-                /*if ( (private->currentRX + length) > RX_BUFFER_SIZE ) {
-                    //wrap around to end of RxBuffer
-                    memcpy( private->rxBuffer + RX_BUFFER_SIZE ,private->rxBuffer,
-                            (private->currentRX + length - RX_BUFFER_SIZE) );
-                }*/
-                //copy the packet out here
-                //CopyPacket(incomePacket,length - 4);//don't copy 4 bytes CRC
-                
-                //if (PacketOK(status, length)) {
-                NlltReceive(incomePacket, length - 4);
-                //}
-
-                //update Read Pointer
-                //4:for header length(length include 4 bytes CRC)
-                //3:for dword alignment
-                //private->currentRX = (private->currentRX + length + 4 + 3) & ~3;
-                
-                //-4:avoid overflow
-                //Out16(private->ioAddress + RTL8139_RX_BUF_PTR, private->currentRX - 0x10); 
-            } else {
-                break;
-            }
-
-            
-            //}
-            /*} else {
-                // ResetRx();
-                break;
-            }*/
-           //TmpCMD = In8(private->ioAddress + RTL8139_COMMAND);
-       // } while (!(TmpCMD & RTL8139_CMD_BUFE));
-    }
-    private->currentRX = cur;
-
-    printk("RXEND, ");
-    return (TRUE); //Done
-}
-
-void Rtl8139Receive()
-{
-    struct Rtl8139Private *private = &rtl8139Private;
-    
-    printk("RXOK, ");
-    uint8* rx = private->rxBuffer;
-    uint32 cur = private->currentRX;
-
-    /* 如果属于主机 */
-    while (!(In8(private->ioAddress + RTL8139_COMMAND) & 0x01)) {
-        uint32 offset = cur % private->rxBufferLen;
-        uint8* buf = rx + offset;
-        uint32 status = *(uint32 *) buf;
-        uint32 size   = status >> 16;
-        
-        if(size == 0)
-            break;
-        
-        printk("[%x, %x] | ", offset, size);
-
-        int i;
-        for (i = 0; i < 16; i++) {
-            printk("%x ", buf[4 + i + offset]);
-        }
-        printk("\n");
-
-        //NlltReceive(buf + 4, size - 4);
-
-        memset(buf, 0, size);
-        /* 更新成下一个项 */
-        cur = (cur + size + 7) & ~3;
-
-        /* 写入寄存器 */
-        Out16(private->ioAddress + RTL8139_RX_BUF_PTR, cur);
-        
-        private->currentRX = cur;
-    }
-
-    //private->currentRX = cur;
-}
-
 PUBLIC unsigned char *Rtl8139GetMACAddress()
 {
     struct Rtl8139Private *private = &rtl8139Private;
@@ -1259,7 +885,6 @@ PRIVATE void Rtl8139IsrAck(struct Rtl8139Private *private)
     }
 }
 
-
 PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
 {
     printk("RX\n");
@@ -1291,6 +916,21 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
         rxStatus = LittleEndian32ToCpu(*(uint32_t *)(rxRing + ringOffset));
         /* 接收的大小在高16位 */
         rxSize = rxStatus >> 16;
+
+#if RTL8139_DEBUG == 1
+        printk("\nRx packet status: ");
+        if (rxStatus & 1) printk("ROK ");
+        if (rxStatus & (1<<1)) printk("FAE ");
+        if (rxStatus & (1<<2)) printk("CRC ");
+        if (rxStatus & (1<<3)) printk("LONG ");
+        if (rxStatus & (1<<4)) printk("RUNT ");
+        if (rxStatus & (1<<5)) printk("ISE ");
+        if (rxStatus & (1<<13)) printk("BAR ");
+        if (rxStatus & (1<<14)) printk("PAM ");
+        if (rxStatus & (1<<15)) printk("MAR ");
+        printk("\n");
+#endif
+
         /* 如果没有不接收CRC特征，包的大小就是接收大小-4
         这里，默认没有此特征
          */
@@ -1373,7 +1013,10 @@ ToKeepPkt:
         }*/
         received++;
 
-        /* 接收指针指向下一个位置 */
+        /* 接收指针指向下一个位置
+        4:for header length(length include 4 bytes CRC)
+        3:for dword alignment
+         */
         currentRX = (currentRX + rxSize + 4 + 3) & ~3;
         Out16(private->ioAddress + RTL8139_RX_BUF_PTR, (u16)(currentRX - 16));
 
@@ -1546,7 +1189,6 @@ ToMatch:
 
     return 0;
 }
-
 
 /* Initialize the Rx and Tx rings, along with various 'dev' bits. */
 PRIVATE void Rtl8139InitRing(struct Rtl8139Private *private)
@@ -1731,15 +1373,6 @@ PRIVATE int Rtl8139Open(struct Rtl8139Private *private)
     private->txBuffersDma = Vir2Phy(private->txBuffers);
     private->rxRingDma = Vir2Phy(private->rxRing);
 
-    /*for (i = 0; i < 4; i++) {
-        private->txBuffers[i] = (uint8 *) kmalloc(PAGE_SIZE * 2, GFP_KERNEL);
-        if (private->txBuffers[i] == NULL) {
-            kfree(private->rxRing);
-            printk("kmalloc for rtl8139 tx buffer failed!\n");
-            return -1;
-        }
-    }*/
-
     /* 传输标志设置 */
     private->txFlags = (TX_FIFO_THRESH << 11) & 0x003f0000;
 
@@ -1748,92 +1381,12 @@ PRIVATE int Rtl8139Open(struct Rtl8139Private *private)
     /* 设置硬件信息 */
     rtl8139HardwareStart(private);
 
-    /* 注册并打开中断 */
+    /* 注册并打开对应的中断 */
 	RegisterIRQ(private->irq, Rtl8139Handler, IRQF_DISABLED | IRQF_SHARED, "IRQ-Network", DEVNAME, (unsigned int)private);
-    //DisableIRQ(private->irq);
-    
+
     printk("open done!\n");
-
-/*
-    memset(private->rxBuffer, 0, RX_BUFFER_SIZE + 1500);
-    
-    printk("rx buffer addr:%x -> %x\n", private->rxBuffer, Vir2Phy(private->rxBuffer));
-
-    private->currentRX = 0;
-    private->rxWriteAddr = 0;
-*/
-    /* 4个页长度，每个接收缓冲区4096字节 */
-    //private->rxBufferLen = RX_BUFFER_SIZE;
-
-    /* 设置接收缓冲区的起始物理地址 */
-    /*Out32(private->ioAddress + RTL8139_RX_BUF_ADDR, Vir2Phy(private->rxBuffer));
-    
-    Out32(private->ioAddress + RTL8139_RX_BUF_PTR, private->currentRX);
-    
-    Out8(private->ioAddress + 0x3a, 0);
-    Out8(private->ioAddress + 0x3a + 1, 0);
-    */
-    /* init tx buffers
-    配置传送缓冲区
-    */
-    /*private->currentTX = 0;
-    private->txSetup = 0;
-    private->txFinish = 0;*/
-    //private->txFreeNR = 4;
-/*
-    AtomicSet(&private->txFreeNR, 4);
-    
-
-    uint32_t txConfig = In32(private->ioAddress + RTL8139_TCR);
-    printk("tx config :%x\n", txConfig);*/
-
-    /* 配置传输设定 */
-    //Out16(RTL8139_TCR, (0x06 << 8));    
-    
-    /* 设定传输的版本是rtl8139 */
-    //Out8(RTL8139_TCR + 3, 0x60);
-    
-    /* 
-     * set IMR(Interrupt Mask Register)
-     * To set the RTL8139 to accept only the Transmit OK (TOK) and Receive OK (ROK) interrupts, 
-     * we would have the TOK and ROK bits of the IMR high and leave the rest low. 
-     * That way when a TOK or ROK IRQ happens, it actually will go through and fire up an IRQ.
-     * 打开接收和传输中断
-     */
-   // Out16(private->ioAddress + RTL8139_INTR_MASK, RTL8139_RX_OK | RTL8139_TX_OK);
-
-    /* 
-     * configuring receive buffer(RCR)
-     * Before hoping to see a packet coming to you, you should tell the RTL8139 to accept packets 
-     * based on various rules. The configuration register is RCR.
-     *  AB - Accept Broadcast: Accept broadcast packets sent to mac ff:ff:ff:ff:ff:ff
-     *  AM - Accept Multicast: Accept multicast packets.
-     *  APM - Accept Physical Match: Accept packets send to NIC's MAC address.
-     *  AAP - Accept All Packets. Accept all packets (run in promiscuous mode).
-     *  Another bit, the WRAP bit, controls the handling of receive buffer wrap around.
-     * 配置接收的内容
-     */
-    /* AB + AM + APM + AAP + WRAP 
-    配置接受数据的大小：
-        11位-> 
-        0x00 = 8kb+16byte
-        0x01 = 16kb+16byte
-        0x10 = 32kb+16byte
-        0x11 = 64kb+16byte
-    */
-/*
-    Out32(private->ioAddress + RTL8139_RCR, (0x00 << 13) | (0x00 << 11) | 
-            (0x00 << 8) |(1 << 7) | 0x0f); 
-*/
-
-    //Spin("test");
-
-    /* enable receive and transmitter
-    开启接收和传输 */
-    //Out8(private->ioAddress + RTL8139_COMMAND, 0x0c);
     return 0;
 }
-
 
 PUBLIC int InitRtl8139Driver()
 {
