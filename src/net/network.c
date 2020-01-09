@@ -146,7 +146,6 @@ PRIVATE void NetwrokTest()
 
             //SysSleep(1);
             //printk("wakeup");
-            
         }
     #endif
 

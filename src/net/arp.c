@@ -142,12 +142,16 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
     /* 根据操作码，执行不同的操作 */
     switch (htons(header->opcode)) {
     case ARP_OP_REQUEST:
+        printk(".REQ");
+        
         /*printk("%d.%d.%d.%d want to know who have IP: %d.%d.%d.%d\n",
             sourceIpInByte[3], sourceIpInByte[2], sourceIpInByte[1], sourceIpInByte[0],
             destIpInByte[3], destIpInByte[2], destIpInByte[1], destIpInByte[0]);
         */
         /* 如果目标IP和自己的IP一样，也就是要请求本机的IP，那么发送一个“回复”给发送者（其它电脑）。 */
         if (destIP == NetworkGetAddress()) {
+            printk(".ME");
+        
             printk("oh, I have it\n");
             printk("%d.%d.%d.%d want to know who have IP: %d.%d.%d.%d\n",
             sourceIpInByte[3], sourceIpInByte[2], sourceIpInByte[1], sourceIpInByte[0],
@@ -172,10 +176,13 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
             /* 发送给之前的源以太网地址，ARP协议 */
             EthernetSend(ethAddr, PROTO_ARP, buf->data, buf->dataLen);
         } else {
+            printk(".OTHER");
+        
             //printk("host:%x not the dest that %x want to now!\n", NetworkGetAddress(), destIP);
         }
         break;
     case ARP_OP_REPLY:
+        printk(".REP");
         
         printk("arp reply [%d.%d.%d.%d] -> [%2x:%2x:%2x:%2x:%2x:%2x]\n",
             sourceIpInByte[3], sourceIpInByte[2], sourceIpInByte[1], sourceIpInByte[0], 

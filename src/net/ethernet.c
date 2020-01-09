@@ -127,12 +127,13 @@ PUBLIC void EthernetReceive(unsigned char *data, size_t len)
 
         /* 如果是arp协议，就传输给arp处理 */
         if (htons(header->protocol) == PROTO_ARP) {
+            printk("ARP");
             buf->data += SIZEOF_ETHERNET_HEADER;
             buf->dataLen -= SIZEOF_ETHERNET_HEADER;
 
             ArpReceive(header->source, buf);
         } else {
-            printk("\n[UNKNOWN]!\n");
+            //printk("\n[UNKNOWN]!\n");
             /*printk("net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",
                 header->source[0], header->source[1], header->source[2],
                 header->source[3], header->source[4], header->source[5],
@@ -143,6 +144,8 @@ PUBLIC void EthernetReceive(unsigned char *data, size_t len)
             if (!memcmp(ethernetAddress, header->dest, ETH_ADDR_LEN)) {
                 char *p = (char *) buf->data;
                 printk("data: %s\n", p);
+            } else {
+                printk("-");
             }
         }
 

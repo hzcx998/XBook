@@ -1,4 +1,99 @@
 /*
+
+	8139too.c: A RealTek RTL-8139 Fast Ethernet driver for Linux.
+
+	Maintained by Jeff Garzik <jgarzik@pobox.com>
+	Copyright 2000-2002 Jeff Garzik
+
+	Much code comes from Donald Becker's rtl8139.c driver,
+	versions 1.13 and older.  This driver was originally based
+	on rtl8139.c version 1.07.  Header of rtl8139.c version 1.13:
+
+	-----<snip>-----
+
+        	Written 1997-2001 by Donald Becker.
+		This software may be used and distributed according to the
+		terms of the GNU General Public License (GPL), incorporated
+		herein by reference.  Drivers based on or derived from this
+		code fall under the GPL and must retain the authorship,
+		copyright and license notice.  This file is not a complete
+		program and may only be used when the entire operating
+		system is licensed under the GPL.
+
+		This driver is for boards based on the RTL8129 and RTL8139
+		PCI ethernet chips.
+
+		The author may be reached as becker@scyld.com, or C/O Scyld
+		Computing Corporation 410 Severn Ave., Suite 210 Annapolis
+		MD 21403
+
+		Support and updates available at
+		http://www.scyld.com/network/rtl8139.html
+
+		Twister-tuning table provided by Kinston
+		<shangh@realtek.com.tw>.
+
+	-----<snip>-----
+
+	This software may be used and distributed according to the terms
+	of the GNU General Public License, incorporated herein by reference.
+
+	Contributors:
+
+		Donald Becker - he wrote the original driver, kudos to him!
+		(but please don't e-mail him for support, this isn't his driver)
+
+		Tigran Aivazian - bug fixes, skbuff free cleanup
+
+		Martin Mares - suggestions for PCI cleanup
+
+		David S. Miller - PCI DMA and softnet updates
+
+		Ernst Gill - fixes ported from BSD driver
+
+		Daniel Kobras - identified specific locations of
+			posted MMIO write bugginess
+
+		Gerard Sharp - bug fix, testing and feedback
+
+		David Ford - Rx ring wrap fix
+
+		Dan DeMaggio - swapped RTL8139 cards with me, and allowed me
+		to find and fix a crucial bug on older chipsets.
+
+		Donald Becker/Chris Butterworth/Marcus Westergren -
+		Noticed various Rx packet size-related buglets.
+
+		Santiago Garcia Mantinan - testing and feedback
+
+		Jens David - 2.2.x kernel backports
+
+		Martin Dennett - incredibly helpful insight on undocumented
+		features of the 8139 chips
+
+		Jean-Jacques Michel - bug fix
+
+		Tobias Ringström - Rx interrupt status checking suggestion
+
+		Andrew Morton - Clear blocked signals, avoid
+		buffer overrun setting current->comm.
+
+		Kalle Olavi Niemitalo - Wake-on-LAN ioctls
+
+		Robert Kuebel - Save kernel thread from dying on any signal.
+
+    -----<snip>-----
+    This was transplanted to BookOS by Jason Hu.
+    www.book-os.org
+
+	Submitting bug reports:
+
+		"rtl8139-diag -mmmaaavvveefN" output
+		enable RTL8139_DEBUG below, and look at 'dmesg' or kernel log
+
+*/
+
+/*
  * file:		drivers/network/rtl8139.c
  * auther:		Jason Hu
  * time:		2020/1/1
@@ -17,6 +112,9 @@
 6.网卡接收
 */
 
+#define DRV_NAME	"8139too"
+#define DRV_VERSION	"0.9.28"
+
 #include <book/config.h>
 #include <book/debug.h>
 #include <book/arch.h>
@@ -32,126 +130,15 @@
 
 #include <drivers/rtl8139.h>
 
-#define DEVNAME "rtl8139"
+#define RTL8139_DRIVER_NAME   DEV_NAME " Fast Ethernet driver " DRV_VERSION
 
 /* define to 1, 2 or 3 to enable copious debugging info */
-#define RTL8139_DEBUG 1
+#define RTL8139_DEBUG 3
 
-/* define to 1 to disable lightweight runtime debugging checks */
-#undef RTL8139_NDEBUG
-
-#define RTL8139_MAC_ADDR_LEN    6
-#define RTL8139_NUM_TX_BUFFER   4
-#define RTL8139_RX_BUF_SIZE  	32*1024	
-
-
-/*PCI rtl8139 config space register*/
+/* PCI rtl8139 配置空间寄存器 */
 #define RTL8139_VENDOR_ID   0x10ec
 #define RTL8139_DEVICE_ID   0x8139
-
-/*rtl8139 register*/
-#define RTL8139_MAC         0x00
-#define RTL8139_MAR0        0x08
-
-#define RTL8139_TX_STATUS0  0x10
-#define RTL8139_TX_ADDR0    0x20
-#define RTL8139_RX_BUF      0x30
-#define RTL8139_COMMAND     0x37
-#define RTL8139_RX_BUF_PTR  0x38
-#define RTL8139_RX_BUF_ADDR 0x3A
-
-#define RTL8139_INTR_MASK   0x3C
-#define RTL8139_INTR_STATUS 0x3E
-#define RTL8139_TCR         0x40
-#define RTL8139_RCR         0x44
-#define RTL8139_RX_MISSED   0x4C    /* 24 bits valid, write clears. */
-
-#define RTL8139_9346CR		0x50
-
-#define RTL8139_CONFIG_0    0x51
-#define RTL8139_CONFIG_1    0x52
-#define RTL8139_CONFIG_3    0x59
-#define RTL8139_CONFIG_4    0x5A
-
-#define RTL8139_HLT_CLK     0x5B
-#define RTL8139_MULTI_INTR  0x5C
-
-#define RTL8139_CSCR        0x74    /* Chip Status and Configuration Register. */
-
-
-/*rtl8139 intrrupt status register*/
-#define RTL8139_RX_OK   	  	0x0001
-#define RTL8139_INTR_STATUS_RER  		0x0002
-#define RTL8139_TX_OK     	0x0004
-#define RTL8139_INTR_STATUS_TER			0x0008
-#define RTL8139_INTR_STATUS_RXOVW		0x0010
-#define RTL8139_INTR_STATUS_PUN 		0x0020 
-#define RTL8139_INTR_STATUS_FOVW 		0x0040 
-/*reserved*/
-#define RTL8139_INTR_STATUS_LENCHG		0x2000 
-#define RTL8139_INTR_STATUS_TIMEOUT 	0x4000
-#define RTL8139_INTR_STATUS_SERR   		0x8000 
-
-/*rtl8139 command register*/
-#define RTL8139_CMD_BUFE   	0x01	/*[R] Buffer Empty*/
-#define RTL8139_CMD_TX  	0x04	/*[R/W] Transmitter Enable*/
-#define RTL8139_CMD_RX  	0x08	/*[R/W] Receiver Enable*/
-#define RTL8139_CMD_RST  	0x10	/*[R/W] Reset*/
-
-/*rtl8139 receive config register*/
-#define RTL8139_RCR_AAP   	0x01	/*[R/W] Accept All Packets*/
-#define RTL8139_RCR_APM   	0x02	/*[R/W] Accept Physical Match packets*/
-#define RTL8139_RCR_AM   	0x04	/*[R/W] Accept Multicast packets*/
-#define RTL8139_RCR_AB   	0x08	/*[R/W] Accept Broadcast packets*/
-#define RTL8139_RCR_AR   	0x10	/*[R/W] Accept Broadcast packets*/
-#define RTL8139_RCR_AER   	0x20	/*[R/W] Accept Broadcast packets*/
-
-#define RTL8139_RCR_RBLEN_32K   	2	/*[R/W] 2 means 32k + 16 byte*/
-#define RTL8139_RCR_RBLEN_SHIFT   	11
-	
-#define RTL8139_RCR_MXDMA_1024K   	0x06		// 110b
-#define RTL8139_RCR_MXDMA_SHIFT 	8
-
-#define RTL8139_RCR_RXFTH_NOMAL   	0x07		// 111b
-#define RTL8139_RCR_RXFTH_SHIFT 	13
-
-/*rtl8139 transmit config register*/
-#define RTL8139_RX_TX_MXDMA  	    0x06		// 110b(1024KB)
-#define RTL8139_TCR_MXDMA_SHIFT  	8
-
-#define RTL8139_TCR_RXFTH_NORMAL  	0x03	// 11b
-#define RTL8139_TCR_RXFTH_SHIFT 	24
-
-/*RTL8139 TSD register*/
-#define RTL8139_TSD_OWN   0x2000		/*[R/W] OWN*/
-#define RTL8139_TSD_TUN   0x4000		/*[R] Transmit FIFO Underrun*/
-#define RTL8139_TSD_TOK   0x8000		/*[R] Transmit OK*/
-#define RTL8139_TSD_NCC   0x1000000		/*[R/W] NCC*/
-#define RTL8139_TSD_CDH   0x10000000	/*[R] CD Heart Beat*/
-#define RTL8139_TSD_OWC   0x20000000	/*[R] Out of Window Collision*/
-#define RTL8139_TSD_TABT  0x40000000	/*[R] Transmit Abort*/
-#define RTL8139_TSD_CRS   0x80000000	/*[R] Carrier Sense Lost*/
-
-#define RTL8139_TSD_BOTH  (RTL8139_TSD_OWN | RTL8139_TSD_TOK)
-
-/*RTL8139 9346CMD register*/
-#define RTL8139_9346CMD_EE  0XC0	
-
-/*RTL8139 Tranmit configuration register*/
-#define RTL8139_TCR_MXDMA_UNLIMITED  	0X07	
-#define RTL8139_TCR_IFG_NORMAL  		0X07	
-
-#define RTL8139_ETH_ZLEN  		60	
-
-#define RX_MIN_PACKET_LENGTH  		8	
-
-#define RX_MAX_PACKET_LENGTH  		8*1024	
-
-#define RX_BUFFER_SIZE  		(8*1024+16)	
-
-/* 传输缓冲区数量 */
-#define TX_BUFFER_NR 4
-
+ 
 /* ----定义接收和传输缓冲区的大小---- */
 
 #define RX_BUF_IDX	2	/* 32K ring */
@@ -184,13 +171,16 @@
 #define TX_DMA_BURST	6	/* Maximum PCI burst, '6' is 1024 */
 #define TX_RETRY	8	/* 0-15.  retries = 16 + (TX_RETRY * 16) */
 
-
 enum {
 	HAS_MII_XCVR = 0x010000,
 	HAS_CHIP_XCVR = 0x020000,
 	HAS_LNK_CHNG = 0x040000,
 };
 
+#define RTL_NUM_STATS 4		/* number of ETHTOOL_GSTATS u64's */
+#define RTL_REGS_VER 1		/* version of reg. data in ETHTOOL_GREGS */
+#define RTL_MIN_IO_SIZE 0x80
+#define RTL8139B_IO_SIZE 256
 #define RTL8129_CAPS	HAS_MII_XCVR
 #define RTL8139_CAPS	(HAS_CHIP_XCVR|HAS_LNK_CHNG)
 
@@ -207,6 +197,47 @@ PRIVATE CONST struct {
 } boardInfo[] = {
 	{ "RealTek RTL8139", RTL8139_CAPS },
 	{ "RealTek RTL8129", RTL8129_CAPS },
+};
+
+
+/* Symbolic offsets to registers. */
+enum Rtl8139Registers {
+	MAC0		= 0,	 /* Ethernet hardware address. */
+	MAR0		= 8,	 /* Multicast filter. */
+	TX_STATUS0	= 0x10,	 /* Transmit status (Four 32bit registers). */
+	TX_ADDR0    = 0x20,	 /* Tx descriptors (also four 32bit). */
+	RX_BUF		= 0x30,
+	CHIP_CMD	= 0x37,
+	RX_BUF_PTR	= 0x38,
+	RX_BUF_ADDR	= 0x3A,
+	INTR_MASK	= 0x3C,
+	INTR_STATUS	= 0x3E,
+	TX_CONFIG	= 0x40,
+	RX_CONFIG	= 0x44,
+	TIMER		= 0x48,	 /* A general-purpose counter. */
+	RX_MISSED	= 0x4C,  /* 24 bits valid, write clears. */
+	CFG9346		= 0x50,
+	CONFIG0		= 0x51,
+	CONFIG1		= 0x52,
+	TIMER_INT	= 0x54,
+	MEDIA_STATUS= 0x58,
+	CONFIG3		= 0x59,
+	CONFIG4		= 0x5A,	 /* absent on RTL-8139A */
+	HLT_CTL		= 0x5B,
+	MULTI_INTR	= 0x5C,
+	TX_SUMMARY	= 0x60,
+	BASIC_MODE_CTRL	    = 0x62,
+	BASIC_MODE_STATUS	= 0x64,
+	NWAY_ADVERT	= 0x66,
+	NWAY_LPAR	= 0x68,
+	NWAY_EXPANSION	= 0x6A,
+	/* Undocumented registers, but required for proper operation. */
+	FIFOTMS		= 0x70,	 /* FIFO Control and test. */
+	CSCR		= 0x74,	 /* Chip Status and Configuration Register. */
+	PARA78		= 0x78,
+	FLASH_REG	= 0xD4,	/* Communication with Flash ROM, four bytes. */
+	PARA7c		= 0x7c,	 /* Magic transceiver parameter register. */
+	CONFIG5		= 0xD8,	 /* absent on RTL-8139A */
 };
 
 enum ClearBitMasks {
@@ -291,25 +322,6 @@ enum TxConfigBits {
 	TX_VERSION_MASK	= 0x7C800000, /* mask out version bits 30-26, 23 */
 };
 
-enum RxConfigBits {
-	/* rx fifo threshold */
-	RX_CFG_FIFO_SHIFT	= 13,
-	RX_CFG_FIFO_NONE	= (7 << RX_CFG_FIFO_SHIFT),
-
-	/* Max DMA burst */
-	RX_CFG_DMA_SHIFT	= 8,
-	RX_CFG_DMA_UNLIMITED = (7 << RX_CFG_DMA_SHIFT),
-
-	/* rx ring buffer length */
-	RX_CFG_RCV_8K	= 0,
-	RX_CFG_RCV_16K	= (1 << 11),
-	RX_CFG_RCV_32K	= (1 << 12),
-	RX_CFG_RCV_64K	= (1 << 11) | (1 << 12),
-
-	/* Disable packet wrap at end of Rx buffer. (not possible with 64k) */
-	RX_NO_WRAP	= (1 << 7),
-};
-
 /* Bits in Config1 */
 enum Config1Bits {
 	CFG1_PM_ENABLE	= 0x01,
@@ -336,6 +348,41 @@ enum Config3Bits {
 	CFG3_GNT   	            = (1 << 7), /* 1	= delay 1 clock from PCI GNT signal */
 };
 
+/* Bits in Config4 */
+enum Config4Bits {
+	LWPTN	= (1 << 2),	/* not on 8139, 8139A */
+};
+
+/* Bits in Config5 */
+enum Config5Bits {
+	Cfg5_PME_STS   	= (1 << 0), /* 1	= PCI reset resets PME_Status */
+	Cfg5_LANWake   	= (1 << 1), /* 1	= enable LANWake signal */
+	Cfg5_LDPS      	= (1 << 2), /* 0	= save power when link is down */
+	Cfg5_FIFOAddrPtr= (1 << 3), /* Realtek internal SRAM testing */
+	Cfg5_UWF        = (1 << 4), /* 1 = accept unicast wakeup frame */
+	Cfg5_MWF        = (1 << 5), /* 1 = accept multicast wakeup frame */
+	Cfg5_BWF        = (1 << 6), /* 1 = accept broadcast wakeup frame */
+};
+
+enum RxConfigBits {
+	/* rx fifo threshold */
+	RX_CFG_FIFO_SHIFT	= 13,
+	RX_CFG_FIFO_NONE	= (7 << RX_CFG_FIFO_SHIFT),
+
+	/* Max DMA burst */
+	RX_CFG_DMA_SHIFT	= 8,
+	RX_CFG_DMA_UNLIMITED = (7 << RX_CFG_DMA_SHIFT),
+
+	/* rx ring buffer length */
+	RX_CFG_RCV_8K	= 0,
+	RX_CFG_RCV_16K	= (1 << 11),
+	RX_CFG_RCV_32K	= (1 << 12),
+	RX_CFG_RCV_64K	= (1 << 11) | (1 << 12),
+
+	/* Disable packet wrap at end of Rx buffer. (not possible with 64k) */
+	RX_NO_WRAP	= (1 << 7),
+};
+
 /* Twister tuning parameters from RealTek.
    Completely undocumented, but required to tune bad links on some boards. */
 enum CSCRBits {
@@ -350,7 +397,6 @@ enum Config9346Bits {
 	CFG9346_LOCK	= 0x00,
 	CFG9346_UNLOCK	= 0xC0,
 };
-
 
 typedef enum {
 	CH_8139	= 0,
@@ -449,6 +495,12 @@ struct Rtl8139Stats {
 };
 
 
+/* 网络框架结构 */
+
+/* feature */
+#define NET_FEATURE_RXALL     (1 << 0)        // 接收所有包
+#define NET_FEATURE_RXFCS     (1 << 1)        // 接收所有包
+
 struct NetDeviceStatus {
     /* 错误记录 */
     unsigned long txErrors;         /* 传输错误记录 */
@@ -480,15 +532,15 @@ struct Rtl8139Private
     unsigned char macAddress[6];
 	flags_t flags;
 	struct PciDevice *pciDevice;
-	struct NetDeviceStatus stats;  /* 设备状态 */
 
+    unsigned int devFeatures;       /* 设备结构特征 */
+
+	struct NetDeviceStatus stats;  /* 设备状态 */
     struct RtlExtraStats xstats;    /* 扩展状态 */            
 
     unsigned char *rxBuffer;
 	unsigned char *rxRing;
     unsigned char  currentRX;   /* CAPR, Current Address of Packet Read */
-    unsigned char  rxWriteAddr; /* CBR, Current Buffer Address of Packet write */
-    unsigned int  rxBufferLen;
     flags_t rxFlags;
     dma_addr_t rxRingDma;       /* dma物理地址 */
     struct Rtl8139Stats	rxStats;
@@ -498,10 +550,10 @@ struct Rtl8139Private
     unsigned long   currentTX;
     unsigned long   dirtyTX;
     Atomic_t   txFreeNR;   /* 传输空闲数量 */
-    unsigned char   txSetup, txFinish;
     flags_t txFlags;
     dma_addr_t txBuffersDma;       /* dma物理地址 */
     struct Rtl8139Stats	txStats;
+
 
     Chip_t chipset;     /* 芯片集 */
 
@@ -620,9 +672,19 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
     /* 如果还有剩余的传输项 */
     if (AtomicGet(&private->txFreeNR) > 0) {
         //printk("!TX\n");
-#if RTL8139_DEBUG == 1        
+#if RTL8139_DEBUG == 2
         printk("Start TX, free %d\n", AtomicGet(&private->txFreeNR));
 #endif
+
+#if RTL8139_DEBUG == 3
+        printk("\nTransmit frame size %d, contents:\n", length);
+        int i;
+        for (i = 0; i < length; i++) {
+            printk("%x ", buf[i]);
+        }
+        printk("\n");
+#endif
+
         /* 如果长度是在传输范围内 */
         if (likely(length < TX_BUF_SIZE)) {
             /* 比最小数据帧还少 */
@@ -648,16 +710,16 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
         WriteMemoryBarrier();
 
         /* 传输至少60字节的数据 */
-        Out32(private->ioAddress + RTL8139_TX_STATUS0 + (entry * 4),
+        Out32(private->ioAddress + TX_STATUS0 + (entry * 4),
                 private->txFlags | max(length, (uint32_t )ETH_ZLEN));
-        In32(private->ioAddress + RTL8139_TX_STATUS0 + (entry * 4)); // flush
+        In32(private->ioAddress + TX_STATUS0 + (entry * 4)); // flush
 
         /* 指向下一个传输描述符 */
         private->currentTX = Rtl8139NextDesc(private->currentTX);
 
         /* 减少传输项数量 */
         AtomicDec(&private->txFreeNR);
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
         printk("Start OK, free %d\n", AtomicGet(&private->txFreeNR));
 #endif        
         //printk("~TX\n");
@@ -671,7 +733,7 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
     }
     InterruptSetStatus(oldStatus);
     //EnableInterrupt();
-#if RTL8139_DEBUG == 1 
+#if RTL8139_DEBUG == 2 
     printk("Queued Tx packet size %d to slot %d\n",
 		    length, entry);
 #endif
@@ -680,10 +742,12 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
 
 PRIVATE int Rtl8139TxInterrupt(struct Rtl8139Private *private)
 {
+#if RTL8139_DEBUG == 1
     printk("TX\n");
+#endif
     /* 空闲数量小于传输描述符数量才能进行处理 */
     while (AtomicGet(&private->txFreeNR) < NUM_TX_DESC) {
-#if RTL8139_DEBUG == 1        
+#if RTL8139_DEBUG == 2        
         printk("TX, free %d\n", AtomicGet(&private->txFreeNR));
 #endif
         /* 获取第一个脏传输 */
@@ -691,7 +755,7 @@ PRIVATE int Rtl8139TxInterrupt(struct Rtl8139Private *private)
         int txStatus;
 
         /* 读取传输状态 */
-        txStatus = In32(private->ioAddress + RTL8139_TX_STATUS0 + (entry * 4));
+        txStatus = In32(private->ioAddress + TX_STATUS0 + (entry * 4));
         
         /* 如果传输状态不是下面的状态之一，就跳出，说明还被处理 */
         if (!(txStatus & (TX_STAT_OK | TX_UNDERRUN | TX_ABORTED))) {
@@ -710,10 +774,10 @@ PRIVATE int Rtl8139TxInterrupt(struct Rtl8139Private *private)
             if (txStatus & TX_ABORTED) {
                 private->stats.txAbortedErrors++;
                 /* 清除传输控制的abort位 */
-                Out32(private->ioAddress + RTL8139_TCR, TX_CLEAR_ABT);
+                Out32(private->ioAddress + TX_CONFIG, TX_CLEAR_ABT);
 
                 /* 中断状态设置成传输错误 */
-                Out16(private->ioAddress + RTL8139_INTR_STATUS, TX_ERR);
+                Out16(private->ioAddress + INTR_STATUS, TX_ERR);
                 /* 写内存屏障 */
                 WriteMemoryBarrier();
             }
@@ -760,11 +824,11 @@ PRIVATE int Rtl8139TxInterrupt(struct Rtl8139Private *private)
 
         /* 空闲数量又增加 */
         AtomicInc(&private->txFreeNR);
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
         printk("OK, free %d\n", AtomicGet(&private->txFreeNR));
 #endif
     }
-#if RTL8139_DEBUG == 1    
+#if RTL8139_DEBUG == 2    
     printk("TX, end free %d\n", AtomicGet(&private->txFreeNR));
 #endif
     return 0;
@@ -784,15 +848,17 @@ PUBLIC unsigned char *Rtl8139GetMACAddress()
 PRIVATE void Rtl8139WeirdInterrupt(struct Rtl8139Private *private,
         int status, int linkChanged)
 {
-#if RTL8139_DEBUG == 1
+    ASSERT(private != NULL);
+
+#if RTL8139_DEBUG == 2
     printk("Abnormal interrupt, status %x\n", status);
 #endif
     /* Update the error count.
     更新错过的包数
      */
-	private->stats.rxMissedErrors += In32(private->ioAddress + RTL8139_RX_MISSED);
+	private->stats.rxMissedErrors += In32(private->ioAddress + RX_MISSED);
 	/* 归零，下次计算 */
-    Out32(private->ioAddress + RTL8139_RX_MISSED, 0);
+    Out32(private->ioAddress + RX_MISSED, 0);
 
 	if ((status & RX_UNDERRUN) && linkChanged &&
 	    (private->drvFlags & HAS_LNK_CHNG)) {
@@ -822,7 +888,7 @@ PRIVATE void Rtl8139WeirdInterrupt(struct Rtl8139Private *private,
 PRIVATE void Rtl8139RxError(u32 rxStatus,struct Rtl8139Private *private)
 {
     u8 tmp8;
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
     printk("Ethernet frame had errors, status %x\n", rxStatus);
 #endif
     private->stats.rxErrors++;
@@ -853,13 +919,13 @@ PRIVATE void Rtl8139RxError(u32 rxStatus,struct Rtl8139Private *private)
 
     /* ---接收重置---- */
 
-    tmp8 = In8(private->ioAddress + RTL8139_COMMAND);
+    tmp8 = In8(private->ioAddress + CHIP_CMD);
     /* 清除接收位 */
-    Out8(private->ioAddress + RTL8139_COMMAND, tmp8 & ~CMD_RX_ENABLE);
+    Out8(private->ioAddress + CHIP_CMD, tmp8 & ~CMD_RX_ENABLE);
     /* 再写入接收位 */
-    Out8(private->ioAddress + RTL8139_COMMAND, tmp8);
+    Out8(private->ioAddress + CHIP_CMD, tmp8);
     /* 写入接收配置 */
-    Out32(private->ioAddress + RTL8139_RCR, private->rxConfig);
+    Out32(private->ioAddress + RX_CONFIG, private->rxConfig);
     private->currentRX = 0;
 
 }
@@ -868,7 +934,7 @@ PRIVATE void Rtl8139IsrAck(struct Rtl8139Private *private)
 {
     u16 status;
 
-    status = In16(private->ioAddress + RTL8139_INTR_STATUS) & RX_ACK_BITS;
+    status = In16(private->ioAddress + INTR_STATUS) & RX_ACK_BITS;
 
     /* Clear out errors and receive interrupts */
     if (likely(status != 0)) {
@@ -879,28 +945,30 @@ PRIVATE void Rtl8139IsrAck(struct Rtl8139Private *private)
                 private->stats.rxFifoErrors++;   
         }
         /* 写入接收回答位 */
-        Out16(private->ioAddress + RTL8139_INTR_STATUS, RX_ACK_BITS);
-        In16(private->ioAddress + RTL8139_INTR_STATUS); // for flush
+        Out16(private->ioAddress + INTR_STATUS, RX_ACK_BITS);
+        In16(private->ioAddress + INTR_STATUS); // for flush
 
     }
 }
 
 PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
 {
+#if RTL8139_DEBUG == 1
     printk("RX\n");
+#endif
     int received = 0;
     unsigned char *rxRing = private->rxRing;
     unsigned int currentRX = private->currentRX;
     unsigned int rxSize = 0;
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
     printk("In %s(), current %x BufAddr %x, free to %x, Cmd %x\n",
 		    __func__, (u16)currentRX,
-		    In16(private->ioAddress + RTL8139_RX_BUF_ADDR),
-            In16(private->ioAddress + RTL8139_RX_BUF_PTR),
-            In8(private->ioAddress + RTL8139_COMMAND));
+		    In16(private->ioAddress + RX_BUF_ADDR),
+            In16(private->ioAddress + RX_BUF_PTR),
+            In8(private->ioAddress + CHIP_CMD));
 #endif
     /* 当队列在运行中，并且接收缓冲区不是空 */
-    while (!(In8(private->ioAddress + RTL8139_COMMAND) & RX_BUFFER_EMPTY)) {
+    while (!(In8(private->ioAddress + CHIP_CMD) & RX_BUFFER_EMPTY)) {
         /* 获取数据的偏移 */
         u32 ringOffset = currentRX % RX_BUF_LEN;
         u32 rxStatus;
@@ -917,7 +985,7 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
         /* 接收的大小在高16位 */
         rxSize = rxStatus >> 16;
 
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
         printk("\nRx packet status: ");
         if (rxStatus & 1) printk("ROK ");
         if (rxStatus & (1<<1)) printk("FAE ");
@@ -932,24 +1000,22 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
 #endif
 
         /* 如果没有不接收CRC特征，包的大小就是接收大小-4
-        这里，默认没有此特征
+        如果有，那么包的大小就是接收到的大小
          */
-        pktSize = rxSize - 4;
-#if RTL8139_DEBUG == 1
+        if (likely(!(private->devFeatures & NET_FEATURE_RXFCS))) {
+            //printk("\n<NO CRC>");
+            pktSize = rxSize - 4;
+        } else {
+            //printk("\n<CRC>");
+            pktSize = rxSize;
+        }
+        //printk("%x\n", rxRing[ringOffset + pktSize - 1]);
+        
+#if RTL8139_DEBUG == 2
         printk("%s() status %x, size %x, cur %x\n",
 			  __func__, rxStatus, rxSize, currentRX);
 #endif
-        /* 如果要打印收到的数据，就可以在此打印 */
-#if RTL8139_DEBUG > 1
-        printk("\nFrame contents:\n");
-        int i;
-        for (i = 0; i < 16; i++) {
-            printk("%x ", rxRing[ringOffset + i]);
-        }
-        printk("\n");
         
-#endif
-
         /* Packet copy from FIFO still in progress.
 		 * Theoretically, this should never happen
 		 * since EarlyRx is disabled.
@@ -976,7 +1042,8 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
                 (!(rxStatus & RX_STATUS_OK)))) {
             
             /* 如果接收所有包 */
-            if ((rxSize <= (MAX_ETH_FRAME_SIZE + 4)) &&
+            if ((private->devFeatures & NET_FEATURE_RXALL) &&
+                (rxSize <= (MAX_ETH_FRAME_SIZE + 4)) &&
                 (rxSize >= 8) &&
                 (!(rxStatus & RX_STATUS_OK))) {
                 private->stats.rxErrors++;
@@ -996,12 +1063,25 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
         }
         
 ToKeepPkt:
+
+/* 如果要打印收到的数据，就可以在此打印 */
+#if RTL8139_DEBUG == 3
+        printk("\nReceive frame size %d, contents: \n", pktSize);
+        int i;
+        for (i = 0; i < pktSize; i++) {
+            printk("%x ", rxRing[4 + ringOffset + i]);
+        }
+        printk("\n");
+#endif
+
+
         /* Malloc up new buffer, compatible with net-2e. */
 		/* Omit the four octet CRC from the length. */
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
         printk("\n#RX: upload packet.\n");
 #endif    
-        //NlltReceive(&rxRing[ringOffset + 4], pktSize);
+
+        NlltReceive(&rxRing[ringOffset + 4], pktSize);
         /* 创建接收缓冲区，并把数据复制进去 */
         //if (!NlltReceive(&rxRing[ringOffset + 4], pktSize)) {
             /* 更新状态 */
@@ -1018,7 +1098,7 @@ ToKeepPkt:
         3:for dword alignment
          */
         currentRX = (currentRX + rxSize + 4 + 3) & ~3;
-        Out16(private->ioAddress + RTL8139_RX_BUF_PTR, (u16)(currentRX - 16));
+        Out16(private->ioAddress + RX_BUF_PTR, (u16)(currentRX - 16));
 
         Rtl8139IsrAck(private);
 
@@ -1027,12 +1107,12 @@ ToKeepPkt:
     /* 如果没有接收到或者大小出错，上面的ACK就不会执行到，在这里再次调用 */
     if (unlikely(!received || rxSize == 0xfff0))
         Rtl8139IsrAck(private);
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
     printk("Done %s(), current %04x BufAddr %04x, free to %04x, Cmd %02x\n",
 		    __func__, currentRX,
-		    In16(private->ioAddress + RTL8139_RX_BUF_ADDR),
-            In16(private->ioAddress + RTL8139_RX_BUF_PTR),
-            In8(private->ioAddress + RTL8139_COMMAND));
+		    In16(private->ioAddress + RX_BUF_ADDR),
+            In16(private->ioAddress + RX_BUF_PTR),
+            In8(private->ioAddress + CHIP_CMD));
 #endif
     private->currentRX = currentRX;
 ToOut:
@@ -1046,7 +1126,7 @@ ToOut:
  */
 PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
 {
-    struct Task *cur = CurrentTask();
+    //struct Task *cur = CurrentTask();
     //printk("in task %s.\n", cur->name);
 	//printk("Rtl8139Handler occur!\n");
     //DisableInterrupt();
@@ -1055,13 +1135,12 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
     u16 status, ackstat;
 
     int linkChanged = 0; /* avoid bogus "uninit" warning */
-	int handled = 0;
 
     SpinLock(&private->lock);
 
     /* 读取中断状态 */
-    status = In16(private->ioAddress + RTL8139_INTR_STATUS);
-    //Out16(private->ioAddress + RTL8139_INTR_STATUS, status);
+    status = In16(private->ioAddress + INTR_STATUS);
+    //Out16(private->ioAddress + INTR_STATUS, status);
     
     /* 如果一个状态位也没有，就退出 */
     if (unlikely((status & rtl8139IntrMask) == 0)) 
@@ -1071,7 +1150,7 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
     /* 如果网络没有运行的时候发生中断，那么就退出 */
     /*if (unlikely(!netif_running(dev))) {
         // 中断屏蔽位置0，从此不接收任何中断 
-        Out16(private->ioAddress + RTL8139_INTR_MASK, 0);
+        Out16(private->ioAddress + INTR_MASK, 0);
         goto ToOut;
     }*/
 
@@ -1080,12 +1159,12 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
        中断状态是接收的运行下，就查看连接是否改变
      */
 	if (unlikely(status & RX_UNDERRUN))
-		linkChanged = In16(private->ioAddress + RTL8139_CSCR) & CSCR_LINK_CHANGE;
+		linkChanged = In16(private->ioAddress + CSCR) & CSCR_LINK_CHANGE;
 
     /* 读取状态中非ACK和ERR的状态 */
     ackstat = status & ~(RX_ACK_BITS | TX_ERR);
 	if (ackstat)    /* 有则写入该状态 */
-		Out16(private->ioAddress + RTL8139_INTR_STATUS, ackstat);
+		Out16(private->ioAddress + INTR_STATUS, ackstat);
 
 	/* 
     处理接收中断
@@ -1097,7 +1176,7 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
     if (status & RX_ACK_BITS){
         /* 调用接收处理函数 */
         received = Rtl8139RxInterrupt(private);
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
         printk("\n@RX: received %d packets\n", received);
 #endif
 	}
@@ -1113,14 +1192,14 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
 
         /* 如果状态有错误，那么就把错误写入状态寄存器 */
 		if (status & TX_ERR)
-			Out16(private->ioAddress + RTL8139_INTR_STATUS, TX_ERR);
+			Out16(private->ioAddress + INTR_STATUS, TX_ERR);
     }
 
 ToOut:
     SpinUnlock(&private->lock);
-#if RTL8139_DEBUG == 1
+#if RTL8139_DEBUG == 2
     printk("exiting interrupt, intr_status=%x\n",
-		   In16(private->ioAddress + RTL8139_INTR_STATUS));
+		   In16(private->ioAddress + INTR_STATUS));
 #endif    
     return;
 }
@@ -1130,13 +1209,13 @@ PRIVATE void Rtl8139ChipReset(struct Rtl8139Private *private)
     /* software reset, to clear the RX and TX buffers and set everything back to defaults
         重置网卡
      */
-    Out8(private->ioAddress + RTL8139_COMMAND, RTL8139_CMD_RST);
+    Out8(private->ioAddress + CHIP_CMD, CMD_RESET);
     
     /* 循环检测芯片是否完成重置 */
     while (1) {
 		Barrier();
         /* 如果重置完成，该位会被置0 */
-		if ((In8(private->ioAddress + RTL8139_COMMAND) & RTL8139_CMD_RST) == 0)
+		if ((In8(private->ioAddress + CHIP_CMD) & CMD_RESET) == 0)
 			break;
         CpuNop();
 	}
@@ -1149,12 +1228,12 @@ PRIVATE int Rtl8139InitBoard(struct Rtl8139Private *private)
     /* check for missing/broken hardware
     检查丢失/损坏的硬件
      */
-	if (In32(private->ioAddress + RTL8139_TCR) == 0xFFFFFFFF) {
+	if (In32(private->ioAddress + TX_CONFIG) == 0xFFFFFFFF) {
 		printk("Chip not responding, ignoring board\n");
 		return -1;
 	}
 
-    uint32_t version = In32(private->ioAddress + RTL8139_TCR) & HW_REVID_MASK;
+    uint32_t version = In32(private->ioAddress + TX_CONFIG) & HW_REVID_MASK;
     int i;
     for (i = 0; i < CHIP_INFO_NR; i++)
 		if (version == RtlChipInfo[i].version) {
@@ -1165,7 +1244,7 @@ PRIVATE int Rtl8139InitBoard(struct Rtl8139Private *private)
     /* if unknown chip, assume array element #0, original RTL-8139 in this case */
 	i = 0;
 	printk("unknown chip version, assuming RTL-8139\n");
-	printk("TxConfig = 0x%x\n", In32(private->ioAddress + RTL8139_TCR));
+	printk("TxConfig = 0x%x\n", In32(private->ioAddress + TX_CONFIG));
 	private->chipset = 0;
 
 ToMatch:
@@ -1178,10 +1257,10 @@ ToMatch:
 		printk("PCI PM wakeup, not support now!\n");
 	} else {
 		printk("Old chip wakeup\n");
-		uint8_t tmp8 = In8(private->ioAddress + RTL8139_CONFIG_1);
+		uint8_t tmp8 = In8(private->ioAddress + CONFIG1);
 		tmp8 &= ~(SLEEP | PWRDN);
         /* 启动网卡 */
-        Out8(private->ioAddress + RTL8139_CONFIG_1, tmp8);
+        Out8(private->ioAddress + CONFIG1, tmp8);
 	}
 
     /* 重置芯片 */
@@ -1210,21 +1289,23 @@ PRIVATE void __SetRxMode(struct Rtl8139Private *private)
 {
 	printk("rtl8139_set_rx_mode(%x) done -- Rx config %x\n",
 		    private->flags,
-            In32(private->ioAddress + RTL8139_RCR));
+            In32(private->ioAddress + RX_CONFIG));
 
     /* 一般内容 */
-    int rxMode = ACCEPT_BROADCAST | ACCEPT_MY_PHYS | ACCEPT_MULTICAST;
+    int rxMode = ACCEPT_BROADCAST | ACCEPT_MY_PHYS | ACCEPT_MULTICAST | ACCEPT_ALL_PHYS;
 
     /* 其它所有内容 */
-    rxMode |= (ACCEPT_ERR | ACCEPT_RUNT);
-
+    if (private->devFeatures & NET_FEATURE_RXALL) {
+        rxMode |= (ACCEPT_ERR | ACCEPT_RUNT);
+    }
+    
     uint32_t tmp;
     tmp = rtl8139RxConfig | rxMode;
     if (private->rxConfig != tmp) {
         /* 写入寄存器 */
-        Out32(private->ioAddress + RTL8139_RCR, tmp);
+        Out32(private->ioAddress + RX_CONFIG, tmp);
         /* 刷新流水线 */
-        In32(private->ioAddress + RTL8139_RCR);
+        In32(private->ioAddress + RX_CONFIG);
         
         private->rxConfig = tmp;
     }
@@ -1235,11 +1316,11 @@ PRIVATE void __SetRxMode(struct Rtl8139Private *private)
     mcFilter[0] = mcFilter[1] = 0;
 
     /* 写入过滤到寄存器 */
-    Out32(private->ioAddress + RTL8139_MAR0 + 0, mcFilter[0]);
-    In32(private->ioAddress + RTL8139_MAR0 + 0);
+    Out32(private->ioAddress + MAR0 + 0, mcFilter[0]);
+    In32(private->ioAddress + MAR0 + 0);
     
-    Out32(private->ioAddress + RTL8139_MAR0 + 4, mcFilter[1]);
-    In32(private->ioAddress + RTL8139_MAR0 + 4);
+    Out32(private->ioAddress + MAR0 + 4, mcFilter[1]);
+    In32(private->ioAddress + MAR0 + 4);
     
 }
 
@@ -1259,7 +1340,7 @@ PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
     把老芯片带出低耗模式
      */
 	if (RtlChipInfo[private->chipset].flags & HAS_HLT_CLK)
-		Out8(private->ioAddress + RTL8139_HLT_CLK, 'R');
+		Out8(private->ioAddress + HLT_CTL, 'R');
 
     /* 重置芯片 */
     Rtl8139ChipReset(private);
@@ -1267,38 +1348,38 @@ PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
     /* unlock Config[01234] and BMCR register writes
     解锁配置寄存器
      */
-    Out8(private->ioAddress + RTL8139_9346CR, CFG9346_UNLOCK);
-    In8(private->ioAddress + RTL8139_9346CR);   // flush
+    Out8(private->ioAddress + CFG9346, CFG9346_UNLOCK);
+    In8(private->ioAddress + CFG9346);   // flush
 
     /* Restore our idea of the MAC address.
     重载mac地址
      */
-    Out32(private->ioAddress + RTL8139_MAC, 
+    Out32(private->ioAddress + MAC0, 
             LittleEndian32ToCpu(*(uint32_t *)(private->macAddress + 0)));
-    In32(private->ioAddress + RTL8139_MAC);
+    In32(private->ioAddress + MAC0);
     
-    Out16(private->ioAddress + RTL8139_MAC + 4, 
+    Out16(private->ioAddress + MAC0 + 4, 
             LittleEndian32ToCpu(*(uint16_t *)(private->macAddress + 4)));
-    In16(private->ioAddress + RTL8139_MAC + 4);
+    In16(private->ioAddress + MAC0 + 4);
     
     private->currentRX = 0;
 
     /* init Rx ring buffer DMA address
     写接收缓冲区的dma地址到寄存器 */
-	Out32(private->ioAddress + RTL8139_RX_BUF, private->rxRingDma);
-    In32(private->ioAddress + RTL8139_RX_BUF);
+	Out32(private->ioAddress + RX_BUF, private->rxRingDma);
+    In32(private->ioAddress + RX_BUF);
 
     /* Must enable Tx/Rx before setting transfer thresholds!
     必须在设置传输阈值前打开TX/RX功能
      */
-	Out8(private->ioAddress + RTL8139_COMMAND, RTL8139_CMD_RX | RTL8139_CMD_TX);
+	Out8(private->ioAddress + CHIP_CMD, CMD_RX_ENABLE | CMD_TX_ENABLE);
     
     /* 设定接收配置 */
     private->rxConfig = rtl8139RxConfig | ACCEPT_BROADCAST | ACCEPT_MY_PHYS;
 	
     /* 把传输配置和接收配置都写入寄存器 */
-    Out32(private->ioAddress + RTL8139_RCR, private->rxConfig);
-    Out32(private->ioAddress + RTL8139_TCR, rtl8139TxConfig);
+    Out32(private->ioAddress + RX_CONFIG, private->rxConfig);
+    Out32(private->ioAddress + TX_CONFIG, rtl8139TxConfig);
 
     if (private->chipset >= CH_8139B) {
 		/* Disable magic packet scanning, which is enabled
@@ -1306,8 +1387,8 @@ PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
 		 * via ETHTOOL_SWOL if desired.
          * 清除MAGIC位
          */
-		Out8(private->ioAddress + RTL8139_CONFIG_3,
-            In8(private->ioAddress + RTL8139_CONFIG_3) & ~CFG3_MAGIC);
+		Out8(private->ioAddress + CONFIG3,
+            In8(private->ioAddress + CONFIG3) & ~CFG3_MAGIC);
 	}
 
     printk("init buffer addresses\n");
@@ -1315,44 +1396,44 @@ PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
     /* Lock Config[01234] and BMCR register writes
     上锁，不可操作这些寄存器
      */
-    Out8(private->ioAddress + RTL8139_9346CR, CFG9346_LOCK);
+    Out8(private->ioAddress + CFG9346, CFG9346_LOCK);
 
 	/* init Tx buffer DMA addresses
     写入传输缓冲区的DMA地址到寄存器
      */
     int i;
 	for (i = 0; i < NUM_TX_DESC; i++) {
-        Out32(private->ioAddress + RTL8139_TX_ADDR0 + (i * 4),
+        Out32(private->ioAddress + TX_ADDR0 + (i * 4),
             private->txBuffersDma + (private->txBuffer[i] - private->txBuffers));
         /* flush */
-        In32(private->ioAddress + RTL8139_TX_ADDR0 + (i * 4));
+        In32(private->ioAddress + TX_ADDR0 + (i * 4));
     }
 
     /* 接收missed归零 */
-    Out32(private->ioAddress + RTL8139_RX_MISSED, 0);
+    Out32(private->ioAddress + RX_MISSED, 0);
 
     /* 设置接收模式 */
     Rtl8139SetRxMode(private);
 
     /* 没有early-rx中断 */
-    Out16(private->ioAddress + RTL8139_MULTI_INTR,
-            In16(private->ioAddress + RTL8139_MULTI_INTR) & MULTI_INTR_CLEAR);
+    Out16(private->ioAddress + MULTI_INTR,
+            In16(private->ioAddress + MULTI_INTR) & MULTI_INTR_CLEAR);
     
     /* 确保传输和接收都已经打开了 */
-    uint8_t tmp = In8(private->ioAddress + RTL8139_COMMAND);
-    if (!(tmp & RTL8139_CMD_RX) || !(tmp & RTL8139_CMD_TX))
-        Out8(private->ioAddress + RTL8139_COMMAND,
-                RTL8139_CMD_RX | RTL8139_CMD_TX);
+    uint8_t tmp = In8(private->ioAddress + CHIP_CMD);
+    if (!(tmp & CMD_RX_ENABLE) || !(tmp & CMD_TX_ENABLE))
+        Out8(private->ioAddress + CHIP_CMD,
+                CMD_RX_ENABLE | CMD_TX_ENABLE);
     
     /* 打开已知配置好的中断 */
-    Out16(private->ioAddress + RTL8139_INTR_MASK, rtl8139IntrMask);
+    Out16(private->ioAddress + INTR_MASK, rtl8139IntrMask);
 
 }
 
-
-PRIVATE int Rtl8139Open(struct Rtl8139Private *private)
+PRIVATE int Rtl8139Open()
 {
-    /* 注册中断 */
+    struct Rtl8139Private *private = &rtl8139Private;
+    
      /* 分配传输缓冲区 */
     private->txBuffers = (unsigned char *) kmalloc(TX_BUF_TOT_LEN, GFP_KERNEL);
     if (private->txBuffers == NULL) {
@@ -1381,23 +1462,104 @@ PRIVATE int Rtl8139Open(struct Rtl8139Private *private)
     /* 设置硬件信息 */
     rtl8139HardwareStart(private);
 
-    /* 注册并打开对应的中断 */
-	RegisterIRQ(private->irq, Rtl8139Handler, IRQF_DISABLED | IRQF_SHARED, "IRQ-Network", DEVNAME, (unsigned int)private);
-
+    EnableIRQ(private->irq);
     printk("open done!\n");
+
     return 0;
 }
 
-PUBLIC int InitRtl8139Driver()
+PRIVATE INLINE void Rtl8139TxClear(struct Rtl8139Private *private)
 {
-    PART_START("RTL8139 Driver");
+	private->currentTX = 0;
+	private->dirtyTX = 0;
 
+    AtomicSet(&private->txFreeNR, NUM_TX_DESC);
+
+	/* XXX account for unsent Tx packets in tp->stats.tx_dropped */
+}
+
+PRIVATE int Rtl8139SetMacAddress(unsigned char *macAddr)
+{
     struct Rtl8139Private *private = &rtl8139Private;
 
-    /* 获取PCI设备 */
-    if (Rtl8139GetInfoFromPCI(private)) {
-        return -1;
-    }
+    /* 检测是否是有效的以太网地址 */
+     
+    /* 复制到设备 */
+    memcpy(private->macAddress, macAddr, ETH_ADDR_LEN);
+
+    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&private->lock);
+
+    /* 写入设备 */
+    Out8(private->ioAddress + CFG9346, CFG9346_UNLOCK); // 解锁
+    In8(private->ioAddress + CFG9346);
+
+    Out32(private->ioAddress + MAC0 + 0, CpuToLittleEndian32(*(u32 *)(private->macAddress + 0)));
+    In32(private->ioAddress + MAC0 + 0);
+    
+    Out16(private->ioAddress + MAC0 + 4, CpuToLittleEndian16(*(u16 *)(private->macAddress + 0)));
+    In16(private->ioAddress + MAC0 + 4);
+
+    Out8(private->ioAddress + CFG9346, CFG9346_LOCK); // 上锁
+    In8(private->ioAddress + CFG9346);
+
+    SpinUnlockRestoreInterrupt(&private->lock, oldStatus);
+
+    return 0;
+}
+
+PRIVATE int Rtl8139Close()
+{
+    struct Rtl8139Private *private = &rtl8139Private;
+
+    /* 先停止队列传输 */
+
+    printk("Shutting down ethercard, status was %x\n",
+		    In16(private->ioAddress + INTR_STATUS));
+    
+    /* 需要关闭中断 */
+    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&private->lock);
+
+    /* 先停止命令的传输和接收 */
+    Out8(private->ioAddress + CHIP_CMD, 0);
+
+    /* 屏蔽网卡可以触发的所有中断 */
+    Out16(private->ioAddress + INTR_MASK, 0);
+
+    /* 更新错误计数，丢失的数量，并把寄存器中丢失归零 */
+    private->stats.rxMissedErrors += In32(private->ioAddress + RX_MISSED);
+    Out32(private->ioAddress + RX_MISSED, 0);
+
+    SpinUnlockRestoreInterrupt(&private->lock, oldStatus);
+
+    /* 释放irq中断 */
+    DisableIRQ(private->irq);
+    //UnregisterIRQ(private->irq, (unsigned int)private);
+
+    /* 清除传输的项 */
+    Rtl8139TxClear(private);
+
+    /* 释放缓冲区 */
+    kfree(private->rxRing);
+    kfree(private->txBuffers);
+
+    private->rxRing = NULL;
+    private->txBuffers = NULL;
+    
+    Out8(private->ioAddress + CFG9346, CFG9346_UNLOCK); // 先解锁
+    /* 把芯片设置回低耗模式 */
+    if (RtlChipInfo[private->chipset].flags & HAS_HLT_CLK) 
+        Out8(private->ioAddress + HLT_CTL, 'H'); 
+    
+    return 0;
+}
+
+PRIVATE int Rtl8139InitOne(struct Rtl8139Private *private)
+{
+    static int boardIdx = -1;
+
+    ASSERT(private);
+
+    boardIdx++;
 
     struct PciDevice *pdev = private->pciDevice;
     
@@ -1419,13 +1581,16 @@ PUBLIC int InitRtl8139Driver()
 
     /* 从配置空间中读取MAC地址 */
 	int i;
-    for (i = 0; i < RTL8139_MAC_ADDR_LEN; i++) {
-        private->macAddress[i] = In8(private->ioAddress + RTL8139_MAC + i);
+    for (i = 0; i < ETH_ADDR_LEN; i++) {
+        private->macAddress[i] = In8(private->ioAddress + MAC0 + i);
     }
     
     printk("mac addr: %x:%x:%x:%x:%x:%x\n", private->macAddress[0], private->macAddress[1],
             private->macAddress[2], private->macAddress[3], 
             private->macAddress[4], private->macAddress[5]);
+
+    /* 设置硬件特征为接收所有包，接收包不带CRC */
+    private->devFeatures = NET_FEATURE_RXALL;
 
     private->drvFlags = 0;
 
@@ -1437,9 +1602,37 @@ PUBLIC int InitRtl8139Driver()
     把芯片设置成低耗模式
      */
 	if (RtlChipInfo[private->chipset].flags & HAS_HLT_CLK)
-		Out8(private->ioAddress + RTL8139_HLT_CLK, 'H');	/* 'R' would leave the clock running. */
+		Out8(private->ioAddress + HLT_CTL, 'H');	/* 'R' would leave the clock running. */
 
-    Rtl8139Open(private);
+    return 0;
+}
+
+PUBLIC int InitRtl8139Driver()
+{
+    PART_START("RTL8139 Driver");
+
+    struct Rtl8139Private *private = &rtl8139Private;
+
+    /* 获取PCI设备 */
+    if (Rtl8139GetInfoFromPCI(private)) {
+        printk("rtl8139 get info from PCI failed!\n");
+        return -1;
+    }
+
+    if (Rtl8139InitOne(private)) {
+        printk("rtl8139 init one failed!\n");
+        return -1;
+    }
+
+    /* 注册并打开对应的中断 */
+	RegisterIRQ(private->irq, Rtl8139Handler, IRQF_DISABLED | IRQF_SHARED, "IRQ-Network", DRV_NAME, (unsigned int)private);
+    DisableIRQ(private->irq);
+    
+    if (Rtl8139Open()) {
+        printk("rtl8139 open failed!\n");
+        return -1;
+    }
+    //Rtl8139Close();
 
     PART_END();
     return 0;
