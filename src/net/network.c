@@ -105,7 +105,8 @@ PRIVATE int NetworkConfig()
 
     /* 设置本机IP地址 */
     #ifdef _NIC_RTL8139
-    ipAddress = NetworkMakeIpAddress(10,253,117,249);
+    ipAddress = NetworkMakeIpAddress(169,254,44,140);
+    //ipAddress = NetworkMakeIpAddress(10,253,117,249);
     #endif
 
     #ifdef _NIC_AMD79C973
@@ -129,8 +130,24 @@ PRIVATE int NetworkConfig()
 
 PRIVATE void NetwrokTest()
 {
+    
     #ifdef _NIC_RTL8139
-    ArpRequest(NetworkMakeIpAddress(10,253,0,1));
+        unsigned char test[6] = {
+            0x00,0xFF,0x44,0x98,0x96,0x37,
+        };
+        char *str = "hello,asdqwe111111111123123";
+        while(1){
+            
+            //EthernetSend(test, PROTO_ARP, str, strlen(str));
+            ArpRequest(NetworkMakeIpAddress(169,254,44,2));
+            //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
+            //printk("sleep");
+            //SysMSleep(100);
+
+            //SysSleep(1);
+            //printk("wakeup");
+            
+        }
     #endif
 
     #ifdef _NIC_AMD79C973
@@ -140,12 +157,14 @@ PRIVATE void NetwrokTest()
         }
         #endif
         #ifdef _VM_VBOX
-        while(1){
+        /*while(1){
         ArpRequest(NetworkMakeIpAddress(10,0,2,2));
-        }
+        }*/
         #endif
-         #ifdef _VM_QEMU
+        #ifdef _VM_QEMU
+        /*while(1){
         ArpRequest(NetworkMakeIpAddress(192,168,70,2));
+        }*/
         #endif
     #endif
     

@@ -20,6 +20,19 @@
 #include <drivers/amd79c973.h>
 
 /**
+ * NlltDelay - 延时函数
+ * @count: 延时次数
+ */
+PRIVATE void NlltDelay(int count)
+{
+    int i;
+    for (i = 0; i < 1000 * count; i++) {
+
+    }
+}
+
+
+/**
  * NlltSend - 发送数据
  * @buf: 要发送的数据
  * 
@@ -58,12 +71,16 @@ int NlltSend(NetBuffer_t *buf)
     
     NlltReceive(buf->data, buf->dataLen);
 #else 
+
+    /* 做一个延时，避免传输频率过快，网卡忙不过来。 */
+    //NlltDelay(1000);
+
     #ifdef _NIC_AMD79C973
     Amd79c973Send(buf->data, buf->dataLen);
     #endif 
 
     #ifdef _NIC_RTL8139
-    Rtl8139Transmit(buf->data, buf->dataLen);
+    Rtl8139Transmit((char *)buf->data, buf->dataLen);
     #endif 
 #endif
     return 0;
@@ -76,7 +93,7 @@ int NlltSend(NetBuffer_t *buf)
  */
 int NlltReceive(unsigned char *data, unsigned int length)
 {
-    printk("NLLT: [receive] -data:%x -length:%d\n", data, length);
+    //printk("NLLT: [receive] -data:%x -length:%d\n", data, length);
 
     /* 以太网接受数据 */
     EthernetReceive(data, length);

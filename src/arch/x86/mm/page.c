@@ -504,19 +504,17 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 			if (!(frame->errorCode & PAGE_ERR_USER)) {
 				//DoVMAreaFault(addr);
                 printk(PART_ERROR "$ segment fault in kernel, addr: %x!\n", addr);
-                ForceSignal(SIGSEGV, SysGetPid());
-				//Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
-                
+                //ForceSignal(SIGSEGV, SysGetPid());
+				Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
             	return -1;
 			} else {
                 printk(PART_ERROR "$ segment fault in user, addr: %x!\n", addr);
                 ForceSignal(SIGSEGV, SysGetPid());
                 return -1;
             }
-			
         }
     }
-
+    
 	// 找到这个地址所在的空间
     if (space != NULL && space->start <= addr) {
 		//printk(PART_TIP "found space and addr is right\n");

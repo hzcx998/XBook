@@ -75,7 +75,8 @@
         "inet.h": "c",
         "nllt.h": "c",
         "rtl8139.h": "c",
-        "arp.h": "c"
+        "arp.h": "c",
+        "byteorder.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

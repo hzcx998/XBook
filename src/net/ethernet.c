@@ -132,12 +132,13 @@ PUBLIC void EthernetReceive(unsigned char *data, size_t len)
 
             ArpReceive(header->source, buf);
         } else {
-            printk("net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",
+            printk("\n[UNKNOWN]!\n");
+            /*printk("net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",
                 header->source[0], header->source[1], header->source[2],
                 header->source[3], header->source[4], header->source[5],
                 header->dest[0], header->dest[1], header->dest[2], 
                 header->dest[3], header->dest[4], header->dest[5]);
-
+            */
             /* 如果接收者是自己，那么就打印数据 */
             if (!memcmp(ethernetAddress, header->dest, ETH_ADDR_LEN)) {
                 char *p = (char *) buf->data;

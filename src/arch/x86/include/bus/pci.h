@@ -63,7 +63,7 @@
 
 /*PCI配置空间数据的偏移*/
 #define PCI_DEVICE_VENDER								0x00	
-#define PCI_STATUS_COMMAND								0x04	
+#define PCI_STATUS_COMMAND								0x04
 #define PCI_CLASS_CODE_REVISIONID						0x08	
 #define PCI_BIST_HEADER_TYPE_LATENCY_TIMER_CACHE_LINE	0x0C
 #define PCI_BASS_ADDRESS0								0x10

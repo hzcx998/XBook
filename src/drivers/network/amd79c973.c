@@ -343,12 +343,12 @@ PUBLIC void Amd79c973Send(uint8_t* buffer, int size)
  
     memcpy(dst, src, size);
 
-    //printk("\nSEND: ");
-    /*int i;
+    printk("\nSEND: ");
+    int i;
     for(i = 0; i < (size>64?64:size); i++)
     {
         printk("%x ", buffer[i]);
-    }*/
+    }
     src = buffer;
     EthernetHeader_t *ethHeader = (EthernetHeader_t *)src;
 
@@ -359,7 +359,6 @@ PUBLIC void Amd79c973Send(uint8_t* buffer, int size)
     ArpHeader_t *arpHeader = (ArpHeader_t *)src;
     //DumpArpHeader((ArpHeader_t *)arpHeader);
     
-    int i;
     for(i = 0; i < (size>64?64:size); i++)
     {
         //printk("%x ", buffer[i]);

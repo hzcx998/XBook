@@ -80,7 +80,7 @@ int main()
 		
 		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
 		知道再次被阻塞 */
-		TaskBlock(TASK_BLOCKED);
+		//TaskBlock(TASK_BLOCKED);
 		/* 打开中断 */
 		EnableInterrupt();
 		/* 执行cpu停机 */

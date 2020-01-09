@@ -104,6 +104,7 @@ PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 	/* 改变系统时间 */
     if (ticks % HZ == 0) {  /* 1s更新一次 */
         ClockChangeSystemDate();
+        //printk("t");
     }
 	
 	/* 更新闹钟 */
@@ -132,6 +133,9 @@ PRIVATE void SchedSoftirqHandler(struct SoftirqAction *action)
 	}
 }
 
+
+
+
 /**
  * SleepByTicks - 休眠ticks时间
  * @sleepTicks: 要休眠多少个ticks
@@ -144,7 +148,8 @@ PRIVATE void SleepByTicks(uint32_t sleepTicks)
 	/* 如果最新ticks和开始ticks差值小于要休眠的ticks，就继续休眠 */
 	while (ticks - startTicks < sleepTicks) {
 		/* 让出cpu占用，相当于休眠 */
-		TaskYield();
+		//TaskYield();
+        CpuNop();
 	}
 }
 

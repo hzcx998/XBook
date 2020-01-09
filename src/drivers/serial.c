@@ -8,9 +8,9 @@
 ***************************************************/
 
 /*
- * file:		drivers/tty.c
+ * file:		drivers/serial.c
  * auther:		Jason Hu
- * time:		2019/8/8
+ * time:		2019/1/4
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 

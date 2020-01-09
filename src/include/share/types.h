@@ -24,6 +24,24 @@
 #define false 0
 #endif
 
+#ifndef BOOLEAN
+#ifndef __cplusplus
+    #define BOOLEAN char     
+#else
+    #define BOOLEAN _Bool       //C语言下实现Bool
+#endif
+
+    #ifndef TRUE
+    #define TRUE    1 
+    #endif
+
+    #ifndef FALSE
+    #define FALSE    0 
+    #endif
+
+#endif
+
+
 #ifndef PUBLIC
 #define PUBLIC 
 #endif
@@ -52,5 +70,8 @@
 #define PACKED __attribute__ ((packed))
 #endif
 
+#ifndef CONST
+#define CONST const
+#endif
 
 #endif  /*_SHARE_TYPES_H*/

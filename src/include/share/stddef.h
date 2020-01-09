@@ -30,6 +30,8 @@ typedef unsigned int ino_t;
 typedef unsigned int blksize_t;
 typedef unsigned int blkcnt_t;
 
+typedef unsigned int dma_addr_t;
+
 /* 64位操作系统 */
 /*
 typedef unsigned long flags_t;
@@ -58,6 +60,16 @@ typedef unsigned int * buf32_t;     // 双字类型的缓冲区
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); \
 })
+
+/* 
+这里的__built_expect()函数是gcc(version >= 2.96)的内建函数,提供给程序员使用的，目的是将"分支转移"的信息提供给编译器，这样编译器对代码进行优化，以减少指令跳转带来的性能下降。
+__buildin_expect((x), 1)表示x的值为真的可能性更大.
+__buildin_expect((x), 0)表示x的值为假的可能性更大. 
+*/
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
+
 
 
 #endif  /*_SHARE_STDDEF_H*/
