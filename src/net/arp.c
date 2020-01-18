@@ -20,8 +20,12 @@
 
 #include <drivers/clock.h>
 
+//#define _ARP_DEBUG
 
 #define ARP_CACHE_LIVE_TIME    (5*60*HZ)    // 5分钟
+
+#define ARP_TIMEOUT     1*HZ    /* 1秒 */
+#define ARP_RETRY       3       /* 重试3次 */  
 
 
 /* arp表，用于存放缓存的ip与mac的键值对 */
@@ -29,6 +33,12 @@ ArpCache_t *arpCacheTable;
 
 /* 用于对缓存的存入和删除进行保护 */
 Spinlock_t arpCacheLock;
+
+/* 用于对对队列进行保护 */
+Spinlock_t arpQueueLock;
+
+/* arp队列链表头 */
+struct List arpQueueList;
 
 /**
  * ArpHeaderInit - ARP头部的初始化
@@ -86,8 +96,8 @@ PUBLIC void ArpRequest(unsigned int ip)
             0x04,                                           /* IPv4 地址长度 */
             ntohs(ARP_OP_REQUEST),                          /* 操作，发出请求 */
             EthernetGetAddress(),                           /* 自己的以太网地址 */
-            ntohl(NetworkGetAddress()),                     /* 自己的IP地址 */
-            broadcastMacAddr,                                   /* 0，想要查询的以太网地址 */
+            ntohl(NetworkGetIpAddress()),                   /* 自己的IP地址 */
+            emptyMacAddr,                                   /* 0，想要查询的以太网地址 */
             ntohl(ip)                                       /* 目的IP地址 */
     );
     
@@ -149,7 +159,7 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
             destIpInByte[3], destIpInByte[2], destIpInByte[1], destIpInByte[0]);
         */
         /* 如果目标IP和自己的IP一样，也就是要请求本机的IP，那么发送一个“回复”给发送者（其它电脑）。 */
-        if (destIP == NetworkGetAddress()) {
+        if (destIP == NetworkGetIpAddress()) {
             printk(".ME");
         
             printk("oh, I have it\n");
@@ -165,7 +175,7 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
                     0x04,                                           /* IPv4 地址长度 */
                     ntohs(ARP_OP_REPLY),                            /* 回复操作 */
                     EthernetGetAddress(),                           /* 自己的MAC地址 */
-                    ntohl(NetworkGetAddress()),                       /* 自己的IP地址 */
+                    ntohl(NetworkGetIpAddress()),                       /* 自己的IP地址 */
                     ethAddr,                                        /* 目标以太网（MAC）地址 */
                     ntohl(sourceIP)                                 /* 目标IP地址 */
             );
@@ -178,7 +188,7 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
         } else {
             printk(".OTHER");
         
-            //printk("host:%x not the dest that %x want to now!\n", NetworkGetAddress(), destIP);
+            //printk("host:%x not the dest that %x want to now!\n", NetworkGetIpAddress(), destIP);
         }
         break;
     case ARP_OP_REPLY:
@@ -190,7 +200,8 @@ PUBLIC void ArpReceive(unsigned char *ethAddr, NetBuffer_t *buf)
         
         /* 添加到缓存 */
         ArpAddCache(sourceIP, sourceEthernet);
-
+        /* 处理等待队列中的ip地址对应的缓冲区 */
+        ArpProcessWaitQueue(sourceIP, sourceEthernet);
         break;
     default:
         break;
@@ -287,6 +298,241 @@ PUBLIC void DumpArpHeader(ArpHeader_t *header)
     DumpIpAddress(header->destProtocolAddress);
 }
 
+/**
+ * ArpQueueInit - 初始化arp队列
+ * 
+ */
+void ArpQueueInit(
+    ArpQueue_t *queue,
+    uint32_t ip,
+    uint32_t retryTimes,
+    Timer_t *timer)
+{
+    INIT_LIST_HEAD(&queue->list);
+    queue->ipAddress = ip;
+    queue->retryTimes = retryTimes;
+    queue->timer = timer;
+    INIT_LIST_HEAD(&queue->bufferList);
+}
+
+
+/**
+ * ArpTimeout - arp请求超时
+ * @data: 存放的是ip地址
+ */
+PRIVATE void ArpTimeout(uint32 data)
+{
+    //printk("!!!!time occur!!!!\n");
+    ArpRequestTimeout(data);
+}
+
+
+/**
+ * ArpRequestTimeout - arp请求超时
+ * @ip: ip地址
+ * 
+ * 对请求队列中的所有缓冲区进行处理
+ */
+PUBLIC void ArpRequestTimeout(uint32 ip)
+{
+    printk("arp request timeout of ip: ");
+    DumpIpAddress(ip);
+
+    /* 上锁关中断 */
+    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
+    
+    ArpQueue_t *queue = NULL, *tmp;
+    /* 遍历查找ip，是否已经在请求队列中了 */
+    ListForEachOwner(tmp, &arpQueueList, list) {
+        /* 如果找到一样的就退出 */
+        if (tmp->ipAddress == ip) {
+            queue = tmp;
+            break;
+        }
+    }
+
+    if (queue != NULL) {
+        Timer_t *timer = queue->timer;
+
+        /* 超时的时候，就删除定时器 */
+        RemoveTimer(timer);
+
+        if (queue->retryTimes-- > 0) {
+            /* 还有剩余次数，就再次发送请求 */
+            TimerInit(timer, ARP_TIMEOUT, ip, ArpTimeout);
+            AddTimer(timer);
+
+            /* 发送一个arp请求 */
+            ArpRequest(ip);
+#ifdef _ARP_DEBUG            
+            printk("arp retry, left retry time: %d\n", queue->retryTimes);
+#endif    
+        } else {
+            /* 不能再次发送请求，就直接取消传输队列中的所有缓冲区 */
+            //printk("[DROP]");
+#ifdef _ARP_DEBUG  
+            printk("[DROP]arp retry over, drop queue: %x\n", queue);
+#endif
+            NetBuffer_t *tmpbuf, *safe;
+            /* 遍历每一个缓冲区，由于需要删除，所以用安全形式 */
+            ListForEachOwnerSafe(tmpbuf, safe, &queue->bufferList, list) {
+#ifdef _ARP_DEBUG                   
+                printk("buf:%x ", tmpbuf);
+#endif
+                /* 从链表中删除 */
+                ListDelInit(&tmpbuf->list);
+                
+                /* 释放缓冲区 */
+                FreeNetBuffer(tmpbuf);
+
+            }
+            /* 释放队列定时器 */
+            kfree(timer);
+
+            /* 释放队列 */
+            ListDel(&queue->list);
+            kfree(queue);
+        }
+    }
+
+    SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+}
+
+/**
+ * ArpAddToWaitQueue - 把arp请求添加到等待队列
+ * @ip: ip地址
+ * @buf: 要发送的缓冲区
+ *  
+ */
+PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
+{
+    printk("add ip: ");
+    DumpIpAddress(ip);
+    //printk(" buf: 0x%x\n", buf);
+
+    /* 上锁关中断 */
+    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
+
+    ArpQueue_t *queue = NULL, *tmp;
+    /* 遍历查找ip，是否已经在请求队列中了 */
+    ListForEachOwner(tmp, &arpQueueList, list) {
+        /* 如果找到一样的就退出 */
+        if (tmp->ipAddress == ip) {
+            queue = tmp;
+            break;
+        }
+    }
+
+    /* 找到IP地址 */
+    if (queue != NULL) {
+        /* 把缓冲区添加到该队列里面 */
+        ListAddTail(&buf->list, &queue->bufferList);
+        SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+
+    } else {
+        /* 没有找到ip，那么就需要创建一个新的队列来保存 */
+        Timer_t *timer = kmalloc(SIZEOF_TIMER, GFP_KERNEL);
+        if (timer == NULL) {
+            return;
+        }
+
+        TimerInit(timer, ARP_TIMEOUT, ip, ArpTimeout);
+
+        /* 分配一个队列 */
+        queue = kmalloc(SIZEOF_ARP_QUEUE, GFP_KERNEL);
+        if (queue == NULL) {
+            kfree(timer);
+            return;
+        }
+
+        ArpQueueInit(queue, ip, ARP_RETRY, timer);
+
+        /* 把缓冲区添加到该队列里面 */
+        ListAddTail(&buf->list, &queue->bufferList);
+
+        /* 把请求队列添加到arp请求队列 */
+        ListAddTail(&queue->list, &arpQueueList);
+        
+        /* 把定时器添加到系统 */
+        AddTimer(timer);
+        printk(">>>send arp request!\n");
+        
+        SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+        /* 发送一个arp请求 */
+        ArpRequest(ip);
+    }
+
+    /* 现在已经确保缓冲区在某个队列中 */
+
+    /* 遍历每一个队列 */
+    ListForEachOwner(tmp, &arpQueueList, list) {
+#ifdef _ARP_DEBUG
+        printk("[ADD]ip: ");
+        DumpIpAddress(tmp->ipAddress);
+#endif
+        NetBuffer_t *tmpbuf;
+        /* 遍历每一个缓冲区 */
+        ListForEachOwner(tmpbuf, &tmp->bufferList, list) {
+#ifdef _ARP_DEBUG
+            printk("buf:%x ", tmpbuf);
+#endif
+        }
+    }
+    //SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+
+    
+}
+
+/**
+ * ArpProcessWaitQueue - 处理等待队列
+ * @ip: ip地址
+ * @ethAddr: 以太网地址
+ */
+PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
+{
+    printk("in processing...\n");
+    /* 上锁关中断 */
+    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
+    printk("end processing\n");
+
+    ArpQueue_t *queue = NULL, *tmp;
+    /* 遍历查找ip，是否已经在请求队列中了 */
+    ListForEachOwner(tmp, &arpQueueList, list) {
+        /* 如果找到一样的就退出 */
+        if (tmp->ipAddress == ip) {
+            queue = tmp;
+            break;
+        }
+    }
+    
+    if (queue != NULL) {
+        /* 对所有的缓冲区执行处理操作 */
+        NetBuffer_t *tmpbuf, *safe;
+        /* 遍历每一个缓冲区 */
+        ListForEachOwnerSafe(tmpbuf, safe, &tmp->bufferList, list) {
+#ifdef _ARP_DEBUG
+            printk("buf:%x ", tmpbuf);
+#endif
+            
+            EthernetSend(ethAddr, PROTO_IP, tmpbuf->data, tmpbuf->dataLen);
+
+            /* 释放缓冲区 */
+            ListDelInit(&tmpbuf->list);
+            FreeNetBuffer(tmpbuf);
+        }
+        
+        /* 删除定时器 */
+        RemoveTimer(queue->timer);
+        kfree(queue->timer);
+
+        /* 删除队列 */
+        ListDel(&queue->list);
+        kfree(queue);
+    }
+
+    SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+    printk("end processing\n");
+}
 
 /**
  * InitARP - 初始化ARP
@@ -304,6 +550,9 @@ PUBLIC int InitARP()
         arpCacheTable[i].ipAddress = 0;
         memset(arpCacheTable[i].macAddress, 0, ETH_ADDR_LEN);
     }
+
+    /* 初始化arp队列 */
+    INIT_LIST_HEAD(&arpQueueList);
 
     return 0;
 }

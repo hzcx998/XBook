@@ -14,6 +14,8 @@
 #include <net/netbuf.h>
 #include <net/ethernet.h>
 
+#include <book/timer.h>
+
 /* ARP操作 */
 #define ARP_OP_REQUEST  1   // 请求
 #define ARP_OP_REPLY    2   // 回复
@@ -73,5 +75,28 @@ PUBLIC int InitARP();
 
 PUBLIC int ArpAddCache(unsigned int ip, unsigned char *mac);
 PUBLIC int ArpLookupCache(unsigned int ip, unsigned char *mac);
+
+
+/* ARP队列 */
+typedef struct ArpQueue {
+    struct List list;       /* 队列链表，多个队列链接成一个链表 */
+    uint32_t ipAddress;     /* ip地址 */
+    uint8_t retryTimes;     /* 重试次数 */
+    Timer_t *timer;         /* 定时器，用于请求超时控制 */
+    struct List bufferList; /* 缓冲区链表，缓冲区挂载在此链表上 */
+} ArpQueue_t;
+
+#define SIZEOF_ARP_QUEUE sizeof(struct ArpQueue)
+
+void ArpQueueInit(
+    ArpQueue_t *queue,
+    uint32_t ip,
+    uint32_t retryTimes,
+    Timer_t *timer
+);
+
+PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf);
+PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr);
+PUBLIC void ArpRequestTimeout(uint32 ip);
 
 #endif   /* _NET_ARP_H */

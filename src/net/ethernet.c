@@ -17,6 +17,7 @@
 #include <net/netbuf.h>
 #include <net/nllt.h>
 #include <net/arp.h>
+#include <net/ip.h>
 
 /* 以太网地址，即MAC地址 */
 unsigned char ethernetAddress[ETH_ADDR_LEN];
@@ -132,6 +133,13 @@ PUBLIC void EthernetReceive(unsigned char *data, size_t len)
             buf->dataLen -= SIZEOF_ETHERNET_HEADER;
 
             ArpReceive(header->source, buf);
+        } else if (htons(header->protocol) == PROTO_IP) {
+            printk("IP");
+            buf->data += SIZEOF_ETHERNET_HEADER;
+            buf->dataLen -= SIZEOF_ETHERNET_HEADER;
+
+            IpReceive(buf);
+            
         } else {
             //printk("\n[UNKNOWN]!\n");
             /*printk("net receive from [%2x:%2x:%2x:%2x:%2x:%2x] to [%2x:%2x:%2x:%2x:%2x:%2x]\n",

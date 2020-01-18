@@ -16,9 +16,9 @@
 #include <book/vmarea.h>
 #include <book/block.h>
 #include <book/char.h>
-#include <fs/fs.h>
+#include <book/sound.h>
 #include <net/network.h>
-
+#include <fs/fs.h>
 /*
  * 功能: 内核的主函数
  * 参数: 无
@@ -61,6 +61,9 @@ int main()
 
 	/* 初始化块设备 */	
 	InitBlockDevice();
+
+    /* 初始化音频系统 */
+    InitSoundSystem();
 
     /* 初始化网络 */
     InitNetwork();

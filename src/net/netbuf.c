@@ -93,6 +93,7 @@ PUBLIC int InitNetBuffer()
         netBufferTable[i].status = NET_BUF_UNUSED;  /* 处于未使用状态 */
         netBufferTable[i].data = NULL;
         netBufferTable[i].dataLen = 0;
+        INIT_LIST_HEAD(&netBufferTable[i].list);
     }
 
     return 0;

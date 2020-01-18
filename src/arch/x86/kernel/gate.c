@@ -421,6 +421,7 @@ PUBLIC enum InterruptStatus InterruptDisable()
 {
 	enum InterruptStatus oldStatus;
    	if (InterruptGetStatus() == INTERRUPT_ON) {
+        
       	oldStatus = INTERRUPT_ON;
 
 		// 关中断,调用汇编打开中断函数，cli指令将IF位置0

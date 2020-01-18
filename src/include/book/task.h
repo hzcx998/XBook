@@ -15,7 +15,7 @@
 #include <book/arch.h>
 #include <book/vmspace.h>
 #include <book/signal.h>
-#include <drivers/timer.h>
+#include <book/timer.h>
 
 /* 在线程中作为形参 */
 typedef void ThreadFunc(void *);

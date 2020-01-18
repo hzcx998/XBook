@@ -11,10 +11,11 @@
 #include <drivers/clock.h>
 #include <book/schedule.h>
 #include <book/task.h>
-#include <drivers/timer.h>
+#include <book/timer.h>
 #include <share/math.h>
 #include <book/interrupt.h>
 #include <book/alarm.h>
+#include <arch/intel8253.h>
 
 PUBLIC struct SystemDate systemDate;
 
@@ -166,21 +167,17 @@ PUBLIC void SysMSleep(uint32_t msecond)
 	SleepByTicks(sleepTicks);
 }
 
-#define PIT_CTRL	0x0043 		//控制端口
-#define PIT_CNT0	0x0040		//数据端口
-#define TIMER_FREQ     1193180	//时钟的频率
-
 /**
  * InitClock - 初始化时钟管理
  */
 PUBLIC void InitClockDriver()
 {
 	PART_START("Clock driver");
-	
+	/* 0x34 */
 	//初始化时钟
-	Out8(PIT_CTRL, 0x34);
-	Out8(PIT_CNT0, (unsigned char) (TIMER_FREQ/HZ));
-	Out8(PIT_CNT0, (unsigned char) ((TIMER_FREQ/HZ) >> 8));
+	Out8(PIT_CTRL, MODE_2 | MODE_MSB_LSB | MODE_COUNTER_0 | MODE_BINARY);
+	Out8(PIT_COUNTER0, (unsigned char) (TIMER_FREQ/HZ));
+	Out8(PIT_COUNTER0, (unsigned char) ((TIMER_FREQ/HZ) >> 8));
 
 	ticks = 0;
 

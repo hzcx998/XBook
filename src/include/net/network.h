@@ -57,9 +57,13 @@ PUBLIC unsigned int NetworkMakeIpAddress(
     unsigned char ip2, 
     unsigned char ip3);
 
-PUBLIC void NetworkSetAddress(unsigned int ip);
-PUBLIC unsigned int NetworkGetAddress();
+PUBLIC void NetworkSetIpAddress(unsigned int ip);
+PUBLIC unsigned int NetworkGetIpAddress();
+PUBLIC unsigned int NetworkGetSubnetMask();
+PUBLIC unsigned int NetworkGetGateway();
+
 PUBLIC void DumpIpAddress(unsigned int ip);
 
+PUBLIC uint16 NetworkCheckSum(uint8_t *data, uint32_t len);
 
 #endif   /* _NET_NETWORK_H */

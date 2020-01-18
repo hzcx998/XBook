@@ -16,13 +16,24 @@
 #include <net/netbuf.h>
 #include <net/ethernet.h>
 #include <net/arp.h>
+#include <net/ip.h>
 
 #include <drivers/rtl8139.h>
 #include <drivers/amd79c973.h>
 #include <drivers/xxx.h>
+#include <drivers/clock.h>
 
 /* ip地址，以大端字序保存，也就是网络字序 */
 PRIVATE unsigned int networkIpAddress;
+
+/* 子网掩码 */
+PRIVATE uint32 networkSubnetMask;
+
+/* 网关地址 */
+PRIVATE uint32 networkGateway;
+
+/* DNS服务器地址 */
+PRIVATE uint32 networkDnsAddress;
 
 /**
  * NetworkMakeIpAddress - 生成ip地址
@@ -46,29 +57,95 @@ PUBLIC unsigned int NetworkMakeIpAddress(
 }
 
 /**
- * NetworkSetAddress - 设置IP地址
+ * NetworkSetIpAddress - 设置IP地址
  * @ip: IP地址
  */
-PUBLIC void NetworkSetAddress(unsigned int ip)
+PUBLIC void NetworkSetIpAddress(unsigned int ip)
 {
     networkIpAddress = ip;
 }
 
 /**
- * NetworkGetAddress - 获取IP地址
+ * NetworkSetSubnetMask - 设置子网掩码
+ * @mask: 掩码
+ */
+PUBLIC void NetworkSetSubnetMask(uint32_t mask)
+{
+    networkSubnetMask = mask;
+}
+
+/**
+ * NetworkSetGateway - 设置网关
+ * @gateway: 网关
+ */
+PUBLIC void NetworkSetGateway(uint32_t gateway)
+{
+    networkGateway = gateway;
+}
+
+/**
+ * NetworkGetIpAddress - 获取IP地址
  * 
  * 返回IP地址
  */
-PUBLIC unsigned int NetworkGetAddress()
+PUBLIC unsigned int NetworkGetIpAddress()
 {
     return networkIpAddress;
 }
 
+/**
+ * NetworkGetSubnetMask - 获取子网掩码
+ * 
+ * 返回子网掩码
+ */
+PUBLIC unsigned int NetworkGetSubnetMask()
+{
+    return networkSubnetMask;
+}
+
+/**
+ * NetworkGetGateway - 获取网关
+ * 
+ * 返回网关
+ */
+PUBLIC unsigned int NetworkGetGateway()
+{
+    return networkGateway;
+}
+
 PUBLIC void DumpIpAddress(unsigned int ip)
 {
-    printk(PART_TIP "----Ip Address----\n");
-    printk(PART_TIP "%d.%d.%d.%d\n", (ip >> 24) & 0xff, (ip >> 16) & 0xff,
+    //printk(PART_TIP "----Ip Address----\n");
+    printk("%d.%d.%d.%d\n", (ip >> 24) & 0xff, (ip >> 16) & 0xff,
             (ip >> 8) & 0xff, ip & 0xff);
+}
+
+/**
+ * NetworkCheckSum - 计算校验和
+ * 
+ */
+PUBLIC uint16 NetworkCheckSum(uint8_t *data, uint32_t len)
+{
+    uint32_t acc = 0;
+    uint16_t *p = (uint16_t *) data;
+    
+    /* 先把所有数据都加起来 */
+    int i = len;
+    for (; i > 1; i -= 2, p++) {
+        acc += *p;
+    }
+
+    /* 如果有漏单的，再加一次 */
+    if (i == 1) {
+        acc += *((uint8_t *) p);
+    }
+
+    while (acc >> 16) {
+        acc = (acc & 0xffff) + (acc >> 16);
+    }
+    
+    /* 取反 */
+    return (uint16_t) ~acc;
 }
 
 /**
@@ -101,12 +178,18 @@ PRIVATE int NetworkConfig()
 
     DumpEthernetAddress(EthernetGetAddress());
 
-    unsigned int ipAddress;
+    unsigned int ipAddress, gateway, subnetMask;
 
     /* 设置本机IP地址 */
     #ifdef _NIC_RTL8139
-    ipAddress = NetworkMakeIpAddress(169,254,44,140);
-    //ipAddress = NetworkMakeIpAddress(10,253,117,249);
+
+    // 进行桥接
+    ipAddress = NetworkMakeIpAddress(192,168,43,101);
+
+    // 网关和物理机一致
+    gateway = NetworkMakeIpAddress(192,168,43,1);
+
+    subnetMask = NetworkMakeIpAddress(255,255,255,0);
     #endif
 
     #ifdef _NIC_AMD79C973
@@ -121,9 +204,13 @@ PRIVATE int NetworkConfig()
         #endif
     #endif
 
-    NetworkSetAddress(ipAddress);
+    NetworkSetIpAddress(ipAddress);
+    NetworkSetSubnetMask(subnetMask);
+    NetworkSetGateway(gateway);
 
-    DumpIpAddress(NetworkGetAddress());
+    DumpIpAddress(NetworkGetIpAddress());
+    DumpIpAddress(NetworkGetGateway());
+    DumpIpAddress(NetworkGetSubnetMask());
 
     return 0;
 }
@@ -132,20 +219,32 @@ PRIVATE void NetwrokTest()
 {
     
     #ifdef _NIC_RTL8139
-        unsigned char test[6] = {
-            0x00,0xFF,0x44,0x98,0x96,0x37,
+        unsigned char gateway[6] = {
+            0x14,0x30,0x04,0x41,0x8d,0x1b
         };
+        /* 添加网关缓存 */
+        ArpAddCache(NetworkMakeIpAddress(10,253,0,1), gateway);
+        
         char *str = "hello,asdqwe111111111123123";
+        uint32_t ipAddr;
+        
+        //ipAddr = NetworkMakeIpAddress(10,0,251,18);   // 和外网沟通
+        ipAddr = NetworkMakeIpAddress(192,168,43,196);  // 和物理机沟通
+        //ipAddr = NetworkMakeIpAddress(10,253,0,1);    // 和网关沟通
+
         while(1){
             
             //EthernetSend(test, PROTO_ARP, str, strlen(str));
-            ArpRequest(NetworkMakeIpAddress(169,254,44,2));
+            //ArpRequest(ipAddr);
+
+            IpTransmit(ipAddr, str, strlen(str), 255);
+
             //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
             //printk("sleep");
             SysMSleep(1000);
 
             //SysSleep(1);
-            //printk("wakeup");
+            printk("wakeup");
         }
     #endif
 
@@ -201,9 +300,9 @@ PRIVATE void NetwrokTest()
         0xff, 0x11, 0x33, 0x44, 0x55, 0x66
     };*/
     //ArpLookupCache(NetworkMakeIpAddress(192,168,1,1), ethAddr);
-    while(1);
+    /*while(1);
 
-    Spin("Network Test!\n");
+    Spin("Network Test!\n");*/
 }
 
 /**
@@ -245,6 +344,9 @@ PUBLIC int InitNetwork()
 
     /* 初始化ARP */
     InitARP();
+
+    /* 初始化IP */
+    InitNetworkIp();
 
     /* 进行网络配置 */
     NetworkConfig();

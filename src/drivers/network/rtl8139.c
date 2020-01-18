@@ -133,7 +133,7 @@
 #define RTL8139_DRIVER_NAME   DEV_NAME " Fast Ethernet driver " DRV_VERSION
 
 /* define to 1, 2 or 3 to enable copious debugging info */
-#define RTL8139_DEBUG 3
+#define RTL8139_DEBUG 0
 
 /* PCI rtl8139 配置空间寄存器 */
 #define RTL8139_VENDOR_ID   0x10ec
@@ -665,7 +665,12 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
     /* 获取当前传输项 */
     entry = private->currentTX;
     /* 改变传输项状态，开始数据传输 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    //enum InterruptStatus oldStatus = InterruptDisable();
+
+    uint32_t eflags = LoadEflags();
+    DisableInterrupt();
+
+
 
     //DisableInterrupt();
 
@@ -727,12 +732,14 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
         // 停止传输 */
         printk("Stop Tx packet!\n");
         //netif_stop_queue (dev);
-        InterruptSetStatus(oldStatus);
+        //InterruptSetStatus(oldStatus);
         //EnableInterrupt();
+        StoreEflags(eflags);
         return -1;
     }
-    InterruptSetStatus(oldStatus);
+    //InterruptSetStatus(oldStatus);
     //EnableInterrupt();
+    StoreEflags(eflags);
 #if RTL8139_DEBUG == 2 
     printk("Queued Tx packet size %d to slot %d\n",
 		    length, entry);
@@ -1291,9 +1298,9 @@ PRIVATE void __SetRxMode(struct Rtl8139Private *private)
 		    private->flags,
             In32(private->ioAddress + RX_CONFIG));
 
-    /* 一般内容 */
-    int rxMode = ACCEPT_BROADCAST | ACCEPT_MY_PHYS | ACCEPT_MULTICAST | ACCEPT_ALL_PHYS;
-
+    /* 一般内容，接收多播，广播，发给自己的物理包 */
+    int rxMode = ACCEPT_BROADCAST | ACCEPT_MY_PHYS | ACCEPT_MULTICAST;
+    
     /* 其它所有内容 */
     if (private->devFeatures & NET_FEATURE_RXALL) {
         rxMode |= (ACCEPT_ERR | ACCEPT_RUNT);
@@ -1625,7 +1632,7 @@ PUBLIC int InitRtl8139Driver()
     }
 
     /* 注册并打开对应的中断 */
-	RegisterIRQ(private->irq, Rtl8139Handler, IRQF_DISABLED | IRQF_SHARED, "IRQ-Network", DRV_NAME, (unsigned int)private);
+	RegisterIRQ(private->irq, Rtl8139Handler, IRQF_SHARED, "IRQ-Network", DRV_NAME, (unsigned int)private);
     DisableIRQ(private->irq);
     
     if (Rtl8139Open()) {

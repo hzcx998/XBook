@@ -1,5 +1,5 @@
 /*
- * file:		drivers/char/timer.c
+ * file:		kernel/timer.c
  * auther:		Jason Hu
  * time:		2019/8/8
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -9,9 +9,10 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <drivers/clock.h>
-#include <drivers/timer.h>
+#include <book/timer.h>
 #include <book/schedule.h>
 #include <book/task.h>
+
 
 /* 定时器链表 */
 PUBLIC struct List timerList;
@@ -41,7 +42,7 @@ PUBLIC void TimerInit(struct Timer *timer, uint64_t expires, uint32_t data,
 PUBLIC void DoTimerHandler(struct Timer *timer)
 {
     /* 执行完后应该把定时器从链表中删除，以后不再执行 */
-    RemoveTimer(timer);
+    //RemoveTimer(timer);
     timer->function(timer->data);
 }
 

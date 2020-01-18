@@ -12,7 +12,7 @@
 #include <share/types.h>
 #include <drivers/console.h>
 
-#define CONFIG_SERIAL_DEBUG
+//#define CONFIG_SERIAL_DEBUG
 
 
 #define DEBUG_PART

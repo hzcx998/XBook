@@ -1,5 +1,5 @@
 /*
- * file:		include/driver/timer.h
+ * file:		include/book/timer.h
  * auther:		Jason Hu
  * time:		2019/8/8
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
@@ -9,8 +9,8 @@
  * 定时器驱动，建立在时钟驱动之上
  */
 
-#ifndef _DRIVER_CHAR_TIMER_H
-#define _DRIVER_CHAR_TIMER_H
+#ifndef _BOOK_TIMER_H
+#define _BOOK_TIMER_H
 
 #include <share/stdint.h>
 #include <share/types.h>
@@ -25,14 +25,16 @@
 /**
  * 定时器结构
  */
-struct Timer {
+typedef struct Timer {
     struct List list;   // 链表
     uint64_t expires;   // 到期时间
     uint32_t data;      // 传递的数据
     void (*function)(uint32_t);     // 到期后要调用的函数
     char state;         // 定时器的状态
     struct Timer *next; // 定时器链表，用于在task中遍历task所属的定时器
-};
+} Timer_t;
+
+#define SIZEOF_TIMER sizeof(struct Timer)
 
 PUBLIC void InitTimer();
 PUBLIC void TimerInit(struct Timer *timer, uint64_t expires, uint32_t data,
@@ -50,4 +52,4 @@ PUBLIC void CancelTimer(struct Timer *timer);
 
 PUBLIC void DoTimerHandler(struct Timer *timer);
 
-#endif  /* _DRIVER_CHAR_TIMER_H */
+#endif  /* _BOOK_TIMER_H */

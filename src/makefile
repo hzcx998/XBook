@@ -162,15 +162,17 @@ endif
 #		-net user
 #	2.Tap/tun network : Tap网络
 #		-net tap
-# 
-#
+# 		-net tap,vlan=0,ifname=tap0
+# 音频配置：
+# 	a.使用蜂鸣器：-soundhw pcspk
 qemu: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,vlan=0,model=rtl8139,macaddr=12:34:56:78:9a:be \
+		-net nic,vlan=0,model=rtl8139,macaddr=00:57:20:01:15:02 \
 		-net tap,vlan=0,ifname=tap0 \
-		-serial stdio 
+		-serial stdio \
+		-soundhw pcspk
 
 qemudbg: disk
 	$(QEMU) -m 512M \

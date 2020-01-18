@@ -10,7 +10,7 @@
 #include <book/debug.h>
 #include <share/string.h>
 #include <book/task.h>
-#include <drivers/timer.h>
+#include <book/timer.h>
 #include <drivers/clock.h>
 
 
@@ -90,6 +90,7 @@ PUBLIC uint32_t TaskSleep(uint32_t ticks)
     /* 现在进程不能运行，因为它不再readyList中，只有定时器唤醒后才可以
     当定时器把它唤醒之后，他就会在这里执行
      */
+    RemoveTimer(&timer);
 
     current->sleepTimer = NULL; /* 取消休眠定时器 */
     

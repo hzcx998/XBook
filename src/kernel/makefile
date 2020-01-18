@@ -1,3 +1,5 @@
+obj-y	+= block/
+obj-y	+= char/
 obj-y	+= bitmap.o
 obj-y	+= hal.o
 obj-y	+= debug.o
@@ -19,5 +21,4 @@ obj-y	+= spinlock.o
 obj-y	+= mutex.o
 obj-y	+= signal.o
 obj-y	+= alarm.o
-obj-y	+= block/
-obj-y	+= char/
+obj-y	+= timer.o

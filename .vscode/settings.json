@@ -76,7 +76,11 @@
         "nllt.h": "c",
         "rtl8139.h": "c",
         "arp.h": "c",
-        "byteorder.h": "c"
+        "byteorder.h": "c",
+        "ip.h": "c",
+        "xxx.h": "c",
+        "pcspeaker.h": "c",
+        "pit.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
