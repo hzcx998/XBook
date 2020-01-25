@@ -14,10 +14,15 @@
 #include <book/sound.h>
 
 #include <drivers/pcspeaker.h>
+#include <drivers/sb16.h>
 
 PUBLIC int InitSoundSystem()
 {
     PART_START("Sound");
+    
+    if (InitSoundBlaster16Driver()) {
+        return -1;
+    }
     if (InitPcspeakerDriver()) {
         return -1;
     }

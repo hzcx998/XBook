@@ -59,7 +59,8 @@ PUBLIC void PcspeakerBeep(uint32_t frequence) {
  	div = TIMER_FREQ / (frequence * CLOCK_QUICKEN);
  	
     /* 即将设置蜂鸣器的频率 */
-    Out8(PIT_CTRL, MODE_COUNTER_2 | MODE_MSB_LSB | MODE_3 | MODE_BINARY);
+    Out8(PIT_CTRL, PIT_MODE_COUNTER_2 | PIT_MODE_MSB_LSB | 
+            PIT_MODE_3 | PIT_MODE_BINARY);
 
     /* 设置低位和高位数据 */
  	Out8(PIT_COUNTER2, (uint8_t) (div));

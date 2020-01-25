@@ -173,9 +173,10 @@ PUBLIC void SysMSleep(uint32_t msecond)
 PUBLIC void InitClockDriver()
 {
 	PART_START("Clock driver");
-	/* 0x34 */
+
 	//初始化时钟
-	Out8(PIT_CTRL, MODE_2 | MODE_MSB_LSB | MODE_COUNTER_0 | MODE_BINARY);
+	Out8(PIT_CTRL, PIT_MODE_2 | PIT_MODE_MSB_LSB | 
+            PIT_MODE_COUNTER_0 | PIT_MODE_BINARY);
 	Out8(PIT_COUNTER0, (unsigned char) (TIMER_FREQ/HZ));
 	Out8(PIT_COUNTER0, (unsigned char) ((TIMER_FREQ/HZ) >> 8));
 

@@ -1,7 +1,7 @@
 /*
  * file:		include/arch/intel8255.h
  * auther:		Jason Hu
- * time:		2020/2/18
+ * time:		2020/1/18
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
