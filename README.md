@@ -34,6 +34,7 @@ We can use this OS to compile this OS!
 
 # 版本
 版本发布 Update:  
+    v0.6.6 2019/1/30  
     v0.6.5 2019/12/29  
     v0.6.4 2019/12/19  
     v0.6.3 2019/12/11  
