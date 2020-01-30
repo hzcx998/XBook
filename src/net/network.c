@@ -17,6 +17,7 @@
 #include <net/ethernet.h>
 #include <net/arp.h>
 #include <net/ip.h>
+#include <net/icmp.h>
 
 #include <drivers/rtl8139.h>
 #include <drivers/amd79c973.h>
@@ -184,12 +185,12 @@ PRIVATE int NetworkConfig()
     #ifdef _NIC_RTL8139
 
     // 进行桥接
-    ipAddress = NetworkMakeIpAddress(192,168,43,101);
+    ipAddress = NetworkMakeIpAddress(169,254,164,10);
 
     // 网关和物理机一致
-    gateway = NetworkMakeIpAddress(192,168,43,1);
-
-    subnetMask = NetworkMakeIpAddress(255,255,255,0);
+    gateway = NetworkMakeIpAddress(169,254,0,2);
+    
+    subnetMask = NetworkMakeIpAddress(255,255,0,0);
     #endif
 
     #ifdef _NIC_AMD79C973
@@ -223,29 +224,32 @@ PRIVATE void NetwrokTest()
             0x14,0x30,0x04,0x41,0x8d,0x1b
         };
         /* 添加网关缓存 */
-        ArpAddCache(NetworkMakeIpAddress(10,253,0,1), gateway);
+        //ArpAddCache(NetworkMakeIpAddress(10,253,0,1), gateway);
         
         char *str = "hello,asdqwe111111111123123";
         uint32_t ipAddr;
         
         //ipAddr = NetworkMakeIpAddress(10,0,251,18);   // 和外网沟通
-        ipAddr = NetworkMakeIpAddress(192,168,43,196);  // 和物理机沟通
+        ipAddr = NetworkMakeIpAddress(169,254,164,42);  // 和物理机沟通
         //ipAddr = NetworkMakeIpAddress(10,253,0,1);    // 和网关沟通
-
+        int seq = 0;
+        IcmpEechoRequest(ipAddr, 0, seq, "", 0);
+        /*
         while(1){
-            
+            seq++;
+
             //EthernetSend(test, PROTO_ARP, str, strlen(str));
             //ArpRequest(ipAddr);
 
-            IpTransmit(ipAddr, str, strlen(str), 255);
-
+            //IpTransmit(ipAddr, str, strlen(str), 255);
+            //IcmpEechoRequest(ipAddr, 0, seq, "", 0);
             //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
             //printk("sleep");
-            SysMSleep(1000);
+            //SysMSleep(1000);
 
             //SysSleep(1);
             printk("wakeup");
-        }
+        }*/
     #endif
 
     #ifdef _NIC_AMD79C973
@@ -354,6 +358,6 @@ PUBLIC int InitNetwork()
     NetwrokTest();
 
     PART_END();
-    Spin("spin in network.");
+    //Spin("spin in network.");
     return 0;
 }

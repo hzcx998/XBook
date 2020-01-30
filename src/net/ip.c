@@ -180,7 +180,7 @@ PUBLIC int IpTransmit(uint32 ip, uint8 *data, uint32 len, uint8 protocol)
     
     uint8 ethAddr[ETH_ADDR_LEN] = {0};
     if (ArpLookupCache(destIP, ethAddr)) {
-        printk("find mac addr of ip in arp cache\n");
+        //printk("find mac addr of ip in arp cache\n");
         EthernetSend(ethAddr, PROTO_IP, buffer->data, buffer->dataLen);
         FreeNetBuffer(buffer);
     } else {

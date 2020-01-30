@@ -11,7 +11,10 @@
 #include <share/stdint.h>
 #include <share/types.h>
 
+//#define CONFIG_SB16
 
+#ifdef CONFIG_SB16
 PUBLIC int InitSoundBlaster16Driver();
+#endif  /* CONFIG_SB16 */
 
 #endif  /* _DRIVER_SB16_H */

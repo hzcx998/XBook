@@ -36,11 +36,11 @@
 #define DATA_ON_FLOPPY
 #define FLOPPY_DATA_ADDR	0x80050000
 
-/* 数据是在软盘上的 */
+/* 数据是在硬盘上的 */
 #define DATA_ON_IDE
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 3
+#define FILE_ID 5
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
@@ -54,6 +54,9 @@
 #elif FILE_ID == 4
 	#define FILE_NAME "root:/test2"
 	#define FILE_SECTORS 50
+#elif FILE_ID == 5
+	#define FILE_NAME "root:/wav"
+	#define FILE_SECTORS 120
 #endif
 
 #define FILE_SIZE (FILE_SECTORS * SECTOR_SIZE)

@@ -19,15 +19,18 @@
 PUBLIC int InitSoundSystem()
 {
     PART_START("Sound");
-    
+
+#ifdef CONFIG_SB16
     if (InitSoundBlaster16Driver()) {
         return -1;
-    }
+    }    
+#endif /* CONFIG_SB16 */
+
     if (InitPcspeakerDriver()) {
-        return -1;
+        printk("init pc speaker failed!\n");
     }
 
     PART_END();
-    while(1);
+    //while(1);
     return 0;
 }

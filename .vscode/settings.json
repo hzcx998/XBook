@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.C": "c",
         "arch.h": "c",
         "string.h": "c",
         "page.h": "c",
@@ -80,7 +81,14 @@
         "ip.h": "c",
         "xxx.h": "c",
         "pcspeaker.h": "c",
-        "pit.h": "c"
+        "pit.h": "c",
+        "intel8253.h": "c",
+        "intel8255.h": "c",
+        "SBIO.C": "cpp",
+        "SIMUL.C": "cpp",
+        "wav.h": "c",
+        "sb16.h": "c",
+        "serial.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

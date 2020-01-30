@@ -5,7 +5,6 @@
  * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
  */
 
-
 #include <book/debug.h>
 #include <drivers/console.h>
 #include <share/vsprintf.h>
@@ -94,7 +93,7 @@ PUBLIC int SerialPrint(const char *fmt, ...)
     char *p = buf;
 	//ConsoleWrite((char *)buf, i);
     while (count-- > 0) {
-        SerialPutchar(*p++);
+        SerialDebugPutChar(*p++);
     }
     
 	return i;

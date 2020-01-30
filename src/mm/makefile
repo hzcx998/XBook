@@ -5,4 +5,4 @@ obj-y	+= exec.o
 obj-y	+= vmarea.o
 obj-y	+= memcache.o
 obj-y	+= dma.o
-		
+obj-y	+= lowmem.o

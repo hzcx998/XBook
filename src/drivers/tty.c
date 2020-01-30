@@ -295,12 +295,10 @@ PRIVATE void TTY_DoWrite(TTY_t *tty)
 }
 
 /**
- * TTY_Write - tty终端写入接口
- * @tty: 哪个tty
- * @buf: 缓冲区
- * @len: 写入的数据长度（字节）
+ * TTY_Getc - tty终端读取字符
+ * @device: 设备指针
  * 
- * 往tty对应的控制台写入字符数据
+ * 从tty设备读取一个字符
  */
 PRIVATE int TTY_Getc(struct Device *device)
 {
@@ -361,10 +359,9 @@ PRIVATE int TTY_Write(struct Device *device, unsigned int off, void *buffer, uns
 }
 
 /**
- * TTY_Write - tty终端写入接口
- * @tty: 哪个tty
- * @buf: 缓冲区
- * @len: 写入的数据长度（字节）
+ * TTY_Putc - tty终端写入接口
+ * @device: 设备指针
+ * @ch: 字符
  * 
  * 往tty对应的控制台写入字符数据
  */

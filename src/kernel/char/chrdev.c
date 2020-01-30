@@ -17,8 +17,6 @@ EXTERN struct List allDeviceListHead;
 /* 所有字符设备的队列 */
 LIST_HEAD(allCharDeviceList);
 
-
-
 /**
  * GetCharDeviceByDevno - 通过设备号获取字符设备
  * @devno: 设备号
@@ -104,7 +102,6 @@ PUBLIC void CharDeviceSetup(struct CharDevice *chrdev,
 {
     chrdev->super.opSets = opSets;
 }
-
 
 /**
  * AddCharDevice - 把字符设备添加到内核

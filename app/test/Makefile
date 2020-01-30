@@ -1,7 +1,6 @@
-#Makefile for boot
+#Makefile for test
 #auther: Hu Zicheng
 #time: 2019/1/24
-
 
 #The tools name
 NASM 		= nasm
@@ -14,8 +13,7 @@ INCLUDE_DIR = ../../src/include/
 H_USER_DIR = $(INCLUDE_DIR)user/
 H_SHARE_DIR = $(INCLUDE_DIR)share/
 
-USER_DIR = ../../src/user/
-SHARE_DIR = ../../src/share/
+LIBARY_DIR = ../../src/
 
 BIN = a.out
 
@@ -43,20 +41,8 @@ LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 OBJS =  _start.o \
 		main.o
 
-LD_OBJS = 	$(USER_DIR)lib/exit.o\
-			$(USER_DIR)lib/log.o\
-			$(USER_DIR)lib/mmap.o\
-			$(USER_DIR)lib/fork.o\
-			$(USER_DIR)lib/printf.o\
-			$(USER_DIR)lib/getpid.o\
-			$(USER_DIR)lib/sleep.o\
-			$(USER_DIR)lib/msleep.o\
-			$(USER_DIR)lib/_wait.o\
-			$(USER_DIR)lib/execv.o\
-			$(USER_DIR)lib/file.o\
-			$(SHARE_DIR)vsprintf.o\
-			$(SHARE_DIR)string.o\
-			
+LD_OBJS = 	$(LIBARY_DIR)libc.a \
+
 #First read here
 .PHONY: all
 
@@ -83,7 +69,7 @@ vbox: compile link vhd
 #Clean temporary files
 clean:
 	-rm *.o
-	-rm bin
+	-rm $(BIN)
 
 %.o: %.asm
 	$(NASM) $(ASM_FLAGS) -o $@ $<

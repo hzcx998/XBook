@@ -17,6 +17,7 @@
 #include <book/block.h>
 #include <book/char.h>
 #include <book/sound.h>
+#include <book/lowmem.h>
 #include <net/network.h>
 #include <fs/fs.h>
 /*
@@ -38,6 +39,9 @@ int main()
 	// 初始化内存区域
 	InitVMArea();
 
+    // 初始化内存片段
+    InitMemFragment();
+
 	/* 初始化IRQ描述结构 */
 	InitIrqDescription();
 
@@ -58,12 +62,9 @@ int main()
 	
 	/* 初始化字符设备 */	
 	InitCharDevice();
-
+    
 	/* 初始化块设备 */	
 	InitBlockDevice();
-
-    /* 初始化音频系统 */
-    InitSoundSystem();
 
     /* 初始化网络 */
     InitNetwork();

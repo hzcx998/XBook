@@ -1,4 +1,4 @@
-#Makefile for bosh
+#Makefile for init
 #auther: Jason Hu
 #time: 2019/12/8
 
@@ -14,13 +14,12 @@ INCLUDE_DIR = ../../src/include/
 H_USER_DIR = $(INCLUDE_DIR)user/
 H_SHARE_DIR = $(INCLUDE_DIR)share/
 
-USER_DIR = ../../src/user/
-SHARE_DIR = ../../src/share/
+LIBARY_DIR = ../../src/
 
 BIN = a.out
 
 BIN_OFF = 600 
-BIN_CNTS = 100
+BIN_CNTS = 50
 
 #img dir
 IMG_DIR = ../../img/
@@ -43,29 +42,9 @@ C_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
 LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 
 OBJS =  _start.o \
-		main.o \
-		cmd.o
+		main.o
 
-LD_OBJS = 	$(USER_DIR)lib/log.o \
-			$(USER_DIR)lib/mmap.o \
-			$(USER_DIR)lib/fork.o \
-			$(USER_DIR)lib/printf.o \
-			$(USER_DIR)lib/getpid.o \
-			$(USER_DIR)lib/execv.o \
-			$(USER_DIR)lib/exit.o \
-			$(USER_DIR)lib/_wait.o \
-			$(USER_DIR)lib/file.o \
-			$(USER_DIR)lib/dir.o \
-			$(USER_DIR)lib/_brk.o \
-			$(USER_DIR)lib/brk.o \
-			$(USER_DIR)lib/malloc.o \
-			$(USER_DIR)lib/signal.o \
-			$(USER_DIR)lib/signal2.o \
-			$(SHARE_DIR)vsprintf.o \
-			$(SHARE_DIR)string.o \
-			$(SHARE_DIR)ctype.o \
-			$(SHARE_DIR)signal.o \
-			
+LD_OBJS = 	$(LIBARY_DIR)libc.a \
 
 #First read here
 .PHONY: all

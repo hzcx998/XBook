@@ -61,5 +61,14 @@
 //#define CONFIG_DRV_MOUSE  /* 鼠标驱动配置 */
 #define CONFIG_DRV_IDE      /* IDE驱动配置 */
 #define CONFIG_DRV_RAMDISK  /* RAMDISK驱动配置 */
+#define CONFIG_DRV_SERIAL  /* 串口驱动配置 */
+
+/**
+ * ------------------------
+ * 配置调试方法
+ * ------------------------
+ */
+#define CONFIG_SERIAL_DEBUG /* 串口调试，输出到其他电脑进行调试 */
+
 
 #endif   /*_BOOK_CONFIG_H*/

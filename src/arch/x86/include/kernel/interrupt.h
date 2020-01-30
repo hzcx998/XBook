@@ -21,7 +21,7 @@
 #define	IRQ4_SERIAL1        4   // 串口1
 #define	IRQ5_PARALLEL2      5   // 并口2
 #define	IRQ6_FLOPPY         6   // 软盘
-#define	IRQ5_PARALLEL1      7   // 并口1
+#define	IRQ7_PARALLEL1      7   // 并口1
 
 #define	IRQ8_RTCLOCK        8   // 实时时钟（real-time clock）
 #define	IRQ9_REDIRECT       9   // 重定向的IRQ2

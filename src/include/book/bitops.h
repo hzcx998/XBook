@@ -12,6 +12,16 @@
 #include <book/arch.h>
 #include <book/bitops.h>
 
+/* 求位数值 */
+#define LOW8(a) (unsigned char)(a & 0xff) 
+#define HIGH8(a) (unsigned char)((a >> 8) & 0xff) 
+
+#define LOW16(a) (unsigned short)(a & 0xffff) 
+#define HIGH16(a) (unsigned short)((a >> 16) & 0xffff) 
+
+#define LOW32(a) (unsigned int)(a & 0xffffffff) 
+#define HIGH32(a) (unsigned int)((a >> 32) & 0xffffffff) 
+
 /**
  * SetBit - 设置位为1
  * @nr: 要设置的位置

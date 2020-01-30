@@ -34,10 +34,15 @@ enum {
 #define IDE_MAJOR           3
 #define RAMDISK_MAJOR       4
 #define TTY_MAJOR           5
+#define PCSPEAKER_MAJOR     6
+#define COM_MAJOR           7
+
 
 /* 字符设备数量 */
 #define CONSOLE_MINORS      3    /* 4个控制台 */
 #define TTY_MINORS          3    /* 4个tty */
+#define PCSPEAKER_MINORS    1    /* 1个蜂鸣器 */
+#define COM_MINORS          4    /* 4个串口设备 */
 
 /* 设备分区数 */
 #define IDE_PARTS           8
@@ -67,6 +72,13 @@ enum {
 #define DEV_TTY1            MKDEV(TTY_MAJOR, 1)       /* tty设备1 */
 #define DEV_TTY2            MKDEV(TTY_MAJOR, 2)       /* tty设备2 */
 #define DEV_TTY3            MKDEV(TTY_MAJOR, 3)       /* tty设备3 */
+
+#define DEV_PCSPEAKER       MKDEV(PCSPEAKER_MAJOR, 0)       /* 蜂鸣器设备0 */
+
+#define DEV_COM0            MKDEV(COM_MAJOR, 0)       /* COM设备0 */
+#define DEV_COM1            MKDEV(COM_MAJOR, 1)       /* COM设备1 */
+#define DEV_COM2            MKDEV(COM_MAJOR, 2)       /* COM设备2 */
+#define DEV_COM3            MKDEV(COM_MAJOR, 3)       /* COM设备3 */
 
 #define DEVICE_NAME_LEN 24
 

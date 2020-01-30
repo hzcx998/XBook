@@ -11,6 +11,7 @@
 #include <share/vsprintf.h>
 #include <share/string.h>
 #include <book/interrupt.h>
+
 #include <drivers/serial.h>
 
 //创建全局变量 halListHead 来管理所有的hal
@@ -48,7 +49,7 @@ PUBLIC void InitHalEarly()
 	ConsoleInit();
 
     // 初始化串口驱动
-    InitSerialDriver();
+    InitSerialDebugDriver();
 
     /* 初始化调试输出，可以使用printk */
     InitDebugPrint();

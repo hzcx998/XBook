@@ -8,6 +8,10 @@
 #include <book/config.h>
 #include <book/debug.h>
 #include <book/arch.h>
+#include <book/char.h>
+#include <book/chr-dev.h>
+
+#include <book/sound.h>
 
 #include <arch/intel8253.h>
 #include <arch/intel8255.h>
@@ -16,6 +20,19 @@
 
 #include <drivers/pcspeaker.h>
 #include <drivers/clock.h>
+
+#define DRV_NAME "pcspeaker" 
+
+//#define DEBUG_PCSPEAKER
+
+struct SpeakerPrivate {
+    struct CharDevice *chrdev;  /* 字符设备 */
+    
+    uint32_t frequence; /* 发声频率 */
+
+};
+
+PRIVATE struct SpeakerPrivate speakerPrivate; 
 
 /**
  * SpeakerOn - 播放声音
@@ -45,15 +62,9 @@ PRIVATE void SpeakerOff()
     Out8(PPI_OUTPUT, tmp & 0xfc);
 }
 
-/**
- * PcspeakerBeep - 发出声音
- * @frequence: 发声频率
- * 
- * 发声频率决定音高
- * 人能识别的HZ是20KHZ~20HZ，最低frequence取值20~20000
- */
-PUBLIC void PcspeakerBeep(uint32_t frequence) {
- 	uint32_t div;
+PRIVATE void SpeakerSetFrequence(uint32_t frequence)
+{
+    uint32_t div;
  	
     // 求要传入的频率
  	div = TIMER_FREQ / (frequence * CLOCK_QUICKEN);
@@ -65,13 +76,64 @@ PUBLIC void PcspeakerBeep(uint32_t frequence) {
     /* 设置低位和高位数据 */
  	Out8(PIT_COUNTER2, (uint8_t) (div));
  	Out8(PIT_COUNTER2, (uint8_t) (div >> 8));
-    
+}
+
+/**
+ * PcspeakerBeep - 发出声音
+ * @frequence: 发声频率
+ * 
+ * 发声频率决定音高
+ * 人能识别的HZ是20KHZ~20HZ，最低frequence取值20~20000
+ */
+PUBLIC void PcspeakerBeep(uint32_t frequence)
+{
+    /* 设置工作频率 */
+ 	SpeakerSetFrequence(frequence);
     /* 播放 */
     SpeakerOn();
 }
 
+/**
+ * SpeakerIoctl - speaker的IO控制
+ * @device: 设备
+ * @cmd: 命令
+ * @arg: 参数
+ * 
+ * 成功返回0，失败返回-1
+ */
+PRIVATE int SpeakerIoctl(struct Device *device, int cmd, int arg)
+{
+    struct CharDevice *chrdev = (struct CharDevice *)device;
+    struct SpeakerPrivate *self = (struct SpeakerPrivate *)chrdev->private;
+    
+	int retval = 0;
+	switch (cmd)
+	{
+    case SND_CMD_PLAY:    /* 开始播放声音 */
+        SpeakerOn();
+        break;
+    case SND_CMD_STOP:    /* 结束播放声音 */
+        SpeakerOff();
+        break;
+    case SND_CMD_FREQUENCE:    /* 设置声音频率 */
+        SpeakerSetFrequence(arg);
+        break;
+	default:
+		/* 失败 */
+		retval = -1;
+		break;
+	}
+
+	return retval;
+}
+
+PRIVATE struct DeviceOperations speakerOpSets = {
+	.ioctl = SpeakerIoctl,
+};
+
 PRIVATE void SpeakerTest()
 {
+#ifdef DEBUG_PCSPEAKER
     int i;
 
     for (i = 20; i < 20000; i += 100) {
@@ -80,10 +142,39 @@ PRIVATE void SpeakerTest()
     }
 
     SpeakerOff();
+#endif  /* DEBUG_PCSPEAKER */
+
+}
+
+PRIVATE int PcspeakerInitOne()
+{
+    struct SpeakerPrivate *self = &speakerPrivate;
+    
+    /* 设置一个字符设备号 */
+    self->chrdev = AllocCharDevice(DEV_PCSPEAKER);
+	if (self->chrdev == NULL) {
+		printk(PART_ERROR "alloc char device for pcspeaker failed!\n");
+		return -1;
+	}
+    
+	/* 初始化字符设备信息 */
+	CharDeviceInit(self->chrdev, 1, self);
+	CharDeviceSetup(self->chrdev, &speakerOpSets);
+
+	CharDeviceSetName(self->chrdev, DRV_NAME);
+	
+	/* 把字符设备添加到系统 */
+	AddCharDevice(self->chrdev);
+
+    return 0;
 }
 
 PUBLIC int InitPcspeakerDriver()
 {
+    if (PcspeakerInitOne()) {
+        return -1;
+    }
+
     SpeakerTest();
 
     return 0;

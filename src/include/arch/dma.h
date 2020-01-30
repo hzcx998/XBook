@@ -69,4 +69,65 @@
 #define DMA2_CLEAR_MASK_REG 0xDC   /* Clear Mask */
 #define DMA2_MASK_ALL_REG   0xDE   /* All channel mask(w) */
 
+enum Dma1MaskBits {
+    DMA1_MASK_OFF = (0<<2),              /* 屏蔽开启 */
+    DMA1_MASK_ON = (1<<2),               /* 屏蔽开启 */
+    DMA1_MASK_CHANNEL_0 = (0<<0),        /* 通道0 */
+    DMA1_MASK_CHANNEL_1 = (1<<0),        /* 通道1 */
+    DMA1_MASK_CHANNEL_2 = (1<<1),        /* 通道2 */
+    DMA1_MASK_CHANNEL_3 = (1<<0)|(1<<1), /* 通道3 */
+};
+
+enum Dma1ModeBits {
+    DMA1_MODE_CHANNEL_0 = (0<<0),           /* 通道0 */
+    DMA1_MODE_CHANNEL_1 = (1<<0),           /* 通道1 */
+    DMA1_MODE_CHANNEL_2 = (1<<1),           /* 通道2 */
+    DMA1_MODE_CHANNEL_3 = (1<<0)|(1<<1),    /* 通道3 */
+    
+    DMA1_MODE_TYPE_CHECK = (0<<2),          /* 校验传送 */
+    DMA1_MODE_TYPE_WRITE = (1<<2),          /* 写传送 */
+    DMA1_MODE_TYPE_READ = (1<<3),           /* 读传送 */
+    DMA1_MODE_TYPE_UNDEF = (1<<2)|(1<<3),   /* 未定义类型 */
+    DMA1_MODE_AUTO_ON = (1<<4),             /* 启动自动预置 */
+    DMA1_MODE_AUTO_OFF = (0<<4),            /* 关闭自动预置 */
+    DMA1_MODE_DIR_INC = (0<<5),             /* 地址方向递增 */
+    DMA1_MODE_DIR_DEC = (1<<5),             /* 地址方向递减 */
+    
+    DMA1_MODE_METHOD_REQ = (0<<6),          /* 请求传送方式 */
+    DMA1_MODE_METHOD_CHAR = (1<<6),         /* 单字节传送方式 */
+    DMA1_MODE_METHOD_BLOCK = (1<<7),        /* 数据块传送方式 */
+    DMA1_MODE_METHOD_CASC = (1<<6)|(1<<7),  /* 级联传送方式 */
+};
+
+
+enum Dma2MaskBits {
+    DMA2_MASK_OFF = (0<<2),              /* 屏蔽开启 */
+    DMA2_MASK_ON = (1<<2),               /* 屏蔽开启 */
+    DMA2_MASK_CHANNEL_4 = (0<<0),        /* 通道4 */
+    DMA2_MASK_CHANNEL_5 = (1<<0),        /* 通道5 */
+    DMA2_MASK_CHANNEL_6 = (1<<1),        /* 通道6 */
+    DMA2_MASK_CHANNEL_7 = (1<<0)|(1<<1), /* 通道7 */
+};
+
+enum Dma2ModeBits {
+    DMA2_MODE_CHANNEL_4 = (0<<0),           /* 通道4 */
+    DMA2_MODE_CHANNEL_5 = (1<<0),           /* 通道5 */
+    DMA2_MODE_CHANNEL_6 = (1<<1),           /* 通道6 */
+    DMA2_MODE_CHANNEL_7 = (1<<0)|(1<<1),    /* 通道7 */
+    
+    DMA2_MODE_TYPE_CHECK = (0<<2),          /* 校验传送 */
+    DMA2_MODE_TYPE_WRITE = (1<<2),          /* 写传送 */
+    DMA2_MODE_TYPE_READ = (1<<3),           /* 读传送 */
+    DMA2_MODE_TYPE_UNDEF = (1<<2)|(1<<3),   /* 未定义类型 */
+    DMA2_MODE_AUTO_ON = (1<<4),             /* 启动自动预置 */
+    DMA2_MODE_AUTO_OFF = (0<<4),            /* 关闭自动预置 */
+    DMA2_MODE_DIR_INC = (0<<5),             /* 地址方向递增 */
+    DMA2_MODE_DIR_DEC = (1<<5),             /* 地址方向递减 */
+    
+    DMA2_MODE_METHOD_REQ = (0<<6),          /* 请求传送方式 */
+    DMA2_MODE_METHOD_CHAR = (1<<6),         /* 单字节传送方式 */
+    DMA2_MODE_METHOD_BLOCK = (1<<7),        /* 数据块传送方式 */
+    DMA2_MODE_METHOD_CASC = (1<<6)|(1<<7),  /* 级联传送方式 */
+};
+
 #endif   /* _ARCH_DMA_H */

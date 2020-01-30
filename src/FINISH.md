@@ -1,5 +1,13 @@
 # Book-OS-X*(XBook) Finished task.
 
+* libc (api lib for user application)
+* low memory(for old device)
+* rtl8139 driver（Only in QEMU）
+* pcspeaker
+* serial support 
+--2020.1.29--
+* signal system 
+--2019.12.29--
 * bosh
 * tty
 --2019.12.11--

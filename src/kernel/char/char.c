@@ -11,9 +11,11 @@
 #include <book/device.h>
 #include <book/char.h>
 #include <book/task.h>
+#include <book/sound.h>
 
 #include <drivers/keyboard.h>
 #include <drivers/tty.h>
+#include <drivers/serial.h>
 
 #define _DEBUG_TEST
 
@@ -26,15 +28,24 @@ PUBLIC void InitCharDevice()
 {
     PART_START("CharDevice");
     
-	#ifdef CONFIG_DRV_KEYBOARD
+#ifdef CONFIG_DRV_KEYBOARD
 	/* 初始化键盘驱动 */
 	if (InitKeyboardDriver()) {
-        return;
+        printk("init keyboard driver failed!\n");
     }
-	#endif
-	
+#endif  /* CONFIG_DRV_KEYBOARD */
+
+#ifdef CONFIG_DRV_SERIAL
+    if (InitSerialDriver()) {
+        printk("init serial driver failed!\n");
+    }
+#endif  /* CONFIG_DRV_SERIAL */
+
     /* 开启tty任务 */
     ThreadStart("tty", 3, TaskTTY, "NULL");
 
+    /* 初始化音频系统 */
+    InitSoundSystem();
+    
     PART_END();
 }

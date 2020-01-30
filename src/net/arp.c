@@ -241,7 +241,7 @@ PUBLIC int ArpAddCache(unsigned int ip, unsigned char *mac)
     /* 如果找到了才初始化 */
     if (cache) {
         ArpCacheInit(cache, ip, mac);
-        printk("ARP cacheed:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        //printk("ARP cacheed:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
     
     SpinUnlockRestoreInterrupt(&arpCacheLock, oldStatus);
@@ -275,7 +275,7 @@ PUBLIC int ArpLookupCache(unsigned int ip, unsigned char *mac)
     /* 如果找到了复制 */
     if (cache) {
         memcpy(mac, cache->macAddress, ETH_ADDR_LEN);
-        printk("ARP lookup:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        //printk("ARP lookup:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
     
     SpinUnlockRestoreInterrupt(&arpCacheLock, oldStatus);
@@ -406,9 +406,9 @@ PUBLIC void ArpRequestTimeout(uint32 ip)
  */
 PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
 {
-    printk("add ip: ");
+    /*printk("add ip: ");
     DumpIpAddress(ip);
-    //printk(" buf: 0x%x\n", buf);
+    *///printk(" buf: 0x%x\n", buf);
 
     /* 上锁关中断 */
     InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
@@ -490,10 +490,10 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
  */
 PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
 {
-    printk("in processing...\n");
+    //printk("in processing...\n");
     /* 上锁关中断 */
     InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
-    printk("end processing\n");
+    //printk("end processing\n");
 
     ArpQueue_t *queue = NULL, *tmp;
     /* 遍历查找ip，是否已经在请求队列中了 */
@@ -531,7 +531,7 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
     }
 
     SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
-    printk("end processing\n");
+    //printk("end processing\n");
 }
 
 /**

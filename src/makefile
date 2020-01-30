@@ -13,6 +13,8 @@ all:
 
 BOCHS_DIR = ../bochs/
 
+# ar 是库打包工具
+AR 	= ar
 NASM 		= nasm
 CC			= gcc
 LD 			= ld
@@ -49,7 +51,7 @@ LDFLAGS		= -m elf_i386
 #system disk
 LOADER_OFF = 2		
 LOADER_CNTS = 8
-
+ 
 KERNEL_OFF = 10
 
 # assume 256 kb 
@@ -88,12 +90,16 @@ endif
 SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/ \
 			net/ 
 
+# 库文件目录
+LIBDIRS	:= user/ share/
+
 INCDIRS	:= include/ include/book/ $(ARCH)/include/ \
 	$(ARCH)/include/bus/ \
 	$(ARCH)/include/kernel/ \
 	$(ARCH)/include/mm/
 
 OBJS	:= $(patsubst %/, %/built-in.o, $(SRCDIRS))
+OBJS_LIB	:= $(patsubst %/, %/built-in.o, $(LIBDIRS))
 
 INCLUDE_PATH	:= $(patsubst %, -I $(TOPDIR)/%, $(INCDIRS))
 
@@ -106,9 +112,13 @@ endif
 
 CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTFLAGS) $(INCLUDE_PATH) -c
 NASM_FLAGS	:= $(INCLUDE_PATH)
+ARFLAGS := -r
 
 #kernel temp file	
 KERNEL_ELF =  kernel.elf
+
+#libary temp file
+LIBC_A = libc.a
 
 PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean
 PHONY	+= $(SRCDIRS)
@@ -131,6 +141,9 @@ endif
 
 $(KERNEL_ELF): $(OBJS)
 	$(LD) $(LDFLAGS)  -e _start -Ttext 0x80100000 -o $(KERNEL_ELF) $(OBJS)
+
+$(LIBC_A): $(OBJS_LIB) 
+	$(AR) $(ARFLAGS) $(LIBC_A) $(OBJS_LIB)
 
 #write file into disk
 disk: $(KERNEL_ELF)
@@ -165,14 +178,15 @@ endif
 # 		-net tap,vlan=0,ifname=tap0
 # 音频配置：
 # 	a.使用蜂鸣器：-soundhw pcspk
+#	b.使用声霸卡：-soundhw sb16
 qemu: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,vlan=0,model=rtl8139,macaddr=00:57:20:01:15:02 \
-		-net tap,vlan=0,ifname=tap0 \
+		-net nic,model=rtl8139,macaddr=00:57:20:01:15:02 \
+		-net tap,ifname=tap0,script=no,downscript=no \
 		-serial stdio \
-		-soundhw pcspk
+		-soundhw pcspk,sb16
 
 qemudbg: disk
 	$(QEMU) -m 512M \
@@ -184,7 +198,13 @@ qemudbg: disk
 vbox: disk
 	$(VBOX_MANAGE) startvm $(VBOX_NAME) --type gui 
 
+lib: $(LIBC_A)
+
 #clean temporary files
 clean: $(SRCDIRS)
 	$(RM) $(KERNEL_ELF)
+	
+rmlib:
+	$(RM) $(LIBC_A)
+
 .PHONY: $(PHONY)

@@ -1,6 +1,7 @@
-#Makefile for test
-#auther: Hu Zicheng
-#time: 2019/1/24
+#Makefile for bosh
+#auther: Jason Hu
+#time: 2019/12/8
+
 
 #The tools name
 NASM 		= nasm
@@ -13,8 +14,7 @@ INCLUDE_DIR = ../../src/include/
 H_USER_DIR = $(INCLUDE_DIR)user/
 H_SHARE_DIR = $(INCLUDE_DIR)share/
 
-USER_DIR = ../../src/user/
-SHARE_DIR = ../../src/share/
+LIBARY_DIR = ../../src/
 
 BIN = a.out
 
@@ -37,32 +37,17 @@ ASM_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
 C_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
 			-c -fno-builtin -Wall -Wunused -m32
 
+#LDFLAGS		= --oformat binary -e _start -Ttext 0x00000000
+
 LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 
 OBJS =  _start.o \
-		main.o
+		main.o \
+		cmd.o
 
-LD_OBJS = 	$(USER_DIR)lib/log.o \
-			$(USER_DIR)lib/mmap.o \
-			$(USER_DIR)lib/fork.o \
-			$(USER_DIR)lib/printf.o \
-			$(USER_DIR)lib/getpid.o \
-			$(USER_DIR)lib/sleep.o \
-			$(USER_DIR)lib/msleep.o \
-			$(USER_DIR)lib/exit.o \
-			$(USER_DIR)lib/_wait.o \
-			$(USER_DIR)lib/_brk.o \
-			$(USER_DIR)lib/brk.o \
-			$(USER_DIR)lib/malloc.o \
-			$(USER_DIR)lib/file.o \
-			$(USER_DIR)lib/pipe.o \
-			$(USER_DIR)lib/signal.o \
-			$(USER_DIR)lib/signal2.o \
-			$(USER_DIR)lib/time.o \
-			$(SHARE_DIR)vsprintf.o \
-			$(SHARE_DIR)string.o \
-			$(SHARE_DIR)signal.o \
+LD_OBJS = 	$(LIBARY_DIR)libc.a \
 			
+
 #First read here
 .PHONY: all
 
