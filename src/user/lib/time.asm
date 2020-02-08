@@ -23,3 +23,21 @@ alarm:
 	
 	pop ebx
 	ret
+
+global graph
+; void graph(int offset, int size, void *buffer);
+graph:
+	push ebx
+    push ecx
+    push esi
+    
+	mov eax, SYS_GRAPHW
+	mov ebx, [esp + 12 + 4]
+	mov ecx, [esp + 12 + 8]
+	mov esi, [esp + 12 + 12]
+    int INT_VECTOR_SYS_CALL
+	
+	pop esi
+	pop ecx
+	pop ebx
+	ret

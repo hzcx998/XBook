@@ -67,3 +67,12 @@ PAGE_US_S  	EQU     0	; 0000 U/S system level, cpl0,1,2
 PAGE_US_U  	EQU     4	; 0100 U/S user level, cpl3
 
 KERNEL_PAGE_ATTR    EQU (PAGE_US_S | PAGE_RW_W | PAGE_P_1)
+
+;VESA支持
+VESA_INFO_SEG	EQU		0x110	; 物理地址是0x1100
+VESA_INFO_SIZE	EQU		0x200	; vbe2.0+ 的信息块大小是512 字节
+
+VESA_MODE_SEG	EQU		0x130	; 物理地址是0x1300
+VESA_MODE_SIZE	EQU		0x100	; 固定大小256字节
+
+VESA_CMD_VBEINFO  EQU     0x4f00  ; 返回VBE控制器的信息

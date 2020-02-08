@@ -30,17 +30,18 @@
 
 #include <fs/fs.h>
 /* 同步磁盘上的数据到文件系统 */
-#define SYNC_DISK_DATA
+//#define SYNC_DISK_DATA
 
-/* 数据是在软盘上的 */
-#define DATA_ON_FLOPPY
 #define FLOPPY_DATA_ADDR	0x80050000
 
 /* 数据是在硬盘上的 */
-#define DATA_ON_IDE
+#define DATA_ON_IDE 0
+
+#define DATA_BLOCK 256
+
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 5
+#define FILE_ID 1
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
@@ -55,14 +56,24 @@
 	#define FILE_NAME "root:/test2"
 	#define FILE_SECTORS 50
 #elif FILE_ID == 5
-	#define FILE_NAME "root:/wav"
-	#define FILE_SECTORS 120
+	#define FILE_NAME "root:/nes"
+	#define FILE_SECTORS 620
+#elif FILE_ID == 6
+	#define FILE_NAME "root:/bee"
+	#define FILE_SECTORS 1536
+#elif FILE_ID == 7
+	#define FILE_NAME "root:/spa"
+	#define FILE_SECTORS 620
+#elif FILE_ID == 8
+	#define FILE_NAME "root:/sp"
+	#define FILE_SECTORS 1
 #endif
 
 #define FILE_SIZE (FILE_SECTORS * SECTOR_SIZE)
 
 PRIVATE void WriteDataToFS()
 {
+    printk("ready load file to fs.\n");
 	#ifdef SYNC_DISK_DATA
 	char *buf = kmalloc(FILE_SECTORS * SECTOR_SIZE, GFP_KERNEL);
 	if (buf == NULL) {
@@ -78,18 +89,69 @@ PRIVATE void WriteDataToFS()
 	
 	memset(buf, 0, FILE_SECTORS * SECTOR_SIZE);
 	
-	/* 根据数据存在的不同形式选择不同的加载方式 */
-	#ifdef DATA_ON_FLOPPY
+#if DATA_ON_IDE == 1
+    int ret = DeviceOpen(DEV_HDB, O_RDONLY);
+    
+    if (ret < 0) {
+        printk("open device failed!\n");
+    } else {
+        /**
+        int lba = 0;
+        int left = FILE_SECTORS;
+        int count = left % READ_BLOCK_SECTORS;
+
+        char *p = buf;
+        while (left > 0) {
+            printk("read at lba:%d buf:%x count:%d\n", lba, p, count);
+            DeviceRead(DEV_HDB, lba, p, count);
+            printk("%x %x %x %x\n", p[0], p[511], p[512], p[1023]);
+            
+            count = left % READ_BLOCK_SECTORS;
+            p += READ_BLOCK_SECTORS * SECTOR_SIZE;
+            left -= READ_BLOCK_SECTORS;
+            lba += READ_BLOCK_SECTORS;
+        }
+        
+        DeviceClose(DEV_HDB);
+        */
+        int leftCount = FILE_SECTORS;
+       
+        /* 小于1个块 */
+        if (leftCount < DATA_BLOCK) {
+
+            DeviceRead(DEV_HDB, 0, buf, leftCount);
+        } else {
+            
+            /* 处理小于DATA_BLOCK个块 */
+            int chunk = leftCount & 0xff;   /* 取256以下的数据数量 */
+            int lba = 0;
+            char *p = buf;
+            while (leftCount > 0) {
+                //printk("read at %d about %d\n", lba, chunk);
+                DeviceRead(DEV_HDB, lba, p, chunk);
+                lba += chunk;
+                leftCount -= chunk;
+                p += chunk * SECTOR_SIZE;
+
+                /* 每次处理BLOCK个 */
+                chunk = DATA_BLOCK;
+            }
+       }
+#if FILE_ID == 5
+        DeviceRead(DEV_HDB, 0, buf, 512);
+        DeviceRead(DEV_HDB, 0, buf + 512 * SECTOR_SIZE, FILE_SECTORS - 512);
+#elif FILE_ID == 6
+        //DeviceRead(DEV_HDB, 0, buf, FILE_SECTORS);
+    
+#endif        
+        DeviceClose(DEV_HDB);
+               
+    }
+#else
     char *data = (char *)FLOPPY_DATA_ADDR;
 
     memcpy(buf, data, FILE_SIZE);
-
-    #endif
-
-	
-	#ifdef DATA_ON_IDE
-
-	#endif
+#endif
 	
 	if (SysWrite(fd, buf, FILE_SIZE) != FILE_SIZE) {
 		printk("write failed!\n");
@@ -100,6 +162,7 @@ PRIVATE void WriteDataToFS()
 		printk("read failed!\n");
 	}
 
+    
 	kfree(buf);
 	SysClose(fd);
 	printk("load file sucess!\n");

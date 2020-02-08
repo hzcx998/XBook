@@ -88,7 +88,7 @@ endif
 
 #objs
 SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/ \
-			net/ 
+			net/ graph/ 
 
 # 库文件目录
 LIBDIRS	:= user/ share/
@@ -183,7 +183,7 @@ qemu: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,model=rtl8139,macaddr=00:57:20:01:15:02 \
+		-net nic,model=rtl8139,macaddr=12:34:56:78:9a:bc \
 		-net tap,ifname=tap0,script=no,downscript=no \
 		-serial stdio \
 		-soundhw pcspk,sb16
@@ -192,12 +192,17 @@ qemudbg: disk
 	$(QEMU) -m 512M \
 		-name "XBook Development Platform for x86" \
 		-S -gdb tcp::10001,ipv4 \
-		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a
+		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
+		-net nic,model=rtl8139,macaddr=00:57:20:01:15:02 \
+		-net tap,ifname=tap0,script=no,downscript=no \
+		-serial stdio \
+		-soundhw pcspk,sb16
 
 # virtual box
 vbox: disk
 	$(VBOX_MANAGE) startvm $(VBOX_NAME) --type gui 
 
+# api libary 
 lib: $(LIBC_A)
 
 #clean temporary files

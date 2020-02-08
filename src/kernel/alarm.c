@@ -60,7 +60,7 @@ PUBLIC unsigned int SysAlarm(unsigned int seconds)
     } else {
         cur->alarm = 1;     /* 定时器生效 */
         cur->alarmSeconds = seconds;    /* 设定秒数 */
-        cur->alarmTicks = HZ; /* 设置ticks数 */
+        cur->alarmTicks = HZ * CLOCK_QUICKEN; /* 设置ticks数 */
         
         //printk("alarm seconds %d ticks %d\n", seconds, cur->alarmTicks);
     }

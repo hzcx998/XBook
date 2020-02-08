@@ -26,8 +26,9 @@ PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
 {
     SysLseek(fd, offset, SEEK_SET);
     //printk("seek!\n");
+    //printk("offset:%d\n", offset);
     if (SysRead(fd, buffer, size) != size) {
-        printk(PART_ERROR "ReadFileFrom: read failed!\n");
+        printk(PART_ERROR "ReadFileFrom: read %d failed!\n", size);
         return -1;
     }
     return 0;
@@ -43,11 +44,12 @@ PRIVATE int ReadFileFrom(int fd, void *buffer, uint32_t offset, uint32_t size)
  * 加载一个段到内存
  */
 PRIVATE int 
-SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
+SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t memSize, uint32_t vaddr)
 {
-    /*printk(PART_TIP "SegmentLoad:fd %d off %x size %x vaddr %x\n",
-        fd, offset, fileSize, vaddr);
-     */
+    /*
+    printk(PART_TIP "SegmentLoad:fd %d off %x size %x mem %x vaddr %x\n",
+        fd, offset, fileSize, memSize, vaddr);
+    */
     /* 获取虚拟地址的页对齐地址 */
     uint32_t vaddrFirstPage = vaddr & PAGE_ADDR_MASK;
 
@@ -58,9 +60,9 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
     uint32_t occupyPages = 0;
 
     /* 计算最终占用多少个页 */
-    if (fileSize > sizeInFirstPage) {
+    if (memSize > sizeInFirstPage) {
         /* 计算文件大小比第一个页中的大小多多少，也就是还剩下多少字节 */
-        uint32_t leftSize = fileSize - sizeInFirstPage;
+        uint32_t leftSize = memSize - sizeInFirstPage;
 
         /* 整除后向上取商，然后加上1（1是first page） */
         occupyPages = DIV_ROUND_UP(leftSize, PAGE_SIZE) + 1;
@@ -94,6 +96,7 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t vaddr)
 
     /* 读取数据到内存中 */
     if (ReadFileFrom(fd, (void *)vaddr, offset, fileSize)) {
+        //printk("read failed!\n");
         return -1;
     }
 
@@ -125,18 +128,22 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
             
             return -1;
         }
-        /*printk(PART_TIP "read prog header off %x vaddr %x memsz %x\n", 
-            progHeader.p_offset, progHeader.p_vaddr, progHeader.p_memsz);
-         */
+        /*
+        printk(PART_TIP "read prog header off %x vaddr %x filesz %x memsz %x\n", 
+            progHeader.p_offset, progHeader.p_vaddr, progHeader.p_filesz, progHeader.p_memsz);
+        */ 
         /* 如果是可加载的段就加载到内存中 */
         if (progHeader.p_type == PT_LOAD) {
             //printk(PART_TIP "prog at %x type LOAD \n", &progHeader);
             
             /* 由于bss段不占用文件大小，但是要占用内存，
             所以这个地方我们加载的时候就加载成memsz，
-            运行的时候访问未初始化的全局变量时才可以正确 */
+            运行的时候访问未初始化的全局变量时才可以正确
+            filesz用于读取磁盘上的数据，而memsz用于内存中的扩展，
+            因此filesz<=memsz
+             */
             if (SegmentLoad(fd, progHeader.p_offset, 
-                    max(progHeader.p_memsz, progHeader.p_filesz), progHeader.p_vaddr)) {
+                    progHeader.p_filesz, progHeader.p_memsz, progHeader.p_vaddr)) {
                 return -1;
             }
             //printk(PART_TIP "seg load success\n");

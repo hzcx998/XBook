@@ -14,11 +14,7 @@
 #include <book/alarm.h>
 #include <fs/fs.h>
 
-
-PRIVATE void SysNull()
-{
-    /* 空系统调用 */
-}
+#include <system/graph.h>
 
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
@@ -68,6 +64,7 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysSignalSuspend,       /* 43 */
     SysGetPgid,             /* 44 */
     SysSetPgid,             /* 45 */
+    SysGraphWrite,          /* 46 */
 };
 
 /**

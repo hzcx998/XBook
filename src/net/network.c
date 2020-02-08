@@ -10,6 +10,8 @@
 #include <book/config.h>
 #include <book/debug.h>
 #include <book/task.h>
+#include <book/spinlock.h>
+
 #include <share/string.h>
 
 #include <net/network.h>
@@ -18,10 +20,6 @@
 #include <net/arp.h>
 #include <net/ip.h>
 #include <net/icmp.h>
-
-#include <drivers/rtl8139.h>
-#include <drivers/amd79c973.h>
-#include <drivers/xxx.h>
 #include <drivers/clock.h>
 
 /* ip地址，以大端字序保存，也就是网络字序 */
@@ -35,6 +33,12 @@ PRIVATE uint32 networkGateway;
 
 /* DNS服务器地址 */
 PRIVATE uint32 networkDnsAddress;
+
+/* 数据包链表 */
+LIST_HEAD(netwrokReceiveList);
+
+/* 保护数据包的链表 */
+Spinlock_t recvLock;
 
 /**
  * NetworkMakeIpAddress - 生成ip地址
@@ -165,16 +169,12 @@ PRIVATE int NetworkConfig()
 #else 
 
     
-    #ifdef _NIC_RTL8139
+#ifdef CONFIG_DRV_RTL8139
     EthernetSetAddress(Rtl8139GetMACAddress());
-    #endif
-
-    #ifdef _NIC_AMD79C973
-        
-        EthernetSetAddress(Amd79c973GetMACAddress());
-        
-    #endif
-    
+#endif /* CONFIG_DRV_RTL8139 */
+#ifdef CONFIG_DRV_PCNET32
+        //EthernetSetAddress(Pcnet32GetMACAddress());
+#endif /* CONFIG_DRV_PCNET32 */
 #endif
 
     DumpEthernetAddress(EthernetGetAddress());
@@ -182,16 +182,16 @@ PRIVATE int NetworkConfig()
     unsigned int ipAddress, gateway, subnetMask;
 
     /* 设置本机IP地址 */
-    #ifdef _NIC_RTL8139
+#ifdef CONFIG_DRV_RTL8139
 
     // 进行桥接
-    ipAddress = NetworkMakeIpAddress(169,254,164,10);
+    ipAddress = NetworkMakeIpAddress(169,254,251,10);
 
     // 网关和物理机一致
     gateway = NetworkMakeIpAddress(169,254,0,2);
     
     subnetMask = NetworkMakeIpAddress(255,255,0,0);
-    #endif
+#endif
 
     #ifdef _NIC_AMD79C973
         #ifdef _VM_VMWARE
@@ -219,7 +219,7 @@ PRIVATE int NetworkConfig()
 PRIVATE void NetwrokTest()
 {
     
-    #ifdef _NIC_RTL8139
+    #ifdef CONFIG_DRV_RTL8139
         unsigned char gateway[6] = {
             0x14,0x30,0x04,0x41,0x8d,0x1b
         };
@@ -230,11 +230,11 @@ PRIVATE void NetwrokTest()
         uint32_t ipAddr;
         
         //ipAddr = NetworkMakeIpAddress(10,0,251,18);   // 和外网沟通
-        ipAddr = NetworkMakeIpAddress(169,254,164,42);  // 和物理机沟通
+        ipAddr = NetworkMakeIpAddress(169,254,251,248);  // 和物理机沟通
         //ipAddr = NetworkMakeIpAddress(10,253,0,1);    // 和网关沟通
         int seq = 0;
-        IcmpEechoRequest(ipAddr, 0, seq, "", 0);
-        /*
+        //IcmpEechoRequest(ipAddr, 0, seq, "", 0);
+        
         while(1){
             seq++;
 
@@ -248,65 +248,9 @@ PRIVATE void NetwrokTest()
             //SysMSleep(1000);
 
             //SysSleep(1);
-            printk("wakeup");
-        }*/
-    #endif
-
-    #ifdef _NIC_AMD79C973
-        #ifdef _VM_VMWARE
-        while(1){
-            ArpRequest(NetworkMakeIpAddress(192,168,70,2));
+            //printk("wakeup");
         }
-        #endif
-        #ifdef _VM_VBOX
-        /*while(1){
-        ArpRequest(NetworkMakeIpAddress(10,0,2,2));
-        }*/
-        #endif
-        #ifdef _VM_QEMU
-        /*while(1){
-        ArpRequest(NetworkMakeIpAddress(192,168,70,2));
-        }*/
-        #endif
     #endif
-    
-/*
-    printk("ethernet size:%d arp size:%d\n", SIZEOF_ETHERNET_HEADER, SIZEOF_ARP_HEADER);
-
-    Spin("test");*/
-    /*unsigned char broadCoast[6] = {
-        0xff,0xff,0xff,0xff,0xff,0xff
-    };
-    
-    EthernetSend(broadCoast, ntohs(PROTO_ARP), "FOO", 3);
-    */
-    /*
-    unsigned int dstIP = NetworkMakeIpAddress(10,0,2,2);
-    ArpRequest(dstIP);*/
-
-/*
-    while (1) {
-        //ArpRequest(NetworkMakeIpAddress(192,168,70,2));
-        ArpRequest(NetworkMakeIpAddress(192,168,1,105));
-        SysSleep(1);
-    }*/
-
-    /*
-    unsigned char ethAddr[ETH_ADDR_LEN] = {
-        0x12, 0x34, 0x56, 0x78,0x9a,0xbe
-    };*/
-    //while(1) {
-        
-    //EthernetSend(ethAddr, PROTO_ARP, "HELLO", 6);
-    
-    //}
-    /*unsigned char ethAddr[ETH_ADDR_LEN] = {
-        0xff, 0x11, 0x33, 0x44, 0x55, 0x66
-    };*/
-    //ArpLookupCache(NetworkMakeIpAddress(192,168,1,1), ethAddr);
-    /*while(1);
-
-    Spin("Network Test!\n");*/
 }
 
 /**
@@ -315,22 +259,62 @@ PRIVATE void NetwrokTest()
  */
 PRIVATE void InitNetworkDrivers()
 {
-#ifdef _NIC_RTL8139
+#ifdef CONFIG_DRV_RTL8139
     if (InitRtl8139Driver()) {
         printk("InitRtl8139Driver failed!\n");
     }
 #endif
-#ifdef _NIC_AMD79C973
-    if (InitAmd79c973Driver()) {
-        printk("InitAmd79c973Driver failed!\n");
+#ifdef CONFIG_DRV_PCNET32
+    if (InitPcnet32Driver()) {
+        printk("init pcnet32 driver failed!\n");
     }
 #endif
-    /*
-    if (InitXXXDriver()) {
-        printk("InitXXXDriver failed!\n");
-    }*/
-    
-    //Spin("InitNetworkDrivers Test!\n");
+}
+
+PUBLIC int NetworkAddBuf(void *data, size_t len)
+{
+    NetBuffer_t *buffer;
+    /* 分配一个缓冲区 */
+    buffer = AllocNetBuffer(len);
+    if (buffer == NULL)
+        return -1;
+
+    /* 复制数据 */
+    buffer->dataLen = len;
+
+    memcpy(buffer->data, data, len);
+    //printk("add to");
+    uint32_t eflags;
+    eflags = SpinLockIrqSave(&recvLock);
+    ListAddTail(&buffer->list, &netwrokReceiveList);
+    SpinUnlockIrqSave(&recvLock, eflags);
+}
+
+/**
+ * TaskNetworkIn - 网络接收线程
+ * @arg: 参数
+ */
+PRIVATE void TaskNetworkIn(void *arg)
+{
+    NetBuffer_t *buffer;
+    unsigned int eflags;
+	while (1) {
+        /* 接收列表不为空才进行处理 */
+        if (!ListEmpty(&netwrokReceiveList)) {
+            eflags = SpinLockIrqSave(&recvLock);
+
+            buffer = ListFirstOwner(&netwrokReceiveList, NetBuffer_t, list);
+            ListDel(&buffer->list);
+
+            SpinUnlockIrqSave(&recvLock, eflags);
+            
+            /* 以太网接受数据 */
+            EthernetReceive(buffer->data, buffer->dataLen);
+
+            /* 释放缓冲区 */
+            FreeNetBuffer(buffer);
+        }
+    }
 }
 
 /**
@@ -339,25 +323,35 @@ PRIVATE void InitNetworkDrivers()
  */
 PUBLIC int InitNetwork()
 {
+#ifdef CONFIG_NETWORK
     PART_START("Network");
-    /* 初始化网卡驱动 */
-    InitNetworkDrivers();
-    
+    /*
+    1.初始化协议栈
+    2.初始化网卡
+    3.初始化配置
+     */
     /* 初始化网络缓冲区 */
     InitNetBuffer();
 
     /* 初始化ARP */
     InitARP();
 
+    SpinLockInit(&recvLock);
+
+    ThreadStart("netin", 1, TaskNetworkIn, NULL);
+    /* 初始化网卡驱动 */
+    InitNetworkDrivers();
+    
     /* 初始化IP */
     InitNetworkIp();
 
     /* 进行网络配置 */
     NetworkConfig();
 
-    NetwrokTest();
+    //NetwrokTest();
 
     PART_END();
+#endif  /* CONFIG_NETWORK */    
     //Spin("spin in network.");
     return 0;
 }

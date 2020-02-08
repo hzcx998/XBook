@@ -22,9 +22,9 @@ PUBLIC struct SystemDate systemDate;
 PRIVATE int ticks;
 
 /**
- * ClockHnadler - 时钟中断处理函数
+ * ClockHandler - 时钟中断处理函数
  */
-PRIVATE void ClockHnadler(unsigned int irq, unsigned int data)
+PRIVATE void ClockHandler(unsigned int irq, unsigned int data)
 {
     /* 改变ticks计数 */
 	ticks++;
@@ -103,7 +103,7 @@ PUBLIC void PrintSystemDate()
 PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 {
 	/* 改变系统时间 */
-    if (ticks % HZ == 0) {  /* 1s更新一次 */
+    if (ticks % (HZ * CLOCK_QUICKEN) == 0) {  /* 1s更新一次 */
         ClockChangeSystemDate();
         //printk("t");
     }
@@ -177,8 +177,8 @@ PUBLIC void InitClockDriver()
 	//初始化时钟
 	Out8(PIT_CTRL, PIT_MODE_2 | PIT_MODE_MSB_LSB | 
             PIT_MODE_COUNTER_0 | PIT_MODE_BINARY);
-	Out8(PIT_COUNTER0, (unsigned char) (TIMER_FREQ/HZ));
-	Out8(PIT_COUNTER0, (unsigned char) ((TIMER_FREQ/HZ) >> 8));
+	Out8(PIT_COUNTER0, (unsigned char) (TIMER_FREQ/(HZ*CLOCK_QUICKEN)));
+	Out8(PIT_COUNTER0, (unsigned char) ((TIMER_FREQ/(HZ*CLOCK_QUICKEN)) >> 8));
 
 	ticks = 0;
 
@@ -212,7 +212,7 @@ PUBLIC void InitClockDriver()
 	BuildSoftirq(SCHED_SOFTIRQ, SchedSoftirqHandler);
 
 	/* 注册时钟中断并打开中断 */	
-	RegisterIRQ(IRQ0_CLOCK, &ClockHnadler, IRQF_DISABLED, "clockirq", "clock", 0);
+	RegisterIRQ(IRQ0_CLOCK, &ClockHandler, IRQF_DISABLED, "clockirq", "clock", 0);
 
 	PART_END();
 }

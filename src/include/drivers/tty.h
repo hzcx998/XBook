@@ -19,6 +19,7 @@ enum {
     TTY_CMD_HOLD,
 };
 
-PUBLIC void TaskTTY(void *arg);
+
+PUBLIC int InitTTYDriver();
 
 #endif  /* _DRIVER_TTY_H */

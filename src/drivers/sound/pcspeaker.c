@@ -64,6 +64,13 @@ PRIVATE void SpeakerOff()
 
 PRIVATE void SpeakerSetFrequence(uint32_t frequence)
 {
+    if (frequence < 1) {
+        frequence = 1;
+    }
+    if (frequence > 20000) {
+        frequence = 20000;
+    }
+    
     uint32_t div;
  	
     // 求要传入的频率

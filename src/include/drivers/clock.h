@@ -34,17 +34,19 @@ struct SystemDate
 
 EXTERN struct SystemDate systemDate;
 
-
-
-
 /* 时钟 */
-#define TIMER_FREQ     1193180	//时钟的频率
 
-#define CLOCK_QUICKEN     1		/* 如果切换过快，可能调度要忙坏。:(  */
-#define HZ             (100*CLOCK_QUICKEN)	//1000 快速 100 普通0.001
+#define TIMER_FREQ     1193180 	//时钟的频率
+
+/* 时钟产生频率增快，默认是1，最大时10，表示增大10倍，现在的linux内核都是10
+我们约定，当有图形界面的时候把它设置为5~10，没有的时候设置为1~5
+ */
+
+#define CLOCK_QUICKEN     5		/* 如果切换过快，可能调度要忙坏。:(  */
+#define HZ             100	    //1000 快速 100 普通0.001
 
 /* 1 ticks 对应的毫秒数 */
-#define MILLISECOND_PER_TICKS (1000/ HZ)
+#define MILLISECOND_PER_TICKS (1000 / (HZ*CLOCK_QUICKEN))
 
 /* 时间和数据互相转换 */
 #define TIME_TO_DATA16(hou, min, sec) ((unsigned short)(((hou&0x1f)<<11)|((min&0x3f)<<5)|((sec/2)&0x1f)))

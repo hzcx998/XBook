@@ -1,5 +1,10 @@
 # Book-OS-X*(XBook) Finished task.
 
+* mouse driver  
+* update keyboard driver  
+* vesa video driver  
+* kernel graph core-KGC  
+--2020.2.8--
 * libc (api lib for user application)
 * low memory(for old device)
 * rtl8139 driver（Only in QEMU）

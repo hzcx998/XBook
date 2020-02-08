@@ -175,12 +175,17 @@ PUBLIC int QueueScheduleWork(struct WorkQueue *workQueue, struct Work *work)
     /* 2.把工作添加到工作队列中 */
 
     /* 修改链表的时候应该关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    //enum InterruptStatus oldStatus = InterruptDisable();
+
+    uint32_t eflags = LoadEflags();
+    DisableInterrupt();
 
     /* 先后队列排序，添加到队列尾部 */
     ListAddTail(&work->list, &cpuWorkQueue->workList);
 
-    InterruptSetStatus(oldStatus);
+    StoreEflags(eflags);
+    
+    //InterruptSetStatus(oldStatus);
     
     /* 3.尝试唤醒工作者线程 */
     

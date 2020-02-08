@@ -981,10 +981,10 @@ PRIVATE int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 
 	if ((fdptr->pos + count) > fdptr->inode->size){
 		size = fdptr->inode->size - fdptr->pos;
 		sizeLeft = size;
-		//printk("sizeLeft:%d\n", sizeLeft);
 		
 		if (sizeLeft == 0) {	   // if read at the end of file, return 0
-			return -1;
+            //printk("sizeLeft:%d\n", sizeLeft);
+        	return -1;
 		}
 	}
 	
@@ -1017,13 +1017,15 @@ PRIVATE int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 
 	uint32 chunkSize;	      // every time will write chunk size to disk
 	
     buf8_t iobuf = kmalloc(blockSize, GFP_KERNEL);
-    if (iobuf == NULL)
+    if (iobuf == NULL) {
+        //printk("alloc failed!\n");
         return -1;
-
+    }
+        
 	struct BOFS_SuperBlock *sb = fdptr->superBlock;
 
     //printk("file read start!\n");
-
+    //printk("will read size %d\n", size);
 	while (bytesRead < size) {
 		//printk("get inode data");
 		/*BOFS_DumpSuperBlock(sb);
@@ -1043,6 +1045,7 @@ PRIVATE int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 
 		//memset(sb->iobuf, 0, blockSize);
 		//printk("read done!\n");
 		if(BlockRead(sb->devno, sectorLba, iobuf)) {
+            //printk("block read failed!\n");
 			goto ToFailed;
 		}
 		//printk("read done!\n");
@@ -1076,6 +1079,7 @@ PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count)
 		return -1;
     } 
     if (count == 0) {
+        printk("count zero!\n");
         return -1;
     }
 
@@ -1096,7 +1100,8 @@ PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count)
 
                 /* 普通文件 */
                 if (rdFile->dirEntry->type == BOFS_FILE_TYPE_NORMAL) {
-                    ret = BOFS_FileRead(rdFile, buf, count);    
+                    ret = BOFS_FileRead(rdFile, buf, count); 
+                    //printk(">>>file read %d\n", ret);   
                 } else if (rdFile->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
                     /* 字符设备文件，读取一个字符并返回 */
                     ret = DeviceGetc(rdFile->inode->blocks[0]);

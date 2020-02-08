@@ -26,8 +26,6 @@
 
 #include <book/interrupt.h>
 
-#include <drivers/amd79c973.h>
-
 #include <net/ethernet.h>
 #include <net/arp.h>
 #include <net/nllt.h>

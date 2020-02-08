@@ -21,7 +21,7 @@
  * 
  * 返回交换后的数据
  */
-uint16_t BytesSwap16(uint16_t data)
+STATIC INLINE uint16_t BytesSwap16(uint16_t data)
 {
   return (uint16_t)((data & 0xFF) << 8) | ((data & 0xFF00) >> 8);
 }
@@ -32,7 +32,7 @@ uint16_t BytesSwap16(uint16_t data)
  * 
  * 返回交换后的数据
  */
-uint32_t BytesSwap32(uint32_t data)
+STATIC INLINE uint32_t BytesSwap32(uint32_t data)
 {
   return (uint32_t)((data & 0xFF) << 24) | ((data & 0xFF00) << 8) | \
         ((data & 0xFF0000) >> 8) | ((data & 0xFF000000) >> 24);

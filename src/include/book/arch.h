@@ -22,6 +22,7 @@
    #include "../arch/x86/include/kernel/cmos.h"
    #include "../arch/x86/include/mm/page.h"
    #include "../arch/x86/include/mm/phymem.h"
+   #include "../arch/x86/include/mm/ioremap.h"
    #include "../arch/x86/include/bus/pci.h"
    
 #endif   /*_ARCH_X86_*/

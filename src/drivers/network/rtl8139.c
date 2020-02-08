@@ -128,8 +128,6 @@
 #include <net/ethernet.h>
 #include <net/nllt.h>
 
-#include <drivers/rtl8139.h>
-
 #define RTL8139_DRIVER_NAME   DEV_NAME " Fast Ethernet driver " DRV_VERSION
 
 /* define to 1, 2 or 3 to enable copious debugging info */
@@ -618,10 +616,11 @@ PRIVATE int Rtl8139GetInfoFromPCI(struct Rtl8139Private *private)
         return -1;
     }
 	private->pciDevice = device;
+#if RTL8139_DEBUG == 1    
 	
     printk("find rtl8139 device, vendor id: 0x%x, device id: 0x%x\n",\
             device->vendorID, device->deviceID);
-
+#endif
     /* enable bus mastering */
 	EnablePciBusMastering(device);
 
@@ -631,17 +630,18 @@ PRIVATE int Rtl8139GetInfoFromPCI(struct Rtl8139Private *private)
         printk("RTL8139 init failed: INVALID pci device io address.\n");
         return -1;
     }
+#if RTL8139_DEBUG == 1    
     printk("rlt8139 io address: 0x%x\n", private->ioAddress);
-
+#endif
     /* get irq */
     private->irq = GetPciDeviceIrqLine(device);
     if (private->irq == 0xff) {
         printk("RTL8139 init failed: INVALID irq.\n");
         return -1;
     }
-	
+#if RTL8139_DEBUG == 1    	
     printk("rlt8139 irq: %d\n", private->irq);
-
+#endif
     return 0;
 }
 
@@ -1033,7 +1033,7 @@ PRIVATE int Rtl8139RxInterrupt(struct Rtl8139Private *private)
             /* fifo 复制超时处理 */
 
             /* 一般处理 */
-            printk("fifo copy in progress\n");
+            //printk("fifo copy in progress\n");
             private->xstats.earlyRX++;
             /* 跳出运行 */
             break;
@@ -1176,16 +1176,11 @@ PRIVATE void Rtl8139Handler(unsigned int irq, unsigned int data)
 	/* 
     处理接收中断
     */
-    uint32_t received;
     SpinLock(&private->rxLock);
-	received = 0;
-    /* 如果有接收状态，那么就处理接收包 */
+	/* 如果有接收状态，那么就处理接收包 */
     if (status & RX_ACK_BITS){
         /* 调用接收处理函数 */
-        received = Rtl8139RxInterrupt(private);
-#if RTL8139_DEBUG == 2
-        printk("\n@RX: received %d packets\n", received);
-#endif
+        Rtl8139RxInterrupt(private);
 	}
     SpinUnlock(&private->rxLock);
     
@@ -1250,20 +1245,23 @@ PRIVATE int Rtl8139InitBoard(struct Rtl8139Private *private)
     
     /* if unknown chip, assume array element #0, original RTL-8139 in this case */
 	i = 0;
-	printk("unknown chip version, assuming RTL-8139\n");
+#if RTL8139_DEBUG == 1	
+    printk("unknown chip version, assuming RTL-8139\n");
 	printk("TxConfig = 0x%x\n", In32(private->ioAddress + TX_CONFIG));
+#endif 
 	private->chipset = 0;
 
 ToMatch:
+#if RTL8139_DEBUG == 1
     printk("chipset id (%x) == index %d, '%s'\n",
             version, i, RtlChipInfo[i].name);
-
+#endif
 
     /* 给网卡加电，启动它 */
 	if (private->chipset >= CH_8139B) {
 		printk("PCI PM wakeup, not support now!\n");
 	} else {
-		printk("Old chip wakeup\n");
+		//printk("Old chip wakeup\n");
 		uint8_t tmp8 = In8(private->ioAddress + CONFIG1);
 		tmp8 &= ~(SLEEP | PWRDN);
         /* 启动网卡 */
@@ -1294,10 +1292,11 @@ PRIVATE void Rtl8139InitRing(struct Rtl8139Private *private)
 
 PRIVATE void __SetRxMode(struct Rtl8139Private *private)
 {
+#if RTL8139_DEBUG == 1    
 	printk("rtl8139_set_rx_mode(%x) done -- Rx config %x\n",
 		    private->flags,
             In32(private->ioAddress + RX_CONFIG));
-
+#endif 
     /* 一般内容，接收多播，广播，发给自己的物理包 */
     int rxMode = ACCEPT_BROADCAST | ACCEPT_MY_PHYS | ACCEPT_MULTICAST;
     
@@ -1398,7 +1397,7 @@ PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
             In8(private->ioAddress + CONFIG3) & ~CFG3_MAGIC);
 	}
 
-    printk("init buffer addresses\n");
+    //printk("init buffer addresses\n");
 
     /* Lock Config[01234] and BMCR register writes
     上锁，不可操作这些寄存器
@@ -1470,7 +1469,7 @@ PRIVATE int Rtl8139Open()
     rtl8139HardwareStart(private);
 
     EnableIRQ(private->irq);
-    printk("open done!\n");
+    //printk("open done!\n");
 
     return 0;
 }
@@ -1519,10 +1518,10 @@ PRIVATE int Rtl8139Close()
     struct Rtl8139Private *private = &rtl8139Private;
 
     /* 先停止队列传输 */
-
+#if RTL8139_DEBUG == 1
     printk("Shutting down ethercard, status was %x\n",
 		    In16(private->ioAddress + INTR_STATUS));
-    
+#endif    
     /* 需要关闭中断 */
     InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&private->lock);
 
@@ -1575,9 +1574,11 @@ PRIVATE int Rtl8139InitOne(struct Rtl8139Private *private)
     /* 如果是增强的版本，输出提示信息 */
     if (pdev->vendorID  == RTL8139_VENDOR_ID &&
 	    pdev->deviceID == RTL8139_DEVICE_ID && pdev->revisionID >= 0x20) {
+#if RTL8139_DEBUG == 1    
 		printk("This (id %04x:%04x rev %02x) is an enhanced 8139C+ chip, use 8139cp\n",
 		        pdev->vendorID, pdev->deviceID, pdev->revisionID);
-		/* 本来在这里是该返回的，return -1;
+#endif		
+        /* 本来在这里是该返回的，return -1;
         相当于不支持，不过貌似不用增强版本代码，也可以 */
 	}
 
@@ -1591,11 +1592,11 @@ PRIVATE int Rtl8139InitOne(struct Rtl8139Private *private)
     for (i = 0; i < ETH_ADDR_LEN; i++) {
         private->macAddress[i] = In8(private->ioAddress + MAC0 + i);
     }
-    
+#if RTL8139_DEBUG == 1    
     printk("mac addr: %x:%x:%x:%x:%x:%x\n", private->macAddress[0], private->macAddress[1],
             private->macAddress[2], private->macAddress[3], 
             private->macAddress[4], private->macAddress[5]);
-
+#endif
     /* 设置硬件特征为接收所有包，接收包不带CRC */
     private->devFeatures = NET_FEATURE_RXALL;
 

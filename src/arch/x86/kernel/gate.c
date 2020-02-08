@@ -414,6 +414,20 @@ PUBLIC enum InterruptStatus InterruptEnable()
    	}
 }
 
+PUBLIC unsigned long InterruptSave()
+{
+    unsigned long eflags = LoadEflags();
+    DisableInterrupt();
+    return eflags;
+} 
+
+PUBLIC void InterruptRestore(unsigned long eflags)
+{
+    StoreEflags(eflags);
+} 
+
+
+
 /*
  获取中断状态并设置对应的中断状态
  */

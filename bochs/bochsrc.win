@@ -4,13 +4,11 @@
 ###############################################################
 
 # how much memory the emulated machine will have
-megs: 256
+megs: 512
 
 # filename of ROM images
 romimage: file=D:/Softwares/Bochs-2.5/BIOS-bochs-latest
 vgaromimage: file=D:/Softwares/Bochs-2.5/VGABIOS-lgpl-latest
-
-#cpu: count=1, ips=10000000
 
 # what disk images will be used 
 floppya: 1_44=../img/a.img, status=inserted
@@ -34,7 +32,7 @@ boot: a
 log: ../bochs/bochsout.txt
 
 # disable the mouse, since DLX is text only
-mouse: enabled=0
+mouse: enabled=1
 
 # enable key mapping, using US layout as default.
 #

@@ -4,15 +4,15 @@
 
 DD = dd
 
-FILE = ./baby.wav
+FILE = ./cjml.NES
 
-FILE_OFF = 600
-FILE_CNTS = 120
+FILE_OFF = 0
+FILE_CNTS = 1536
 
 #img dir
 IMG_DIR = ../../img/
 
-DISK_IMG = a.img
+DISK_IMG = d.img
 
 DISK_VHD = a.vhd
 

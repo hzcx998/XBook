@@ -199,13 +199,13 @@ PRIVATE INLINE void TaskAssistEnable(struct TaskAssist *assist)
 
 /* 工作的函数形式 */
 
-struct Work {
+typedef struct Work {
     /* 这里的数据不是函数的参数，如果要传入参数，
     需要用另外一个结构体包括本结构，然后用container_of获取参数 */
     unsigned int data;
     struct List list;   // list用来连接所有工作的队列
     void (*func)(struct Work *work);    // 要执行的函数
-};
+} Work_t;
 
 typedef void (*WrokFunc_t)(struct Work *work);
 
@@ -217,11 +217,11 @@ struct CpuWorkQueue {
     struct Task *thread;    // 工作队列的内核线程      
 };
 
-struct WorkQueue {
+typedef struct WorkQueue {
     struct CpuWorkQueue cpuWorkQueue;  // 对应cpu的工作队列
     struct List list;   // 所有的工作队列所在的链表
     const char *name;   // 工作队列的名字
-};
+} WorkQueue_t;
 
 #define WORK_QUEUE_SIZE sizeof(struct WorkQueue)
 

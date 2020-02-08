@@ -14,6 +14,13 @@
 #include <share/math.h>
 #include <book/list.h>
 
+/* 虚拟区域结构体 */
+typedef struct VMArea {
+	unsigned int addr;
+	unsigned int size;
+	struct List list;
+} VMArea_t;
+
 /* 管理虚拟地址 */
 
 PRIVATE struct Bitmap vmBitmap;
@@ -21,23 +28,16 @@ PRIVATE struct Bitmap vmBitmap;
 PRIVATE unsigned int vmBaseAddress; 
 
 /* 正在使用中的vmarea */
-PRIVATE struct List usingVMAreaList;
+struct List usingVMAreaList;
 
 /* 处于空闲状态的vmarea，成员根据大小进行排序，越小的就靠在前面 */
 PRIVATE struct List freeVMAreaList;
-
-/* 虚拟区域结构体 */
-struct VMArea {
-	unsigned int addr;
-	unsigned int size;
-	struct List list;
-};
 
 /**
  * AllocVaddress - 分配一块空闲的虚拟地址
  * @size: 请求的大小
  */
-PRIVATE unsigned int AllocVaddress(unsigned int size)
+PUBLIC unsigned int AllocVaddress(unsigned int size)
 {
 
 	size = PAGE_ALIGN(size);
@@ -65,7 +65,7 @@ PRIVATE unsigned int AllocVaddress(unsigned int size)
  * AllocVaddress - 分配一块空闲的虚拟地址
  * @size: 请求的大小
  */
-PRIVATE unsigned int FreeVaddress(unsigned int vaddr, size_t size)
+PUBLIC unsigned int FreeVaddress(unsigned int vaddr, size_t size)
 {
 	int pages = size / PAGE_SIZE;
 
@@ -251,7 +251,7 @@ PUBLIC int vfree(void *ptr)
 	if (target != NULL) {
 		if (__vfree(target)) {
 			InterruptSetStatus(oldStatus);
-			return -1;
+			return 0;
 		}
 	}
 	
@@ -303,6 +303,110 @@ PUBLIC int memmap(unsigned int paddr, size_t size)
 	}
 
 	return 0;
+}
+
+
+/**
+ * IoRemap - io内存映射
+ * @phyAddr: 物理地址
+ * @size: 映射的大小
+ * 
+ * @return: 成功返回映射后的地址，失败返回NULL
+ */
+PUBLIC void *IoRemap(unsigned long phyAddr, size_t size)
+{
+    /* 对参数进行检测,地址不能是0，大小也不能是0 */
+    if (!phyAddr || !size) {
+        return NULL;
+    }
+
+    /* 分配虚拟地址 */
+    unsigned int vaddr = AllocVaddress(size);
+    if (vaddr == -1) {
+        printk("alloc virtual addr for IO remap failed!\n");
+        return NULL;
+    }
+    //printk("alloc a virtual addr at %x\n", vaddr);
+
+    /* 创建一个虚拟区域 */
+	VMArea_t *area;
+
+	/* 创建一个虚拟区域 */
+	area = kmalloc(sizeof(VMArea_t), GFP_KERNEL);
+	if (area == NULL) {
+		FreeVaddress(vaddr, size);
+		return NULL;
+	}
+    /* 设置虚拟区域参数 */
+	area->addr = vaddr;
+	area->size = size;
+    enum InterruptStatus oldStatus = InterruptDisable();
+	
+	/* 添加到虚拟区域的链表上 */
+	ListAddTail(&area->list, &usingVMAreaList);
+    
+    /* 进行io内存映射，如果失败就释放资源 */
+    if (ArchIoRemap(phyAddr, vaddr, size)) {
+        /* 释放分配的资源 */
+        ListDel(&area->list);
+        kfree(area);
+        FreeVaddress(vaddr, size);
+        /* 指向0，表示空 */
+        vaddr = 0;
+    }
+    
+	InterruptSetStatus(oldStatus);
+	
+    return (void *)vaddr;    
+}
+
+/**
+ * IoRemap - io内存映射
+ * @phyAddr: 物理地址
+ * @size: 映射的大小
+ * 
+ * @return: 成功返回映射后的地址，失败返回NULL
+ */
+PUBLIC int IoUnmap(void *addr)
+{
+    if (addr == NULL) {
+        return -1;
+    }
+    unsigned long vaddr = (unsigned long )addr;
+    
+	if (vaddr < vmBaseAddress || vaddr >= NULL_MEM_ADDR)
+		return -1;
+	
+	struct VMArea *target = NULL, *area;
+	enum InterruptStatus oldStatus = InterruptDisable();
+	
+	ListForEachOwner(area, &usingVMAreaList, list) {
+		/* 如果找到了对应的区域 */
+		if (area->addr == vaddr) {
+			target = area;
+			break;
+		}
+	}
+
+	/* 找到一个合适要释放的area，就释放它 */
+	if (target != NULL) {
+        if (ArchIoUnmap(target->addr, target->size)) {
+		    /* 取消IO映射并释放area */
+            
+            ListDel(&target->list);
+
+            FreeVaddress(vaddr, target->size);
+
+            kfree(target);
+
+            InterruptSetStatus(oldStatus);
+			return 0;
+		}
+	}
+	
+	/* 没找到，释放失败 */
+	InterruptSetStatus(oldStatus);
+	return -1;
 }
 
 PRIVATE void VMAreaTest()

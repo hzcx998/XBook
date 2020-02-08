@@ -73,4 +73,10 @@ PUBLIC void SpinUnlockInterrupt(struct Spinlock *lock);
 PUBLIC int SpinTryLock(struct Spinlock *lock);
 PUBLIC int SpinIsLocked(struct Spinlock *lock);
 
+
+PUBLIC unsigned long SpinLockIrqSave(struct Spinlock *lock);
+PUBLIC void SpinUnlockIrqSave(struct Spinlock *lock, unsigned long eflags);
+
+
+
 #endif   /*_BOOK_SPINLOCK_H*/

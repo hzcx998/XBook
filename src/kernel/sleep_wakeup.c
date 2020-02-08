@@ -108,9 +108,9 @@ PUBLIC uint32_t TaskSleep(uint32_t ticks)
 PUBLIC uint32_t SysSleep(uint32_t second)
 {
     /* 把秒转换成ticks */
-    uint32_t ticks = second * HZ;
+    uint32_t ticks = second * HZ * CLOCK_QUICKEN;
 
-    second = TaskSleep(ticks) / HZ; 
+    second = TaskSleep(ticks) / (HZ * CLOCK_QUICKEN); 
     //printk(">>>sleep return %d\n", second);
     return second;  /* 返回剩余秒数 */
 }

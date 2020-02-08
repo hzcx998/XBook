@@ -76,13 +76,13 @@ int FreePages(unsigned int page)
 }
 
 /*
- * PageLinkAddress - 物理地址和虚拟地址链接起来
+ * PageTableAdd - 物理地址和虚拟地址链接起来
  * @virtualAddr: 虚拟地址
  * @physicAddr: 物理地址
- * @flags: 分配页的标志
  * @prot: 页的保护
  * 
  * 把虚拟地址和物理地址连接起来，这样就能访问物理地址了
+ * @return: 成功返回0， 失败返回-1
  */
 PUBLIC int PageTableAdd(unsigned int virtualAddr,
 		unsigned int physicAddr,

@@ -8,9 +8,9 @@
 #ifndef _SHARE_FILE_H
 #define _SHARE_FILE_H
 
-#include <share/unistd.h>
-#include <share/stdint.h>
-#include <share/stddef.h>
+#include "../share/unistd.h"
+#include "../share/stdint.h"
+#include "../share/stddef.h"
 
 /* 高4位是属性位 */
 #define S_IFSOCK 0x90    //scoket

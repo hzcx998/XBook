@@ -8,6 +8,7 @@
 #ifndef _BOOK_MEMCACHE_H
 #define _BOOK_MEMCACHE_H
 
+#include <share/const.h>
 #include <share/types.h>
 #include <share/stddef.h>
 #include <book/config.h>

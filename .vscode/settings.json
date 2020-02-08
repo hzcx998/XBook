@@ -88,7 +88,15 @@
         "SIMUL.C": "cpp",
         "wav.h": "c",
         "sb16.h": "c",
-        "serial.h": "c"
+        "serial.h": "c",
+        "nes_main.h": "c",
+        "stdarg.h": "c",
+        "infones_system.h": "c",
+        "infones_types.h": "c",
+        "graph.h": "c",
+        "keymap.h": "c",
+        "input.h": "c",
+        "draw.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

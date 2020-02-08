@@ -8,9 +8,10 @@
 #ifndef _USER_LIB_STDIO_H
 #define _USER_LIB_STDIO_H
 
-#include <share/stdint.h>
-#include <share/stddef.h>
-#include <share/file.h>
-#include <share/dir.h>
+#include "../share/stdint.h"
+#include "../share/stddef.h"
+
+#include "../share/file.h"
+#include "../share/dir.h"
 
 #endif  /* _USER_LIB_STDIO_H */

@@ -8,8 +8,8 @@
 #ifndef _SHARE_STRING_H_
 #define _SHARE_STRING_H_
 
-#include <share/types.h>
-#include <share/stdint.h>
+#include "../share/types.h"
+#include "../share/stdint.h"
 
 char* itoa(char ** ps, int val, int base);
 int atoi(const char *src);

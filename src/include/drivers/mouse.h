@@ -11,6 +11,6 @@
 #include <share/stdint.h>
 #include <share/types.h>
 
-PUBLIC void InitMouseDriver();
+PUBLIC int InitMouseDriver();
 
 #endif  /* _DRIVER_CHAR_MOUSE_H */

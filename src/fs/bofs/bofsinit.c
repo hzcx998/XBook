@@ -151,8 +151,11 @@ PUBLIC int InitBoFS()
     char driveName[BOFS_DRIVE_NAME_LEN];
     /* 根据设备来创建一个文件系统，如果已经存在，直接加载即可 */
     ListForEachOwner(device, &allBlockDeviceList, list) {
-        //printk("device:%s\n", device->super.name);
-
+        printk("device:%s\n", device->super.name);
+        if (!strcmp(device->super.name, "hdb")) {
+            printk("data disk, continue!\n");
+            continue;
+        }
         /* 探测是否有文件系统 */
         sb = BOFS_ProbeFileSystem(device);
         

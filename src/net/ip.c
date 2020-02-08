@@ -215,19 +215,19 @@ PUBLIC int IpReceive(NetBuffer_t *buf)
         FreeNetBuffer(buf);
         break;
     case IP_PROTO_UDP:
-        printk("#get a udp ip package, data: %s\n", buf->data);
+        //printk("#get a udp ip package, data: %s\n", buf->data);
         /*if (!UdpReceive(buf, ntohl(header->sourceIP))) {
             FreeNetBuffer(buf);
         }*/
         break;
     case IP_PROTO_TCP:
-        printk("#get a tcp ip package, data: %s\n", buf->data);
+        //printk("#get a tcp ip package, data: %s\n", buf->data);
         /*if (TcpReceive(buf, ntohl(header->sourceIP))) {
             FreeNetBuffer(buf);
         }*/
         break;
     default:
-        printk("#get an ip package with protocol: %x, not support.\n", header->protocol);
+        //printk("#get an ip package with protocol: %x, not support.\n", header->protocol);
         FreeNetBuffer(buf);
         break;
     }

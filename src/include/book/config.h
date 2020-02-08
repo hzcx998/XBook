@@ -2,7 +2,7 @@
  * file:		include/book/config.h
  * auther:		Jason Hu
  * time:		2019/6/3
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /**
@@ -45,12 +45,15 @@
 #define CONFIG_SEMAPHORE_M /* 配置多元信号量（Multivariate semaphore） */
 //#define CONFIG_SEMAPHORE_B /* 配置二元信号量（Binary semaphore） */
 
+//#define CONFIG_NETWORK  /* 配置网络模块 */
+
+
 /**
  * ------------------------
  * 内存管理配置
  * ------------------------
  */
-//#define CONFIG_LARGE_ALLOCS /* 如果想要用kmalloc分配128KB~4MB之间大小的内存，就需要配置此项 */
+#define CONFIG_LARGE_ALLOCS /* 如果想要用kmalloc分配128KB~4MB之间大小的内存，就需要配置此项 */
 
 /**
  * ------------------------
@@ -58,10 +61,15 @@
  * ------------------------
  */
 #define CONFIG_DRV_KEYBOARD /* 键盘驱动配置 */
-//#define CONFIG_DRV_MOUSE  /* 鼠标驱动配置 */
+#define CONFIG_DRV_MOUSE  /* 鼠标驱动配置 */
 #define CONFIG_DRV_IDE      /* IDE驱动配置 */
 #define CONFIG_DRV_RAMDISK  /* RAMDISK驱动配置 */
-#define CONFIG_DRV_SERIAL  /* 串口驱动配置 */
+#define CONFIG_DRV_SERIAL   /* 串口驱动配置 */
+#define CONFIG_DRV_VESA     /* VESA图形驱动配置 */
+#define CONFIG_DRV_TTY      /* TTY驱动配置 */
+
+//#define CONFIG_DRV_PCNET32  /* pcnet32驱动配置 */
+#define CONFIG_DRV_RTL8139  /* RTL8139驱动配置 */
 
 /**
  * ------------------------
@@ -70,5 +78,12 @@
  */
 #define CONFIG_SERIAL_DEBUG /* 串口调试，输出到其他电脑进行调试 */
 
+/**
+ * ------------------------
+ * 配置显示方式
+ * ------------------------
+ */
+//#define CONFIG_DISPLAY_TEXT  /* 显示文本模式 */
+#define CONFIG_DISPLAY_GRAPH /* 显示图形模式，注意loader中的图形配置 */
 
 #endif   /*_BOOK_CONFIG_H*/

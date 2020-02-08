@@ -9,6 +9,8 @@
 #include "bosh.h"
 #include "cmd.h"
 
+
+
 char cmd_line[CMD_LINE_LEN] = {0};
 char cwd_cache[MAX_PATH_LEN] = {0};
 char *cmd_argv[MAX_ARG_NR];
@@ -291,7 +293,7 @@ int read_key(char *start, char *buf, int count)
 			//获取按键
 			//读取控制键状态
 			
-			if ((0 < key) || key&FLAG_PAD) {
+			if (((0 < key) || key&0x8000) && !(key & 0x80)) {
 				//是一般字符就传输出去
 				*buf = (char)key;
 				break;

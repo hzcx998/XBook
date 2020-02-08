@@ -8,8 +8,8 @@
 #ifndef _USER_LIB_STDLIB_H
 #define _USER_LIB_STDLIB_H
 
-#include <share/stdint.h>
-#include <share/stddef.h>
+#include "../share/stdint.h"
+#include "../share/stddef.h"
 
 int fork();
 int32_t getpid();
@@ -34,5 +34,7 @@ void *realloc(void *ptr, size_t size);
 
 int pipe(int fd[2]);
 int mkfifo(const char *path, mode_t mode);
+
+void graph(int offset, int size, void *buffer);
 
 #endif  /* _USER_LIB_STDLIB_H */

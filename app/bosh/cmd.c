@@ -905,7 +905,7 @@ void cmd_ls_sub(char *pathname, int detail)
                 }
                 
                 /* 类型,属性，文件日期，大小，名字 */
-                printf("%c%c%c%c %d/%d/%d %d:%d %d %s\n",
+                /*printf("%c%c%c%c %d/%d/%d %d:%d %d %s\n",
                     type, attrR, attrW, attrX,
                     DATA16_TO_DATE_YEA(fstat.st_mtime>>16),
                     DATA16_TO_DATE_MON(fstat.st_mtime>>16),
@@ -913,6 +913,7 @@ void cmd_ls_sub(char *pathname, int detail)
                     DATA16_TO_TIME_HOU(fstat.st_mtime&0xffff),
 				    DATA16_TO_TIME_MIN(fstat.st_mtime&0xffff),
                     fstat.st_size, de.name);
+                */
                 //printf("type:%x inode:%d name:%s\n", de.type, de.inode, de.name);
             } else {
                 printf("%s ", de.name);

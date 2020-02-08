@@ -7,3 +7,5 @@ obj-y	+= ide.o
 obj-y	+= ramdisk.o
 obj-y	+= tty.o
 obj-y	+= serial.o
+obj-y	+= vesa.o
+obj-y	+= mouse.o

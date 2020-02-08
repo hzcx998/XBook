@@ -58,6 +58,7 @@ enum {
     SYS_SIGSUSPEND,         /* 43 */
     SYS_GETPGID,            /* 44 */
     SYS_SETPGID,            /* 45 */
+    SYS_GRAPHW,             /* 46 */
     MAX_SYSCALL_NR,
 };
 

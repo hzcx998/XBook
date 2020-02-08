@@ -35,17 +35,39 @@ typedef signed short    s16;
 typedef unsigned char   u8;
 typedef signed char     s8;
 
+/*
+#ifndef QWORD
 typedef unsigned long   QWORD;
+#endif
+
+#ifndef DWORD
 typedef unsigned int    DWORD;
+#endif
+
+#ifndef WORD
 typedef unsigned short  WORD;
+#endif
+
+#ifndef BYTE
 typedef unsigned char   BYTE;
+#endif
 
+#ifndef UINT
 typedef unsigned int    UINT;
+#endif
+
+#ifndef WCHAR
 typedef unsigned short  WCHAR;
+#endif
 
+#ifndef FSIZE_t
 typedef DWORD           FSIZE_t;
-typedef DWORD           LBA_t;
+#endif
 
+#ifndef LBA_t
+typedef DWORD           LBA_t;
+#endif
+*/
 #define UINT32_MAX 0xffffffff
 #define UINT16_MAX 0xffff
 #define UINT8_MAX 0xff

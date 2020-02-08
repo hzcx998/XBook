@@ -21,7 +21,7 @@
 //#define _LOOPBACL_DEBUG
 
 /* 网卡配置 */
-#define _NIC_RTL8139
+//#define _NIC_RTL8139
 //#define _NIC_AMD79C973
 
 /* 虚拟机配置 */
@@ -65,5 +65,42 @@ PUBLIC unsigned int NetworkGetGateway();
 PUBLIC void DumpIpAddress(unsigned int ip);
 
 PUBLIC uint16 NetworkCheckSum(uint8_t *data, uint32_t len);
+
+PUBLIC int NetworkAddBuf(void *data, size_t len);
+
+
+STATIC INLINE int IsValidMulticastAddr(const uint8_t *addr)
+{
+    int i;
+    for (i = 0; i < 6; i++) {
+        /* 如果不是0xff，就说嘛不是有效的地址 */
+        if (addr[i] != 0xff)
+            return 0;
+    }
+    return 1;
+}
+
+STATIC INLINE int IsZeroEtherAddr(const uint8_t *addr)
+{
+    int i;
+    for (i = 0; i < 6; i++) {
+        /* 如果不是0，就说嘛不是有效的地址 */
+        if (addr[i] != 0)
+            return 0;
+    }
+    return 1;
+}
+
+STATIC INLINE int IsValidEtherAddr(const uint8_t *addr)
+{
+    /* 不是多播和0地址，才是有效的以太网地址 */
+    return !IsValidMulticastAddr(addr) && !IsZeroEtherAddr(addr);
+}
+
+/* 驱动注册入口，以及传输函数 */
+PUBLIC int InitRtl8139Driver();
+PUBLIC int Rtl8139Transmit(char *buf, uint32 len);
+PUBLIC unsigned char *Rtl8139GetMACAddress();
+
 
 #endif   /* _NET_NETWORK_H */

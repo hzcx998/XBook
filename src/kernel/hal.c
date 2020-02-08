@@ -47,10 +47,10 @@ PUBLIC void InitHalEarly()
 
     // 初始化控制台
 	ConsoleInit();
-
+#ifdef CONFIG_SERIAL_DEBUG
     // 初始化串口驱动
     InitSerialDebugDriver();
-
+#endif /* CONFIG_SERIAL_DEBUG */
     /* 初始化调试输出，可以使用printk */
     InitDebugPrint();
 

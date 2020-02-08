@@ -85,6 +85,9 @@ enum InterruptStatus InterruptSetStatus(enum InterruptStatus status);
 enum InterruptStatus InterruptEnable();
 enum InterruptStatus InterruptDisable();
 
+PUBLIC unsigned long InterruptSave();
+PUBLIC void InterruptRestore(unsigned long eflags);
+
 PUBLIC void InterruptRegisterHandler(unsigned char interrupt, intr_handler_t function);
 PUBLIC void InterruptCancelHandler(unsigned char interrupt);
 

@@ -10,6 +10,9 @@ BOSH 核心
 #define CMD_LINE_LEN 128
 #define MAX_ARG_NR 16
 
+#define TTY_CMD_CLEAN 0
+#define TTY_CMD_HOLD 1
+
 //func
 void print_prompt();
 int cmd_parse(char * cmd_str, char **argv, char token);

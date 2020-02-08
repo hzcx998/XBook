@@ -36,6 +36,8 @@ enum {
 #define TTY_MAJOR           5
 #define PCSPEAKER_MAJOR     6
 #define COM_MAJOR           7
+#define VIDEO_MAJOR         8
+#define MOUSE_MAJOR         9
 
 
 /* 字符设备数量 */
@@ -43,6 +45,8 @@ enum {
 #define TTY_MINORS          3    /* 4个tty */
 #define PCSPEAKER_MINORS    1    /* 1个蜂鸣器 */
 #define COM_MINORS          4    /* 4个串口设备 */
+#define VIDEO_MINORS        1    /* 1个视频设备 */
+#define MOUSE_MINORS        1    /* 1个鼠标 */
 
 /* 设备分区数 */
 #define IDE_PARTS           8
@@ -71,7 +75,7 @@ enum {
 #define DEV_TTY0            MKDEV(TTY_MAJOR, 0)       /* tty设备0 */
 #define DEV_TTY1            MKDEV(TTY_MAJOR, 1)       /* tty设备1 */
 #define DEV_TTY2            MKDEV(TTY_MAJOR, 2)       /* tty设备2 */
-#define DEV_TTY3            MKDEV(TTY_MAJOR, 3)       /* tty设备3 */
+#define DEV_TTY3            MKDEV(TTY_MAJOR, 3)       /* tty设备3，用来做图形界面 */
 
 #define DEV_PCSPEAKER       MKDEV(PCSPEAKER_MAJOR, 0)       /* 蜂鸣器设备0 */
 
@@ -79,6 +83,10 @@ enum {
 #define DEV_COM1            MKDEV(COM_MAJOR, 1)       /* COM设备1 */
 #define DEV_COM2            MKDEV(COM_MAJOR, 2)       /* COM设备2 */
 #define DEV_COM3            MKDEV(COM_MAJOR, 3)       /* COM设备3 */
+
+#define DEV_VIDEO           MKDEV(VIDEO_MAJOR, 0)       /* 视频设备 */
+
+#define DEV_MOUSE           MKDEV(MOUSE_MAJOR, 0)       /* 鼠标设备 */
 
 #define DEVICE_NAME_LEN 24
 

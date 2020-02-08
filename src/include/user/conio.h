@@ -8,10 +8,6 @@
 #ifndef _USER_LIB_CONIO_H
 #define _USER_LIB_CONIO_H
 
-#include <drivers/keyboard.h>
-#include <drivers/tty.h>
-#include <drivers/clock.h>
-
 void log(char *buf);
 int printf(const char *fmt, ...);
 

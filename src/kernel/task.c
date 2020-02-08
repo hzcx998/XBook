@@ -393,8 +393,9 @@ PUBLIC void TaskBlock(enum TaskStatus state)
 PUBLIC void TaskUnblock(struct Task *task)
 {
     // 先关闭中断，并且保存中断状态
-    enum InterruptStatus oldStatus = InterruptDisable();
-    
+    //enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long eflags = InterruptSave();
+
     /*
     state有2种状态，分别是TASK_BLOCKED, TASK_WAITING
     只有它们能被唤醒, TASK_ZOMBIE只能阻塞，不能被唤醒
@@ -418,7 +419,8 @@ PUBLIC void TaskUnblock(struct Task *task)
         task->status = TASK_READY;
     }
     // 恢复之前的状态
-    InterruptSetStatus(oldStatus);
+    //InterruptSetStatus(oldStatus);
+    InterruptRestore(eflags);
 }
 
 /**
@@ -699,9 +701,9 @@ PUBLIC void InitTasks()
    
     /* 有可能做测试阻塞main线程，那么就没有线程，
     在切换任务的时候就会出错，所以这里创建一个测试线程 */
-    ThreadStart("test", 1, ThreadA, "NULL");
+    //ThreadStart("test", 1, ThreadA, "NULL");
     
-    ThreadStart("test2", 1, ThreadB, "NULL");
+    //ThreadStart("test2", 1, ThreadB, "NULL");
     
 	// 在初始化多任务之后才初始化任务的虚拟空间
 	InitVMSpace();
