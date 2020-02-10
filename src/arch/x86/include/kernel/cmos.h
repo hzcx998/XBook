@@ -2,7 +2,7 @@
  * file:		arch/x86/include/kernel/cmos.h
  * auther:		Jason Hu
  * time:		2019/9/6
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _X86_CMOS_H

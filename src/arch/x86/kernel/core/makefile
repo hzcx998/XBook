@@ -1,0 +1,9 @@
+obj-y	+= entry.o
+obj-y	+= arch.o
+obj-y	+= x86.o
+obj-y	+= segment.o
+obj-y	+= gate.o
+obj-y	+= interrupt.o
+obj-y	+= pic.o
+obj-y	+= tss.o
+obj-y	+= cmos.o

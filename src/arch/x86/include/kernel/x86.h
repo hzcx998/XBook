@@ -2,14 +2,14 @@
  * file:		arch/x86/include/kernel/x86.h
  * auther:		Jason Hu
  * time:		2019/6/2
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _ARCH_X86_H
-#define _ARCH_X86_H
+#ifndef _X86_H
+#define _X86_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 uint32_t In8(uint32_t port);
 uint32_t In16(uint32_t port);
@@ -119,4 +119,4 @@ but make it already an possibility. */
 /* The "volatile" is due to gcc bugs */
 #define Barrier() __asm__ __volatile__("": : :"memory")
 
-#endif	/*_ARCH_X86_H*/
+#endif	/*_X86_H*/

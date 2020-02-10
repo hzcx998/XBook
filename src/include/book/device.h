@@ -2,7 +2,7 @@
  * file:		include/book/device.h
  * auther:		Jason Hu
  * time:	    2019/9/11
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_DEVICE_H
@@ -10,7 +10,7 @@
 
 #include <book/list.h>
 #include <book/atomic.h>
-#include <share/stddef.h>
+#include <lib/stddef.h>
 enum {
     DEV_TYPE_UNKNOWN = 0,
     DEV_TYPE_BLOCK,

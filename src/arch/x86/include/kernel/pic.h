@@ -2,13 +2,13 @@
  * file:		arch/x86/include/kernel/pic.h
  * auther:		Jason Hu
  * time:		2019/6/23
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _ARCH_PIC_H
-#define _ARCH_PIC_H
+#ifndef _X86_PIC_H
+#define _X86_PIC_H
 
-#include <share/stdint.h>
+#include <lib/stdint.h>
 
 /*
 各个端口
@@ -44,4 +44,4 @@ unsigned int PicInstall(unsigned int irq, void * arg);
 void PicUninstall(unsigned int irq);
 void PicAck(unsigned int irq);
 */
-#endif	/*_ARCH_PIC_H*/
+#endif	/* _X86_PIC_H */

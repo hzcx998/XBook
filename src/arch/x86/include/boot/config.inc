@@ -2,7 +2,7 @@
 ;file:      arch/x86/include/boot/config.inc
 ;auther:    Jason Hu
 ;time:      2019/8/9
-;copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+;copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
 ;----
 
 ; 对引导项进行手动配置

@@ -2,7 +2,7 @@
  * file:		include/book/byteorder.h
  * auther:		Jason Hu
  * time:		2019/8/19
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /*
@@ -12,8 +12,8 @@
 #ifndef _BOOK_BYTEORDER_H
 #define _BOOK_BYTEORDER_H
 
-#include <share/types.h>
-#include <share/stdint.h>
+#include <lib/types.h>
+#include <lib/stdint.h>
 
 /**
  * BytesSwap16 - 16位的字节交换

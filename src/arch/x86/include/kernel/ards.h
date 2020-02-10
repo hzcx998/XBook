@@ -2,14 +2,14 @@
  * file:		arch/x86/include/kernel/ards.h
  * auther:		Jason Hu
  * time:		2019/6/3
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _X86_ARDS_H
 #define	_X86_ARDS_H
 
-#include <share/types.h>
-#include <share/stdint.h>
+#include <lib/types.h>
+#include <lib/stdint.h>
 
 #define ARDS_ADDR 0x80001000 //ARDS结构从哪儿开始储存
 

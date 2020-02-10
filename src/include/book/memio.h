@@ -1,15 +1,15 @@
 /*
- * file:		include/book/blk-buffer.h
+ * file:		include/book/memio.h
  * auther:		Jason Hu
  * time:		2020/1/31
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _MM_MEMIO_H
-#define _MM_MEMIO_H
+#ifndef _BOOK_MEMIO_H
+#define _BOOK_MEMIO_H
 
-#include <share/types.h>
+#include <lib/types.h>
 
 
 
-#endif   /* _MM_MEMIO_H */
+#endif   /* _BOOK_MEMIO_H */

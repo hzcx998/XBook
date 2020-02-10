@@ -2,7 +2,7 @@
  * file:		arch/x86/include/mm/page.h
  * auther:		Jason Hu
  * time:		2019/6/2
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _X86_MM_PAGE_H
@@ -15,9 +15,9 @@
 #include <book/bitmap.h>
 #include <book/list.h>
 #include <book/memcache.h>
-#include <share/stdint.h>
-#include <share/stddef.h>
-#include <share/stddef.h>
+#include <lib/stdint.h>
+#include <lib/stddef.h>
+#include <lib/stddef.h>
 
 // 页目录类型
 typedef unsigned int pde_t;

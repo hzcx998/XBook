@@ -1,14 +1,14 @@
 /*
- * file:		   include/book/bitops.h
+ * file:		include/book/bitops.h
  * auther:		Jason Hu
  * time:		2019/8/19
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_BITOPS_H
 #define _BOOK_BITOPS_H
 
-#include <share/types.h>
+#include <lib/types.h>
 #include <book/arch.h>
 #include <book/bitops.h>
 

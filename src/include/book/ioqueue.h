@@ -2,14 +2,14 @@
  * file:		include/book/ioqueue.h
  * auther:		Jason Hu
  * time:		2019/8/21
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_IOQUEQUE_H
 #define	_BOOK_IOQUEQUE_H
 
-#include <share/types.h>
-#include <share/stdint.h>
+#include <lib/types.h>
+#include <lib/stdint.h>
 #include <book/synclock.h>
 #include <book/task.h>
 

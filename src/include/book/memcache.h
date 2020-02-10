@@ -2,15 +2,15 @@
  * file:		    include/book/memcache.h
  * auther:		    Jason Hu
  * time:		    2019/10/1
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_MEMCACHE_H
 #define _BOOK_MEMCACHE_H
 
-#include <share/const.h>
-#include <share/types.h>
-#include <share/stddef.h>
+#include <lib/const.h>
+#include <lib/types.h>
+#include <lib/stddef.h>
 #include <book/config.h>
 #include <book/bitmap.h>
 #include <book/list.h>

@@ -2,16 +2,15 @@
  * file:		arch/x86/include/kernel/gate.h
  * auther:		Jason Hu
  * time:		2019/6/23
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _ARCH_GATE_H
-#define _ARCH_GATE_H
+#ifndef _X86_GATE_H
+#define _X86_GATE_H
 
-#include <const.h>
-#include <share/stdint.h>
-
-#include <interrupt.h>
+#include <kernel/const.h>
+#include <kernel/interrupt.h>
+#include <lib/stdint.h>
 
 /* IDT 的虚拟地址 */
 #define IDT_VADDR		0x80200800
@@ -70,4 +69,4 @@ PUBLIC void InitGateDescriptor();
 PUBLIC void SetGateDescriptor(struct GateDescriptor *descriptor, intr_handler_t offset, \
 		unsigned int selector, unsigned int attributes, unsigned char privilege);
 
-#endif	/*_ARCH_SEGMENT_H*/
+#endif	/*_X86_SEGMENT_H*/

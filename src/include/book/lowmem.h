@@ -1,17 +1,17 @@
 /*
- * file:		mm/lowmem.h
+ * file:		include/book/lowmem.h
  * auther:		Jason Hu
  * time:		2020/1/26
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _MM_LOWMEN_H
-#define _MM_LOWMEN_H
+#ifndef _BOOK_LOWMEN_H
+#define _BOOK_LOWMEN_H
 
 /*
 lowmem(low memory)，低端内存管理，用于旧设备缓冲区
 */
-#include <share/stddef.h>
+#include <lib/stddef.h>
 
 /* 默认4个内存片段 */
 #define MAX_MEM_FRAGMENT_NR 4
@@ -39,4 +39,4 @@ PUBLIC void *lmalloc(size_t size);
 PUBLIC void lmfree(void *addr);
 
 
-#endif   /*_MM_LOWMEN_H */
+#endif   /*_BOOK_LOWMEN_H */

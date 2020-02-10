@@ -2,14 +2,14 @@
  * file:		include/hal/char/cpu.h
  * auther:		Jason Hu
  * time:		2019/6/27
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _HAL_CHAR_CPU_H
-#define _HAL_CHAR_CPU_H
+#ifndef _HAL_CPU_H
+#define _HAL_CPU_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 /* CMD */
 #define CPU_HAL_IO_INVLPG           1
@@ -30,4 +30,4 @@
 
 PUBLIC void InitCpu();
 
-#endif  //_HAL_CHAR_CPU_H
+#endif  //_HAL_CPU_H

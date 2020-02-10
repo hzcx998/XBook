@@ -1,10 +1,10 @@
 #ifndef _BOFS_SUPER_BLOCK_H
 #define _BOFS_SUPER_BLOCK_H
 
-#include <share/stdint.h>
-#include <share/stddef.h>
-#include <fs/bofs/dir.h>
 #include <book/bitmap.h>
+#include <lib/stdint.h>
+#include <lib/stddef.h>
+#include <fs/bofs/dir.h>
 #include <fs/bofs/inode.h>
 
 /* 超级块魔数 */

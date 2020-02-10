@@ -2,14 +2,14 @@
  * file:		include/book/semaphore2.h
  * auther:		Jason Hu
  * time:		2019/7/31
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_SEMAPHORE2_H
 #define _BOOK_SEMAPHORE2_H
 
-#include <share/types.h>
-#include <share/const.h>
+#include <lib/types.h>
+#include <lib/const.h>
 #include <book/list.h>
 
 /**

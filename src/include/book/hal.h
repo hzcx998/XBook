@@ -2,14 +2,14 @@
  * file:		   include/book/hal.h
  * auther:		Jason Hu
  * time:		   2019/6/22
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_HAL_H
 #define _BOOK_HAL_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 #include <book/list.h>
 #include <book/debug.h>
 
@@ -48,7 +48,6 @@ struct Hal  {
 
 PUBLIC void InitHalEnvironment();
 PUBLIC void InitHalEarly();
-PUBLIC void InitHalKernel();
 
 PUBLIC struct Hal *HalNameToHal(char *name);
 

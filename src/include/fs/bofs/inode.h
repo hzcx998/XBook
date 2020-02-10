@@ -2,16 +2,15 @@
  * file:		include/fs/bofs/inode.h
  * auther:		Jason Hu
  * time:		2019/9/5
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOFS_INODE_H
 #define _BOFS_INODE_H
 
-
-#include <share/stdint.h>
-#include <share/types.h>
 #include <book/device.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 /*default fs inode nr*/
 #define DEFAULT_MAX_INODE_NR 9182

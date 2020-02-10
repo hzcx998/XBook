@@ -2,24 +2,29 @@
  * file:		init/main.c
  * auther:		Jason Hu
  * time:		2019/6/2
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #include <book/arch.h>
 #include <book/hal.h>
 #include <book/debug.h>
-#include <drivers/clock.h>
 #include <book/memcache.h>
 #include <book/task.h>
 #include <book/interrupt.h>
 #include <book/device.h>
 #include <book/vmarea.h>
-#include <book/block.h>
-#include <book/char.h>
-#include <book/sound.h>
 #include <book/lowmem.h>
+#include <book/cpu.h>
+#include <book/fs.h>
 #include <net/network.h>
-#include <fs/fs.h>
+#include <pci/pci.h>
+#include <clock/clock.h>
+#include <block/block.h>
+#include <char/char.h>
+#include <sound/sound.h>
+#include <input/input.h>
+#include <video/video.h>
+
 /*
  * 功能: 内核的主函数
  * 参数: 无
@@ -30,35 +35,37 @@ int main()
 {
 	PART_START("Kernel main");
 	
-	//初始化硬件抽象层
-	InitHalKernel();
+    /* 初始化CPU信息 */
+    InitCpu();
 
-	// 初始化内存缓存
+    /* 初始化平台总线 */
+	InitPci();
+	/* 初始化内存缓存 */
 	InitMemCaches();
     
-	// 初始化内存区域
+	/* 初始化内存区域 */
 	InitVMArea();
 
-    // 初始化内存片段
+    /* 初始化内存片段 */
     InitMemFragment();
 
 	/* 初始化IRQ描述结构 */
 	InitIrqDescription();
 
     /* 初始化软中断机制 */
-    InitSoftirq();
-	
+    InitSoftirq();	
+
 	/* 初始化多任务 */
 	InitTasks();
-	
+
 	/* 初始化多任务后，初始化工作队列 */
 	InitWorkQueue();
 	
 	/* 打开中断标志 */
 	EnableInterrupt();
 	
-	/* 初始化时钟驱动 */
-	InitClockDriver();
+	/* 初始化时钟系统 */
+	InitClockSystem();
 	
 	/* 初始化字符设备 */	
 	InitCharDevice();
@@ -67,7 +74,16 @@ int main()
 	InitBlockDevice();
 
     /* 初始化网络 */
-    InitNetwork();
+    InitNetworkDevice();
+
+    /* 初始化输入系统 */
+    InitInputSystem();
+
+    /* 初始化音频系统 */
+    InitSoundSystem();
+    
+    /* 初始化视频系统 */
+    InitVideoSystem();
     
 	/* 初始化文件系统 */
     InitFileSystem();
@@ -75,7 +91,7 @@ int main()
     /* 暂时的提示语言 */
     printk("Book Say > Welcom to BookOS! Please input 'help' to get more help!\n");
     printk("Book Say > You can press Alt + F1~F3 to select a different console.\n");
-    
+
 	/* 加载init进程 */
 	InitFirstProcess("root:/init", "init");
 

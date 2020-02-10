@@ -2,7 +2,7 @@
  * file:		include/book/synclock.h
  * auther:		Jason Hu
  * time:		2019/7/31
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /*
@@ -13,8 +13,8 @@
 #define _BOOK_SYNCLOCK_H
 
 #include <book/config.h>
-#include <share/types.h>
-#include <share/const.h>
+#include <lib/types.h>
+#include <lib/const.h>
 #include <book/list.h>
 #include <book/semaphore.h>
 #include <book/semaphore2.h>

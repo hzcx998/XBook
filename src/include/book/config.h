@@ -45,7 +45,7 @@
 #define CONFIG_SEMAPHORE_M /* 配置多元信号量（Multivariate semaphore） */
 //#define CONFIG_SEMAPHORE_B /* 配置二元信号量（Binary semaphore） */
 
-//#define CONFIG_NETWORK  /* 配置网络模块 */
+#define CONFIG_NETWORK  /* 配置网络模块 */
 
 
 /**
@@ -70,6 +70,8 @@
 
 //#define CONFIG_DRV_PCNET32  /* pcnet32驱动配置 */
 #define CONFIG_DRV_RTL8139  /* RTL8139驱动配置 */
+
+//#define CONFIG_DRV_SB16 /* 声霸卡16驱动 */
 
 /**
  * ------------------------

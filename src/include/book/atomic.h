@@ -1,15 +1,15 @@
 /*
- * file:		   include/book/atomic.h
+ * file:		include/book/atomic.h
  * auther:		Jason Hu
- * time:		   2019/8/8
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * time:		2019/8/8
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_ATOMIC_H
 #define _BOOK_ATOMIC_H
 
 #include <book/config.h>
-#include <share/types.h>
+#include <lib/types.h>
 #include <book/arch.h>
 
 EXTERN void __AtomicAdd(int *a, int b);

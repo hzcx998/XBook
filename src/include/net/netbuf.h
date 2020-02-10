@@ -2,7 +2,7 @@
  * file:		include/net/netbuf.h
  * auther:		Jason Hu
  * time:		2019/12/31
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /*
@@ -14,8 +14,8 @@
 
 #include <book/list.h>
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 /* 状态 */
 #define NET_BUF_UNUSED          0   /* 未使用 */

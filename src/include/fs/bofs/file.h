@@ -2,16 +2,16 @@
  * file:		include/fs/bofs/file.h
  * auther:		Jason Hu
  * time:		2019/9/17
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOFS_FILE_H
 #define _BOFS_FILE_H
 
-#include <share/stdint.h>
-#include <share/types.h>
-#include <fs/bofs/super_block.h>
 #include <book/task.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
+#include <fs/bofs/super_block.h>
 #include <fs/bofs/pipe.h>
 
 #define BOFS_MAX_FD_NR 128

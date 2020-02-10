@@ -2,7 +2,7 @@
  * file:		include/book/signal.h
  * auther:		Jason Hu
  * time:		2019/12/22
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /* 今天是冬至，大家吃饺子吃得开心！ 2019.12.22 */
@@ -10,9 +10,9 @@
 #ifndef _BOOK_SIGNAL_H
 #define _BOOK_SIGNAL_H
 
-#include <share/types.h>
-#include <share/stddef.h>
-#include <share/signal.h>
+#include <lib/types.h>
+#include <lib/stddef.h>
+#include <lib/signal.h>
 #include <book/atomic.h>
 #include <book/spinlock.h>
 #include <book/arch.h>

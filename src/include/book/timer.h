@@ -2,7 +2,7 @@
  * file:		include/book/timer.h
  * auther:		Jason Hu
  * time:		2019/8/8
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /**
@@ -12,8 +12,8 @@
 #ifndef _BOOK_TIMER_H
 #define _BOOK_TIMER_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 #include <book/list.h>
 #include <book/atomic.h>
 
@@ -28,6 +28,7 @@
 typedef struct Timer {
     struct List list;   // 链表
     uint64_t expires;   // 到期时间
+    uint64_t lastExpires;   // 上一个到期时间
     uint32_t data;      // 传递的数据
     void (*function)(uint32_t);     // 到期后要调用的函数
     char state;         // 定时器的状态
@@ -49,7 +50,6 @@ PUBLIC void RemoveTimer(struct Timer *timer);
 PUBLIC void StopTimer(struct Timer *timer);
 PUBLIC void ResumeTimer(struct Timer *timer);
 PUBLIC void CancelTimer(struct Timer *timer);
-
 PUBLIC void DoTimerHandler(struct Timer *timer);
 
 #endif  /* _BOOK_TIMER_H */

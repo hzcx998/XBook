@@ -2,14 +2,14 @@
  * file:		include/book/VMSpace.h
  * auther:		Jason Hu
  * time:		2019/8/1
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_VMSPACE_H
 #define _BOOK_VMSPACE_H
 
-#include <share/types.h>
-#include <share/const.h>
+#include <lib/types.h>
+#include <lib/const.h>
 #include <book/list.h>
 #include <book/arch.h>
 

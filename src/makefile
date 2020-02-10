@@ -1,8 +1,8 @@
 #----
 #File:		makefile
-#Auther: 	Jason Hu, Yu Zhu
+#Auther: 	Jason Hu, Yu Zhu，Suote127
 #Time: 		2019/6/1
-#copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+#copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
 #----
 
 #----tools----
@@ -11,19 +11,25 @@
 PHONY		:=
 all:
 
-BOCHS_DIR = ../bochs/
-
-# ar 是库打包工具
-AR 	= ar
+# tools
+AR 			= ar
 NASM 		= nasm
 CC			= gcc
 LD 			= ld
 DD 			= dd
+# virtual machine
 QEMU 		= qemu-system-i386
 BOCHS 		= bochs
-VBOX_MANAGE 	= VBoxManage
+VBOX_MANAGE = VBoxManage
 
+# debugger
 BOCHSDBG 	= bochsdbg
+
+# development dir
+DEVELOPMENT_DIR	= ../developments/
+
+# bochs development dir
+BOCHS_DIR = $(DEVELOPMENT_DIR)bochs/
 
 # bochsrc for windows
 BXRC_WIN 		= $(BOCHS_DIR)bochsrc.win
@@ -35,7 +41,7 @@ VBOX_NAME	= "Xbook"
 
 #----img----
 #img dir
-IMG_DIR = ../img/
+IMG_DIR = $(DEVELOPMENT_DIR)image/
 
 FLAPPY_IMG 	= $(IMG_DIR)a.img
 HDA_IMG		= $(IMG_DIR)c.img
@@ -87,16 +93,12 @@ else
 endif
 
 #objs
-SRCDIRS	:= $(ARCH)/ init/ kernel/ hal/ share/ drivers/ mm/ fs/ user/ \
-			net/ graph/ 
+SRCDIRS	:= $(ARCH)/ driver/ external/ init/ kernel/ lib/
 
 # 库文件目录
-LIBDIRS	:= user/ share/
+LIBDIRS	:= lib/
 
-INCDIRS	:= include/ include/book/ $(ARCH)/include/ \
-	$(ARCH)/include/bus/ \
-	$(ARCH)/include/kernel/ \
-	$(ARCH)/include/mm/
+INCDIRS	:= include/ $(ARCH)/include/
 
 OBJS	:= $(patsubst %/, %/built-in.o, $(SRCDIRS))
 OBJS_LIB	:= $(patsubst %/, %/built-in.o, $(LIBDIRS))
@@ -114,10 +116,10 @@ CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTF
 NASM_FLAGS	:= $(INCLUDE_PATH)
 ARFLAGS := -r
 
-#kernel temp file	
-KERNEL_ELF =  kernel.elf
+#kernel file	
+KERNEL_ELF =  kernel.a
 
-#libary temp file
+#libary file
 LIBC_A = libc.a
 
 PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean
@@ -179,24 +181,20 @@ endif
 # 音频配置：
 # 	a.使用蜂鸣器：-soundhw pcspk
 #	b.使用声霸卡：-soundhw sb16
-qemu: disk
-	$(QEMU) -m 512M \
+QEMU_ARGUMENT = -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,model=rtl8139,macaddr=12:34:56:78:9a:bc \
+		-net nic,model=rtl8139 \
 		-net tap,ifname=tap0,script=no,downscript=no \
 		-serial stdio \
 		-soundhw pcspk,sb16
 
+qemu: disk
+	$(QEMU) $(QEMU_ARGUMENT)
+
+# 调试配置：-S -gdb tcp::10001,ipv4
 qemudbg: disk
-	$(QEMU) -m 512M \
-		-name "XBook Development Platform for x86" \
-		-S -gdb tcp::10001,ipv4 \
-		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,model=rtl8139,macaddr=00:57:20:01:15:02 \
-		-net tap,ifname=tap0,script=no,downscript=no \
-		-serial stdio \
-		-soundhw pcspk,sb16
+	$(QEMU) -S -gdb tcp::10001,ipv4 $(QEMU_ARGUMENT)
 
 # virtual box
 vbox: disk
@@ -205,10 +203,11 @@ vbox: disk
 # api libary 
 lib: $(LIBC_A)
 
-#clean temporary files
+# clean temporary files
 clean: $(SRCDIRS)
 	$(RM) $(KERNEL_ELF)
 	
+# remove libary file
 rmlib:
 	$(RM) $(LIBC_A)
 

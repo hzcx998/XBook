@@ -2,7 +2,7 @@
  * file:		include/net/network.h
  * auther:		Jason Hu
  * time:		2019/12/31
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 /*
@@ -12,8 +12,8 @@
 #ifndef _NET_NETWORK_H
 #define _NET_NETWORK_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 /***** 配置区域 *****/
 
@@ -50,7 +50,7 @@ PUBLIC unsigned int NetworkMakeIpAddress(
     unsigned char ip2, 
     unsigned char ip3);
 
-PUBLIC int InitNetwork();
+PUBLIC int InitNetworkDevice();
 PUBLIC unsigned int NetworkMakeIpAddress(
     unsigned char ip0,
     unsigned char ip1,

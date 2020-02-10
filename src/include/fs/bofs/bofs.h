@@ -2,7 +2,7 @@
  * file:		include/fs/bofs/bofs.h
  * auther:		Jason Hu
  * time:		2019/9/5
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _FS_BOFS_H
@@ -14,9 +14,9 @@ Book File System (BOFS) -V0.2
 0.2主要用于X内核
 */
 
-#include <share/types.h>
-#include <share/stdint.h>
-#include <share/const.h>
+#include <lib/types.h>
+#include <lib/stdint.h>
+#include <lib/const.h>
 
 #include <fs/bofs/super_block.h>
 

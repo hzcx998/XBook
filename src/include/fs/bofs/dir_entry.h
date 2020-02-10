@@ -2,14 +2,14 @@
  * file:		include/fs/bofs/dir_entry.h
  * auther:		Jason Hu
  * time:		2019/9/5
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOFS_DIR_ENTRY_H
 #define _BOFS_DIR_ENTRY_H
 
-#include <share/stdint.h>
-#include <share/types.h>
+#include <lib/stdint.h>
+#include <lib/types.h>
 
 /*book os file system dir entry*/
 

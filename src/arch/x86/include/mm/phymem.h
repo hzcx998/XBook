@@ -2,13 +2,13 @@
  * file:		arch/x86/include/mm/phymem.h
  * auther:		Jason Hu
  * time:		2019/9/29
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _X86_MM_PHYMEN_H
 #define _X86_MM_PHYMEN_H
 
-#include <share/stddef.h>
+#include <lib/stddef.h>
 #include <book/bitmap.h>
 #include <book/list.h>
 #include <book/memcache.h>

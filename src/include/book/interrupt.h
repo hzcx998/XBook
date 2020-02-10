@@ -2,13 +2,13 @@
  * file:		include/book/interrupt.h
  * auther:		Jason Hu
  * time:		2019/8/17
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_INTERRUPT_H
 #define _BOOK_INTERRUPT_H
 
-#include <share/types.h>
+#include <lib/types.h>
 #include <book/arch.h>
 #include <book/atomic.h>
 #include <book/list.h>

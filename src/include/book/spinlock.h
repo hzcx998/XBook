@@ -2,7 +2,7 @@
  * file:		include/book/spinlock.h
  * auther:		Jason Hu
  * time:		2019/11/15
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOOK_SPINLOCK_H

@@ -2,13 +2,13 @@
  * file:		include/fs/bofs/driver.h
  * auther:		Jason Hu
  * time:		2019/11/30
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
 #ifndef _BOFS_DRIVE_H
 #define _BOFS_DRIVE_H
 
-#include <book/blk-dev.h>
+#include <block/blk-dev.h>
 
 #include <fs/bofs/super_block.h>
 

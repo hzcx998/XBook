@@ -2,15 +2,15 @@
  * file:		arch/x86/include/kernel/segment.h
  * auther:		Jason Hu
  * time:		2019/6/23
- * copyright:	(C) 2018-2019 by Book OS developers. All rights reserved.
+ * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
-#ifndef _ARCH_SEGMENT_H
-#define _ARCH_SEGMENT_H
+#ifndef _X86_SEGMENT_H
+#define _X86_SEGMENT_H
 
 
 #include "../mm/page.h"
-#include <share/stdint.h>
+#include <lib/stdint.h>
 
 /*
  * 段的相关信息会出现在这个文件中
@@ -91,4 +91,4 @@ void InitSegmentDescriptor();
 void SetSegmentDescriptor(struct SegmentDescriptor *descriptor, unsigned int limit, \
         unsigned int base, unsigned int attributes);
 
-#endif	/*_ARCH_SEGMENT_H*/
+#endif	/*_X86_SEGMENT_H*/

@@ -1,0 +1,12 @@
+obj-y	+= atomic.o
+obj-y	+= exit_wait.o
+obj-y	+= mutex.o
+obj-y	+= schedule.o
+obj-y	+= sleep_wakeup.o
+obj-y	+= spinlock.o
+obj-y	+= switch.o
+obj-y	+= synclock.o
+obj-y	+= syscall.o
+obj-y	+= task.o
+obj-y	+= fork.o
+obj-y	+= exec.o
