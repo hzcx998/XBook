@@ -102,7 +102,7 @@ PRIVATE void *__vmalloc(size_t size)
 	area->addr = start;
 	area->size = size;
 
-	enum InterruptStatus oldStatus = InterruptDisable();
+	unsigned long flags = InterruptSave();
 	
 	/* 添加到虚拟区域的链表上 */
 	ListAddTail(&area->list, &usingVMAreaList);
@@ -110,11 +110,11 @@ PRIVATE void *__vmalloc(size_t size)
 	if (MapPages(start, size, PAGE_US_S | PAGE_RW_W)) {
 		FreeVaddress(start, size);
 		kfree(area);
-		InterruptSetStatus(oldStatus);
+		InterruptRestore(flags);
 		return NULL;
 	}
 	
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 	//printk("vmalloc: create a area %x/%x\n", area->addr, area->size);
 	return (void *)area->addr;
 }
@@ -150,14 +150,14 @@ PUBLIC void *vmalloc(size_t size)
 	/* 找到一个合适大小的area，就使用它 */
 	if (target != NULL) {
 		//printk("vmalloc: find a free area %x/%x\n", target->addr, target->size);
-		enum InterruptStatus oldStatus = InterruptDisable();
+		unsigned long flags = InterruptSave();
 
 		/* 先脱离原来的空闲链表，并添加到使用链表中去 */
 		ListDel(&target->list);
 
 		ListAddTail(&target->list, &usingVMAreaList);
 		
-		InterruptSetStatus(oldStatus);
+		InterruptRestore(flags);
 		return (void *)target->addr;
 	}
 
@@ -237,7 +237,7 @@ PUBLIC int vfree(void *ptr)
 		return -1;
 	
 	struct VMArea *target = NULL, *area;
-	enum InterruptStatus oldStatus = InterruptDisable();
+	unsigned long flags = InterruptSave();
 	
 	ListForEachOwner(area, &usingVMAreaList, list) {
 		/* 如果找到了对应的区域 */
@@ -250,13 +250,13 @@ PUBLIC int vfree(void *ptr)
 	/* 找到一个合适要释放的area，就释放它 */
 	if (target != NULL) {
 		if (__vfree(target)) {
-			InterruptSetStatus(oldStatus);
+			InterruptRestore(flags);
 			return 0;
 		}
 	}
 	
 	/* 没找到，释放失败 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 	return -1;
 }
 
@@ -340,7 +340,7 @@ PUBLIC void *IoRemap(unsigned long phyAddr, size_t size)
     /* 设置虚拟区域参数 */
 	area->addr = vaddr;
 	area->size = size;
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 	
 	/* 添加到虚拟区域的链表上 */
 	ListAddTail(&area->list, &usingVMAreaList);
@@ -355,7 +355,7 @@ PUBLIC void *IoRemap(unsigned long phyAddr, size_t size)
         vaddr = 0;
     }
     
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 	
     return (void *)vaddr;    
 }
@@ -378,7 +378,7 @@ PUBLIC int IoUnmap(void *addr)
 		return -1;
 	
 	struct VMArea *target = NULL, *area;
-	enum InterruptStatus oldStatus = InterruptDisable();
+	unsigned long flags = InterruptSave();
 	
 	ListForEachOwner(area, &usingVMAreaList, list) {
 		/* 如果找到了对应的区域 */
@@ -399,13 +399,13 @@ PUBLIC int IoUnmap(void *addr)
 
             kfree(target);
 
-            InterruptSetStatus(oldStatus);
+            InterruptRestore(flags);
 			return 0;
 		}
 	}
 	
 	/* 没找到，释放失败 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 	return -1;
 }
 
@@ -494,7 +494,6 @@ PRIVATE void VMAreaTest()
  */
 PUBLIC INIT void InitVMArea()
 {
-	PART_START("VM Area");
 	/* 每一位代表1个页的分配状态 */
 	vmBitmap.btmpBytesLen = HIGH_MEM_SIZE / (PAGE_SIZE * 8);
 	
@@ -514,7 +513,4 @@ PUBLIC INIT void InitVMArea()
 	//printk("bitmap len %d bits %x vm base %x\n", vmBitmap.btmpBytesLen, vmBitmap.bits, vmBaseAddress);
 	/* 测试 */
 	//VMAreaTest();
-
-	//Panic("test");
-	PART_END();
 }

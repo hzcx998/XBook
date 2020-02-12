@@ -186,7 +186,6 @@ PRIVATE void CutUesdMemory()
  */
 PUBLIC int InitPhysicMemory()
 {
-    PART_START("Physic Memory");
     //----获取内存大小----
     unsigned int memSize;
     //打开设备
@@ -275,7 +274,5 @@ PUBLIC int InitPhysicMemory()
 	*/
 
     //memset(v, 0, PAGE_SIZE * 2);
-    //Panic("test");
-    //PART_END();
     return 0;
 }   

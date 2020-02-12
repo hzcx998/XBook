@@ -5,10 +5,13 @@
  * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
  */
 
+#include <book/config.h>
 #include <book/debug.h>
 #include <book/arch.h>
-#include <char/uart/serial.h>
 #include <lib/vsprintf.h>
+
+#include <char/uart/serial.h>
+#include <char/console/console.h>
 
 //停机并输出大量信息
 void Panic(const char *fmt, ...)
@@ -20,7 +23,7 @@ void Panic(const char *fmt, ...)
 
 	vsprintf(buf, fmt, arg);
 
-    DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_GREEN,TEXT_BLACK));
+    //DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_GREEN,TEXT_BLACK));
     
 	printk("\n> Panic: %s", buf);
 	DisableInterrupt();
@@ -33,7 +36,7 @@ void Panic(const char *fmt, ...)
 void AssertionFailure(char *exp, char *file, char *baseFile, int line)
 {
 
-	DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_RED,TEXT_BLACK));
+	//DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, MAKE_COLOR(TEXT_RED,TEXT_BLACK));
     
 	printk("\nassert(%s) failed:\nfile: %s\nbase_file: %s\nln%d",
 	exp, file, baseFile, line);
@@ -67,9 +70,12 @@ PUBLIC int ConsolePrint(const char *fmt, ...)
 	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
 	i = vsprintf(buf, fmt, arg);
 
-	//ConsoleWrite((char *)buf, i);
+    int count = i;
+    char *p = buf;
 
-    DeviceWrite(DEV_CON0, 0, buf, i);
+    while (count-- > 0) {
+        ConsoleDebugPutChar(*p++);
+    }
 
 	return i;
 }
@@ -90,7 +96,6 @@ PUBLIC int SerialPrint(const char *fmt, ...)
 
     int count = i;
     char *p = buf;
-	//ConsoleWrite((char *)buf, i);
     while (count-- > 0) {
         SerialDebugPutChar(*p++);
     }
@@ -100,7 +105,7 @@ PUBLIC int SerialPrint(const char *fmt, ...)
 
 PUBLIC void DebugColor(unsigned int color)
 {
-	DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, color);
+	//DeviceIoctl(DEV_CON0, CON_CMD_SET_COLOR, color);
 }
 
 /**
@@ -109,12 +114,16 @@ PUBLIC void DebugColor(unsigned int color)
  */
 PUBLIC void InitDebugPrint()
 {
-    /* 先打开第一个控制台，用来调试输出 */
-    DeviceOpen(DEV_CON0, 0);
-    
+#ifdef CONFIG_CONSOLE_DEBUG
+    // 初始化控制台
+	InitConsoleDebugDriver();
     printk = &ConsolePrint;
+#endif /* CONFIG_CONSOLE_DEBUG */
 
-    #ifdef CONFIG_SERIAL_DEBUG
+#ifdef CONFIG_SERIAL_DEBUG
+    // 初始化串口驱动
+    InitSerialDebugDriver();
     printk = &SerialPrint;
-    #endif
+    
+#endif /* CONFIG_SERIAL_DEBUG */
 } 

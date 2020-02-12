@@ -34,7 +34,7 @@ PUBLIC NetBuffer_t *AllocNetBuffer(size_t len)
         return NULL;
     }
 
-    enum InterruptStatus oldStatus =  SpinLockSaveIntrrupt(&netBufferLock);
+    unsigned long flags =  SpinLockIrqSave(&netBufferLock);
 
     NetBuffer_t *buf = NULL;
     int i;
@@ -49,7 +49,7 @@ PUBLIC NetBuffer_t *AllocNetBuffer(size_t len)
             break;
         }
     }
-    SpinUnlockRestoreInterrupt(&netBufferLock, oldStatus);
+    SpinUnlockIrqSave(&netBufferLock, flags);
 
     return buf;
 }
@@ -60,15 +60,13 @@ PUBLIC NetBuffer_t *AllocNetBuffer(size_t len)
  */
 PUBLIC void FreeNetBuffer(NetBuffer_t *buf)
 {
-    enum InterruptStatus oldStatus =  SpinLockSaveIntrrupt(&netBufferLock);
+    unsigned long flags =  SpinLockIrqSave(&netBufferLock);
 
     /* 修改状态为未使用 */
     buf->status = NET_BUF_UNUSED;
 
     //printk("[-]Net Buffer Free At %x\n", buf);
-
-    SpinUnlockRestoreInterrupt(&netBufferLock, oldStatus);
-    
+    SpinUnlockIrqSave(&netBufferLock, flags);
 }
 
 /**

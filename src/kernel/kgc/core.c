@@ -10,7 +10,6 @@
 /* 系统内核 */
 #include <book/config.h>
 
-#ifdef CONFIG_DISPLAY_GRAPH
 
 #include <book/arch.h>
 #include <book/debug.h>
@@ -183,11 +182,11 @@ PRIVATE int KGC_OpenDevice()
 {
     
     KGC_VideoInfo_t *video = &videoInfo;
-    
+    printk("grpah devno %x\n", this->device.screen);
     /* 输出设备 */
     if (DeviceOpen(this->device.screen, 0)) {
         printk("open graph device failed!\n");
-        return -1;
+        //return -1;
     }
 
     /* 获取设备基础信息 */
@@ -216,18 +215,19 @@ PRIVATE int KGC_OpenDevice()
             return -1;
         }
     }
+
     /* 绘制黑色背景 */
-    KGC_DrawRectangle(0, 0, videoInfo.xResolution, videoInfo.yResolution, KGCC_BLACK);
+    //KGC_DrawRectangle(0, 0, videoInfo.xResolution, videoInfo.yResolution, KGCC_BLACK);
 
     /* 打开键盘设备 */
     if (DeviceOpen(this->device.keyboard, 0)) {
         printk("graph open keyboard device failed!\n");
-        return -1;
+        //return -1;
     }
     /* 打开鼠标设备 */
     if (DeviceOpen(this->device.mouse, 0)) {
         printk("graph open mouse device failed!\n");
-        return -1;
+        //return -1;
     }
 
     return 0;
@@ -237,7 +237,6 @@ PRIVATE void KGC_Test()
 {
     
 }
-#endif /* CONFIG_DISPLAY_GRAPH */
 
 /**
  * InitKGC() - 初始化内核图形核心

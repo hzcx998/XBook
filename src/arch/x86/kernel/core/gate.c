@@ -392,27 +392,6 @@ PUBLIC void IrqCancelHandler(unsigned char irq)
    	interruptHandlerTable[IDT_IRQ_START + irq] = IntrruptGeneralHandler; 
 }
 
-/*
- 获取中断状态并打开中断
- */
-PUBLIC enum InterruptStatus InterruptEnable()
-{
-	enum InterruptStatus oldStatus;
-	//如果获取的状态是中断已经打开
-   	if (InterruptGetStatus() == INTERRUPT_ON) {
-		//保存当前中断状态并返回
-      	oldStatus = INTERRUPT_ON;
-      	return oldStatus;
-   	} else {
-		//中断是关闭的，需要打开中断
-      	oldStatus = INTERRUPT_OFF;
-
-		// 开中断,调用汇编打开中断函数，sti指令将IF位置1
-      	EnableInterrupt();
-      	return oldStatus;
-   	}
-}
-
 PUBLIC unsigned long InterruptSave()
 {
     unsigned long eflags = LoadEflags();
@@ -424,44 +403,6 @@ PUBLIC void InterruptRestore(unsigned long eflags)
 {
     StoreEflags(eflags);
 } 
-
-
-
-/*
- 获取中断状态并设置对应的中断状态
- */
-PUBLIC enum InterruptStatus InterruptDisable()
-{
-	enum InterruptStatus oldStatus;
-   	if (InterruptGetStatus() == INTERRUPT_ON) {
-        
-      	oldStatus = INTERRUPT_ON;
-
-		// 关中断,调用汇编打开中断函数，cli指令将IF位置0
-		DisableInterrupt();
-      	return oldStatus;
-   	} else {
-      	oldStatus = INTERRUPT_OFF;
-      	return oldStatus;
-   	}
-}
-
-/* 
- 将中断状态设置为status 
- */
-PUBLIC enum InterruptStatus InterruptSetStatus(enum InterruptStatus status) {
-   return status & INTERRUPT_ON ? InterruptEnable() : InterruptDisable();
-}
-
-/* 
- 通过判断eflags中的IF位，获取当前中断状态 
- */
-PUBLIC enum InterruptStatus InterruptGetStatus() 
-{
-   flags_t eflags = 0; 
-   eflags = LoadEflags();
-   return (eflags & EFLAGS_IF) ? INTERRUPT_ON : INTERRUPT_OFF;
-}
 
 uint32_t vec_no;	 // kernel.S 宏VECTOR中push %1压入的中断号
     uint32_t edi;
@@ -501,13 +442,11 @@ PUBLIC void DumpTrapFrame(struct TrapFrame *frame)
 
 PUBLIC void InitGateDescriptor()
 {
-	PART_START("Gate descriptor");
-
+	
 	InitInterruptDescriptor();
 	InitExpection();
 	InitPic();
 
 	LoadIDTR(IDT_LIMIT, IDT_VADDR);
 	
-	PART_END();
 }

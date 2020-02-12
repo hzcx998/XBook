@@ -241,31 +241,39 @@ PUBLIC int DeviceOpen(int devno, unsigned int flags)
     int retval = 0;
 
     /* 检测是否是坏设备 */
-    if (IsBadDevice(devno))
+    if (IsBadDevice(devno)) {
+        printk("bad devno\n");
         return -1;
-
+    }
+        
     device = GetDeviceByID(devno);
 
-    if (device == NULL)
+    if (device == NULL) {
+        printk("get null device by id\n");
         return -1;
-
+    }
+        
     /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
-    if (devno != device->devno)
+    if (devno != device->devno) {
+        printk("different devno\n");
         return -1;
+    }
     
     /* 增加引用 */
     if (AtomicGet(&device->references) >= 0)
         AtomicInc(&device->references);
-    else 
+    else {
+        printk("%d ref error!\n", AtomicGet(&device->references));
         return -1;  /* 引用计数有错误 */
 
+    }
+        
     /* 是第一次引用才打开 */
     if (AtomicGet(&device->references) == 1) {
         if (device->opSets->open != NULL)
             retval = (*device->opSets->open)(device, flags);
-        
     }
-        
+    
     return retval;
 }
 

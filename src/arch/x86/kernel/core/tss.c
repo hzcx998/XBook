@@ -17,7 +17,6 @@ Tss_t tss;
 
 PUBLIC void InitTss()
 {
-	PART_START("Tss");
 
 	memset(&tss, 0, sizeof(tss));
 	// 内核的内核栈
@@ -29,7 +28,6 @@ PUBLIC void InitTss()
 	// 加载tss register
 	LoadTR(KERNEL_TSS_SEL);
 
-	PART_END();
 }
 
 PUBLIC Tss_t *GetTss()

@@ -667,7 +667,7 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
     /* 获取当前传输项 */
     entry = private->currentTX;
     /* 改变传输项状态，开始数据传输 */
-    //enum InterruptStatus oldStatus = InterruptDisable();
+    //enum InterruptStatus flags = InterruptDisable();
 
     uint32_t eflags = LoadEflags();
     DisableInterrupt();
@@ -734,12 +734,12 @@ PUBLIC int Rtl8139Transmit(char *buf, uint32 len)
         // 停止传输 */
         printk("Stop Tx packet!\n");
         //netif_stop_queue (dev);
-        //InterruptSetStatus(oldStatus);
+        //InterruptSetStatus(flags);
         //EnableInterrupt();
         StoreEflags(eflags);
         return -1;
     }
-    //InterruptSetStatus(oldStatus);
+    //InterruptSetStatus(flags);
     //EnableInterrupt();
     StoreEflags(eflags);
 #if RTL8139_DEBUG == 2 
@@ -1334,11 +1334,11 @@ PRIVATE void __SetRxMode(struct Rtl8139Private *private)
 
 PRIVATE void Rtl8139SetRxMode(struct Rtl8139Private *private)
 {
-	enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&private->lock);
+	unsigned long flags = SpinLockIrqSave(&private->lock);
 
 	__SetRxMode(private);
 
-    SpinUnlockRestoreInterrupt(&private->lock, oldStatus);
+    SpinUnlockIrqSave(&private->lock, flags);
 }
 
 PRIVATE void rtl8139HardwareStart(struct Rtl8139Private *private)
@@ -1495,7 +1495,7 @@ PRIVATE int Rtl8139SetMacAddress(unsigned char *macAddr)
     /* 复制到设备 */
     memcpy(private->macAddress, macAddr, ETH_ADDR_LEN);
 
-    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&private->lock);
+    unsigned long flags = SpinLockIrqSave(&private->lock);
 
     /* 写入设备 */
     Out8(private->ioAddress + CFG9346, CFG9346_UNLOCK); // 解锁
@@ -1510,7 +1510,7 @@ PRIVATE int Rtl8139SetMacAddress(unsigned char *macAddr)
     Out8(private->ioAddress + CFG9346, CFG9346_LOCK); // 上锁
     In8(private->ioAddress + CFG9346);
 
-    SpinUnlockRestoreInterrupt(&private->lock, oldStatus);
+    SpinUnlockIrqSave(&private->lock, flags);
 
     return 0;
 }
@@ -1525,7 +1525,7 @@ PRIVATE int Rtl8139Close()
 		    In16(private->ioAddress + INTR_STATUS));
 #endif    
     /* 需要关闭中断 */
-    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&private->lock);
+    unsigned long flags = SpinLockIrqSave(&private->lock);
 
     /* 先停止命令的传输和接收 */
     Out8(private->ioAddress + CHIP_CMD, 0);
@@ -1537,7 +1537,7 @@ PRIVATE int Rtl8139Close()
     private->stats.rxMissedErrors += In32(private->ioAddress + RX_MISSED);
     Out32(private->ioAddress + RX_MISSED, 0);
 
-    SpinUnlockRestoreInterrupt(&private->lock, oldStatus);
+    SpinUnlockIrqSave(&private->lock, flags);
 
     /* 释放irq中断 */
     DisableIRQ(private->irq);

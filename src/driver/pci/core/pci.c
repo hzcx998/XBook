@@ -299,9 +299,7 @@ PUBLIC void DumpPciDevice(struct PciDevice *device)
 
 PUBLIC void InitPci()
 {
-    PART_START("PCI");
-    printk("\n");
-	/*init pci device table*/
+    /*init pci device table*/
 	int i;
 	for (i = 0; i < PCI_MAX_DEVICE_NR; i++) {
 		pciDeviceTable[i].status = PCI_DEVICE_STATUS_INVALID;
@@ -313,6 +311,4 @@ PUBLIC void InitPci()
 	#ifdef _DEBUG_PCI
 	    printk("PCI: device connected number is %d.\n", GetPciDeviceConnected());
 	#endif
-
-    PART_END();
 }

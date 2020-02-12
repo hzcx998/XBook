@@ -17,7 +17,6 @@ struct SegmentDescriptor *gdt;
 
 PUBLIC void InitSegmentDescriptor()
 {
-	PART_START("Segment descriptor");
 
 	gdt = (struct SegmentDescriptor *) GDT_VADDR;
 
@@ -36,7 +35,6 @@ PUBLIC void InitSegmentDescriptor()
 
 	LoadGDTR(GDT_LIMIT, GDT_VADDR);
 
-	PART_END();
 }
 
 PUBLIC void SetSegmentDescriptor(struct SegmentDescriptor *descriptor, unsigned int limit, \

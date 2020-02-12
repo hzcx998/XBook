@@ -355,7 +355,7 @@ PRIVATE void TTY_DoWrite(TTY_t *tty)
         /* 获取一个字符 */
         IoQueueGet(&tty->ioqueue);
         /* 写入控制台 */
-        //DevicePutc(tty->conDevno, key);
+        //DevicePutc(tty->conDevno, IoQueueGet(&tty->ioqueue));
         //key = 0;
     }
 }
@@ -597,7 +597,7 @@ PRIVATE void TaskTTY(void *arg)
 
     /* 选择默认的TTY */
 #ifdef CONFIG_DISPLAY_GRAPH    
-    SelectTTY(3);
+    SelectTTY(TTY_GRAPH_ID);
 #else
     SelectTTY(0);
 #endif  /* CONFIG_DISPLAY_GRAPH */

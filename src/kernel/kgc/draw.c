@@ -10,8 +10,6 @@
 /* 系统内核 */
 #include <book/config.h>
 
-#ifdef CONFIG_DISPLAY_GRAPH
-
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/bitops.h>
@@ -152,7 +150,3 @@ PUBLIC void KGC_DrawCircle(uint32_t center_x,uint32_t center_y, uint32_t radius,
         }  
     }  
 }
-
-
-#endif /* CONFIG_DISPLAY_GRAPH */
-

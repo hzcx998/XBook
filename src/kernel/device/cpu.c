@@ -17,7 +17,6 @@ Tss_t tss;
  */
 PUBLIC void InitCpu()
 {
-	PART_START("Cpu");
 
 	//打开hal
 	HalOpen("cpu");
@@ -25,11 +24,11 @@ PUBLIC void InitCpu()
 	char buf[64];
 	HalIoctl("cpu", CPU_HAL_IO_STEER, CPU_HAL_VENDOR);
 	HalRead("cpu", (unsigned char *)buf, 64);
-	printk("\n" PART_TIP "vendor:%s", buf);
+	printk("vendor:%s", buf);
 
 	HalIoctl("cpu", CPU_HAL_IO_STEER, CPU_HAL_BRAND);
 	HalRead("cpu", (unsigned char *)buf, 64);
-	printk(PART_TIP " brand:%s \n", buf);
+	printk(" brand:%s \n", buf);
 	
 	#ifdef CONFIG_CPU_DEBUG
 	
@@ -57,5 +56,4 @@ PUBLIC void InitCpu()
 	HalRead("cpu", (unsigned char *)buf, 4);
 	printk(" |- cpuid externed:%x\n", *(int *)&buf);
 	#endif
-	PART_END();
 }

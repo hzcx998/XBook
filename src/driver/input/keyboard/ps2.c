@@ -22,7 +22,7 @@
 #define DRV_VERSION "0.1"
 
 /* 把小键盘上的数值修复成主键盘上的值 */
-//#define CONFIG_PAD_FIX
+#define CONFIG_PAD_FIX
 
 /* 键盘控制器端口 */
 enum KeyboardControllerPorts {
@@ -567,7 +567,7 @@ PUBLIC unsigned int KeyboardDoRead()
                 key = '+';
                 break;
             case KBD_PAD_ENTER:
-                key = KBC_ENTER;
+                key = KBD_ENTER;
                 break;
             default:
                 if (keyboardPrivate.numLock &&
@@ -582,38 +582,38 @@ PUBLIC unsigned int KeyboardDoRead()
                 }else{
                     switch(key) {
                     case KBD_PAD_HOME:
-                        key = KBC_HOME;
+                        key = KBD_HOME;
                         
                         break;
                     case KBD_PAD_END:
-                        key = KBC_END;
+                        key = KBD_END;
                         
                         break;
                     case KBD_PAD_PAGEUP:
-                        key = KBC_PAGEUP;
+                        key = KBD_PAGEUP;
                         
                         break;
                     case KBD_PAD_PAGEDOWN:
-                        key = KBC_PAGEDOWN;
+                        key = KBD_PAGEDOWN;
                         
                         break;
                     case KBD_PAD_INS:
-                        key = KBC_INSERT;
+                        key = KBD_INSERT;
                         break;
                     case KBD_PAD_UP:
-                        key = KBC_UP;
+                        key = KBD_UP;
                         break;
                     case KBD_PAD_DOWN:
-                        key = KBC_DOWN;
+                        key = KBD_DOWN;
                         break;
                     case KBD_PAD_LEFT:
-                        key = KBC_LEFT;
+                        key = KBD_LEFT;
                         break;
                     case KBD_PAD_RIGHT:
-                        key = KBC_RIGHT;
+                        key = KBD_RIGHT;
                         break;
                     case KBD_PAD_DOT:
-                        key = KBC_DELETE;
+                        key = KBD_DELETE;
                         break;
                     default:
                         break;

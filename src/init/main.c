@@ -31,10 +31,8 @@
  * 返回: 不返回，只是假装返回
  * 说明: 引导和加载完成后，就会跳到这里
  */
-int main()
+PUBLIC int main()
 {
-	PART_START("Kernel main");
-	
     /* 初始化CPU信息 */
     InitCpu();
 
@@ -72,7 +70,7 @@ int main()
     
 	/* 初始化块设备 */	
 	InitBlockDevice();
-
+    
     /* 初始化网络 */
     InitNetworkDevice();
 
@@ -87,14 +85,9 @@ int main()
     
 	/* 初始化文件系统 */
     InitFileSystem();
-	
-    /* 暂时的提示语言 */
-    printk("Book Say > Welcom to BookOS! Please input 'help' to get more help!\n");
-    printk("Book Say > You can press Alt + F1~F3 to select a different console.\n");
 
-	/* 加载init进程 */
-	InitFirstProcess("root:/init", "init");
-
+    /* 执行最后的初始化设置 */
+	InitUserProcess();
 	/* main thread 就是idle线程 */
 	while (1) {
 		
@@ -106,6 +99,5 @@ int main()
 		/* 执行cpu停机 */
 		CpuHlt();
 	};
-	PART_END();
 	return 0;
 }

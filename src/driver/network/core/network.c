@@ -24,7 +24,8 @@
 EXTERN int InitRtl8139Driver();
 /* ----驱动程序初始化文件导入完毕---- */
 
-//#define NETWORK_TEST
+/* 配置信息 */
+#define NETWORK_TEST
 
 /* ip地址，以大端字序保存，也就是网络字序 */
 PRIVATE unsigned int networkIpAddress;
@@ -192,12 +193,12 @@ PRIVATE int NetworkConfig()
 #ifdef CONFIG_DRV_RTL8139
 
     // 设置和tapN同一网段
-    ipAddress = NetworkMakeIpAddress(169,254,251,10);
+    ipAddress = NetworkMakeIpAddress(192,168,0,105);
 
     // 网关和设置为tapN的ip地址
-    gateway = NetworkMakeIpAddress(169,254,251,248);
+    gateway = NetworkMakeIpAddress(192,168,0,104);
     
-    subnetMask = NetworkMakeIpAddress(255,255,0,0);
+    subnetMask = NetworkMakeIpAddress(255,255,255,0);
 #endif
     NetworkSetIpAddress(ipAddress);
     NetworkSetSubnetMask(subnetMask);
@@ -224,7 +225,9 @@ PRIVATE void NetwrokTest()
         uint32_t ipAddr;
         
         //ipAddr = NetworkMakeIpAddress(10,0,251,18);   // 和外网沟通
-        ipAddr = NetworkMakeIpAddress(192,168,251,248);  // 和物理机沟通
+        ipAddr = NetworkMakeIpAddress(192,168,0,104);  // 和物理机沟通
+        //ipAddr = NetworkMakeIpAddress(192,168,43,1);  // 和物理机沟通
+        
         //ipAddr = NetworkMakeIpAddress(10,253,0,1);    // 和网关沟通
         int seq = 0;
         //IcmpEechoRequest(ipAddr, 0, seq, "", 0);
@@ -236,10 +239,10 @@ PRIVATE void NetwrokTest()
             //ArpRequest(ipAddr);
 
             //IpTransmit(ipAddr, str, strlen(str), 255);
-            //IcmpEechoRequest(ipAddr, 0, seq, "", 0);
+            IcmpEechoRequest(ipAddr, 0, seq, "", 0);
             //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
-            printk("sleep");
-            SysMSleep(1000);
+            
+            SysSleep(20);
 
             //SysSleep(1);
             //printk("wakeup");
@@ -267,6 +270,8 @@ PRIVATE void InitNetworkDrivers()
 
 PUBLIC int NetworkAddBuf(void *data, size_t len)
 {
+    ASSERT(data);
+            
     NetBuffer_t *buffer;
     /* 分配一个缓冲区 */
     buffer = AllocNetBuffer(len);
@@ -282,6 +287,7 @@ PUBLIC int NetworkAddBuf(void *data, size_t len)
     eflags = SpinLockIrqSave(&recvLock);
     ListAddTail(&buffer->list, &netwrokReceiveList);
     SpinUnlockIrqSave(&recvLock, eflags);
+    
     return 0;
 }
 
@@ -299,6 +305,8 @@ PRIVATE void TaskNetworkIn(void *arg)
             eflags = SpinLockIrqSave(&recvLock);
 
             buffer = ListFirstOwner(&netwrokReceiveList, NetBuffer_t, list);
+            ASSERT(buffer);
+
             ListDel(&buffer->list);
 
             SpinUnlockIrqSave(&recvLock, eflags);
@@ -318,8 +326,7 @@ PRIVATE void TaskNetworkIn(void *arg)
  */
 PUBLIC int InitNetworkDevice()
 {
-#ifdef CONFIG_NETWORK
-    PART_START("Network");
+#ifdef CONFIG_NET_DEVICE
     /*
     1.初始化协议栈
     2.初始化网卡
@@ -333,7 +340,7 @@ PUBLIC int InitNetworkDevice()
 
     SpinLockInit(&recvLock);
 
-    ThreadStart("netin", 1, TaskNetworkIn, NULL);
+    ThreadStart("netin", 3, TaskNetworkIn, NULL);
     /* 初始化网卡驱动 */
     InitNetworkDrivers();
     
@@ -344,9 +351,8 @@ PUBLIC int InitNetworkDevice()
     NetworkConfig();
 #ifdef NETWORK_TEST
     NetwrokTest();
-#endif
-    PART_END();
-#endif  /* CONFIG_NETWORK */    
+#endif  /* NETWORK_TEST */
+#endif  /* CONFIG_NET_DEVICE */    
     //Spin("spin in network.");
     return 0;
 }

@@ -214,7 +214,7 @@ PUBLIC int BOFS_FifoOpen(int fd, flags_t flags)
     约定，blocks[2]是写引用计数
     但是，没有原子操作，所以需要关闭中断保证原子操作
     */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long eflags = InterruptSave();
     
     struct BOFS_Pipe *pipe = (struct BOFS_Pipe *)file->inode->blocks[0];
 
@@ -239,13 +239,13 @@ PUBLIC int BOFS_FifoOpen(int fd, flags_t flags)
 
             /* 等待队列头部 */
             ListAdd(&cur->list, &pipe->waitList);
-            InterruptSetStatus(oldStatus);
+            InterruptRestore(eflags);
             /* 阻塞自己 */
             TaskBlock(TASK_BLOCKED);
 
             //printk("fifo open with read, has writer, unblock me.\n");
             /* 唤醒后获取cpu占用 */
-            oldStatus = InterruptDisable();
+            eflags = InterruptSave();
         }
 
         /* 读打开的时候，发现之前有写进程已经被阻塞，那么就唤醒被阻塞的进程 */
@@ -275,14 +275,14 @@ PUBLIC int BOFS_FifoOpen(int fd, flags_t flags)
             /* 等待队列头部 */
             
             ListAdd(&CurrentTask()->list, &pipe->waitList);
-            InterruptSetStatus(oldStatus);
+            InterruptRestore(eflags);
             /* 阻塞自己 */
             TaskBlock(TASK_BLOCKED);
 
             //printk("fifo open with write, has reader, unblock me.\n");
             
             /* 唤醒后获取cpu占用 */
-            oldStatus = InterruptDisable();
+            eflags = InterruptSave();
         }
 
         /* 写打开的时候，发现之前有读进程已经被阻塞，那么就唤醒被阻塞的进程 */
@@ -299,11 +299,11 @@ PUBLIC int BOFS_FifoOpen(int fd, flags_t flags)
     } else {
         printk("fifo open flags error!\n");
 
-        InterruptSetStatus(oldStatus); 
+        InterruptRestore(eflags); 
         return -1;
     }
     
-    InterruptSetStatus(oldStatus); 
+    InterruptRestore(eflags); 
     return 0;
 }
 

@@ -503,32 +503,32 @@ PRIVATE unsigned char IdePrintError(struct IdeDevice *dev, unsigned char err)
 #ifdef _DEBUG_IDE
 PRIVATE void DumpIdeChannel(struct IdeChannel *channel)
 {
-	printk(PART_TIP "----Ide Channel----\n");
+	printk("[Ide Channel]\n");
 
-	printk(PART_TIP "self:%x base:%x irq:%d\n", channel, channel->base, channel->irqno);
+	printk("self:%x base:%x irq:%d\n", channel, channel->base, channel->irqno);
 }
 
 PRIVATE void DumpIdeDevice(struct IdeDevice *dev)
 {
-	printk(PART_TIP "----Ide Device----\n");
+	printk("[Ide Device]\n");
 
-	printk(PART_TIP "self:%x channel:%x drive:%d type:%s \n",
+	printk("self:%x channel:%x drive:%d type:%s \n",
 	 	dev, dev->channel, dev->drive,
 		dev->type == IDE_ATA ? "ATA" : "ATAPI");
 
-	printk(PART_TIP "capabilities:%x commandSets:%x signature:%x\n",
+	printk("capabilities:%x commandSets:%x signature:%x\n",
 		dev->capabilities, dev->commandSets, dev->signature);
 	
 	if (dev->info->cmdSet1 & 0x0400) {
-		printk(PART_TIP "Total Sector(LBA 48):");
+		printk("Total Sector(LBA 48):");
 	} else {
-		printk(PART_TIP "Total Sector(LBA 28):");
+		printk("Total Sector(LBA 28):");
 	}
 	printk("%d\n", dev->size);
 
 	#ifdef _DEBUG_IDE_INFO
 	
-	printk(PART_TIP "Serial Number:");
+	printk("Serial Number:");
 	
 	int i;
 	for (i = 0; i < 10; i++) {
@@ -536,19 +536,19 @@ PRIVATE void DumpIdeDevice(struct IdeDevice *dev)
 			dev->info->Serial_Number[i] & 0xff);
 	}
 
-	printk("\n" PART_TIP "Fireware Version:");
+	printk("\n" "Fireware Version:");
 	for (i = 0; i < 4; i++) {
 		printk("%c%c", (dev->info->Firmware_Version[i] >> 8) & 0xff,
 			dev->info->Firmware_Version[i] & 0xff);
 	}
 
-	printk("\n" PART_TIP "Model Number:");
+	printk("\n" "Model Number:");
 	for (i = 0; i < 20; i++) {
 		printk("%c%c", (dev->info->Model_Number[i] >> 8) & 0xff,
 			dev->info->Model_Number[i] & 0xff);
 	}
 	
-	printk("\n" PART_TIP "LBA supported:%s ",(dev->info->Capabilities0 & 0x0200) ? "Yes" : "No");
+	printk("\n" "LBA supported:%s ",(dev->info->Capabilities0 & 0x0200) ? "Yes" : "No");
 	printk("LBA48 supported:%s\n",((dev->info->cmdSet1 & 0x0400) ? "Yes" : "No"));
 	
 	#endif
@@ -657,12 +657,13 @@ int IdePolling(struct IdeChannel* channel, unsigned int advancedCheck)
 		*/
 		In8(ATA_REG_ALT_STATUS(channel));
  	}
-	
 	// (II) Wait for BSY to be cleared:
 	// -------------------------------------------------
-	while (In8(ATA_REG_STATUS(channel)) & ATA_STATUS_BUSY); // Wait for BSY to be zero.
+	/* time */
+    i = 10000;
+    while ((In8(ATA_REG_STATUS(channel)) & ATA_STATUS_BUSY) && i--); // Wait for BSY to be zero.
 	
-	if (advancedCheck) {
+    if (advancedCheck) {
 		unsigned char state = In8(ATA_REG_STATUS(channel)); // Read Status Register.
 
 		// (III) Check For Errors:
@@ -1125,7 +1126,7 @@ PRIVATE int IdeCleanDisk(struct IdeDevice *dev, sector_t count)
 
 	memset(buffer, 0, SECTOR_SIZE *10);
 
-	printk(PART_TIP "IDE clean: count%d\n", count);
+	printk("IDE clean: count%d\n", count);
 	while (done < count) {
 		/* 获取要去操作的扇区数这里用10作为分界 */
 		if ((done + 10) <= count) {
@@ -1456,7 +1457,8 @@ PRIVATE void IdeProbe(char diskFound)
 		#ifdef _DEBUG_IDE_INFO	
 		DumpIdeChannel(channel);
 		#endif
-
+        
+        
 		/* 分别获取两个硬盘的参数及分区信息 */
 		while (devno < 2 && leftDisk) {
 			/* 选择一个设备 */
@@ -1477,15 +1479,18 @@ PRIVATE void IdeProbe(char diskFound)
 				printk("kmalloc for ide device info failed!\n");
 				continue;
 			}
+            
+            /* 重置驱动器 */
+            ResetDriver(dev);
 
-			/* 获取磁盘的磁盘信息 */
+            /* 获取磁盘的磁盘信息 */
 			SelectDevice(dev, 0, 0);
 			
 			//等待硬盘准备好
 			while (!(In8(ATA_REG_STATUS(channel)) & ATA_STATUS_READY)) CpuNop();
 
 			SendCmd(channel, ATA_CMD_IDENTIFY);
-
+			
 			err = IdePolling(channel, 1);
 			if (err) {
 				IdePrintError(dev, err);
@@ -1587,19 +1592,19 @@ PRIVATE void IdeTest()
  */
 PUBLIC int InitIdeDriver()
 {
-	PART_START("Ide Driver");
-
 	/* 获取已经配置了的硬盘数量
 	这种方法的设备检测需要磁盘安装顺序不能有错误，
 	可以用轮训的方式来改变这种情况。 
 	 */
 	ideDiskFound = *((unsigned char *)IDE_DISK_NR_ADDR);
-	printk(PART_TIP "Ide disks are %d\n", ideDiskFound);
+	printk("Ide disks are %d\n", ideDiskFound);
+
 	/* 有磁盘才初始化磁盘 */
 	if (ideDiskFound > 0) {
-		/* 驱动本身的初始化 */
+		
+        /* 驱动本身的初始化 */
 		IdeProbe(ideDiskFound);
-
+    
 		int status;
 		/* 块设备的初始化 */
 		int i;
@@ -1613,10 +1618,9 @@ PUBLIC int InitIdeDriver()
 		IdeTest();
 		//ResetDriver(&devices[0]);
 		//Spin("");
-		
+        
 	}
-    PART_END();
-	return 0;
+    return 0;
 }
 
 /**

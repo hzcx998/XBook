@@ -147,7 +147,7 @@ PUBLIC int UnregisterIRQ(unsigned int irq, unsigned int data)
         return -1;
 
     /* 注销的时候不能产生中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     /* 删除action */
     if (irqDesc->flags & IRQF_SHARED) {    
@@ -197,7 +197,7 @@ PUBLIC int UnregisterIRQ(unsigned int irq, unsigned int data)
     }
 
     /* 恢复之前的中断状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     return 0;
 }
 

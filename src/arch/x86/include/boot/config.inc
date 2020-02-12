@@ -7,8 +7,12 @@
 
 ; 对引导项进行手动配置
 
-; 配置图形模式切换，注意也要修改内核中的图形配置
+; 配置vbe驱动，注意也要修改内核中的图形配置
 %define CONFIG_VESA
+
+; 配置图形模式
+;%define CONFIG_GRAPH
+
 
 %ifdef CONFIG_VESA
 ;图形模式列表：
@@ -24,8 +28,8 @@ VMODE_640_480_24            EQU 0x112
 VMODE_800_600_24            EQU 0x115
 VMODE_1024_768_24           EQU 0x118
 VMODE_1280_1024_24          EQU 0x11B
-VMODE_VMWARE_800_600_24     EQU	0x4140
+VMODE_VMWARE_800_600_24     EQU	0x140
 
 ; 使用的模式
-VESA_MODE	EQU	VMODE_800_600_16
+VESA_MODE	EQU	VMODE_1024_768_16
 %endif  ; CONFIG_VESA

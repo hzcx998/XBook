@@ -18,6 +18,7 @@
 
 /* ----驱动程序初始化文件导入---- */
 EXTERN int InitSerialDriver();
+EXTERN int InitConsoleDriver();
 /* ----驱动程序初始化文件导入完毕---- */
 
 #define _DEBUG_TEST
@@ -26,6 +27,12 @@ EXTERN struct List allCharDeviceList;
 
 PRIVATE void InitCharDrivers()
 {
+#ifdef CONFIG_DRV_CONSOLE
+    if (InitConsoleDriver()) {
+        printk("init console driver failed!\n");
+    }
+#endif  /* CONFIG_DRV_CONSOLE */
+
 #ifdef CONFIG_DRV_SERIAL
     if (InitSerialDriver()) {
         printk("init serial driver failed!\n");
@@ -39,9 +46,5 @@ PRIVATE void InitCharDrivers()
  */
 PUBLIC void InitCharDevice()
 {
-    PART_START("CharDevice");
-    
     InitCharDrivers();
-    
-    PART_END();
 }

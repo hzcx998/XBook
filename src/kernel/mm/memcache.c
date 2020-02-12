@@ -328,11 +328,11 @@ PRIVATE void *GroupAllocObjcet(struct MemCache *cache)
 
 	// 检测分配环境
 
-	enum InterruptStatus oldStatus;
+	unsigned long flags;
 
 ToRetryAllocObject:
 	// 要关闭中断，并保存寄存器环境
-	oldStatus = InterruptDisable();
+	flags = InterruptSave();
 
 	partialList = &cache->partialGroups;
 
@@ -372,7 +372,7 @@ ToRetryAllocObject:
 	object = __MemGroupAllocObjcet(cache, group);
 
 	// 要恢复中断状态
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 
 	return object;
 
@@ -381,7 +381,7 @@ ToCreateNewgroup:
 
 	// 恢复中断状况
 	// 要恢复中断状态
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 
 	//printk("kmalloc: need a new group.\n");
 	// 添加新的group
@@ -509,12 +509,12 @@ PRIVATE void GroupFreeObject(struct MemCache *cache, void *object)
 	// 检测环境
 
 	// 关闭中断
-	enum InterruptStatus oldStatus = InterruptDisable();
+	unsigned long flags = InterruptSave();
 
 	__GroupFreeObject(cache, object);
 
 	// 打开中断
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 
@@ -603,12 +603,12 @@ PRIVATE int MemCacheShrink(struct MemCache *cache)
 		return 0; 
 
 	// 用自旋锁来保护结构
-	enum InterruptStatus oldStatus = InterruptDisable();
+	unsigned long flags = InterruptSave();
 	// 收缩内存
 	ret = __MemCacheShrink(cache);
 
 	// 打开锁
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 
 	// 返回收缩了的内存大小
 	return ret * cache->objectNumber * cache->objectSize;
@@ -638,7 +638,6 @@ PUBLIC int kmshrink()
 
 PUBLIC int InitMemCaches()
 {
-	PART_START("Mem Cache");
 	MakeMemCaches();
 
 	/*
@@ -698,6 +697,5 @@ PUBLIC int InitMemCaches()
 		kfree2(table[i]);
 	}*/
 
-	PART_END();
 	return 0;
 }

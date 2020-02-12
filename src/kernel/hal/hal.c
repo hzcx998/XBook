@@ -11,7 +11,6 @@
 #include <book/interrupt.h>
 #include <lib/vsprintf.h>
 #include <lib/string.h>
-#include <char/uart/serial.h>
 
 //创建全局变量 halListHead 来管理所有的hal
 LIST_HEAD(halListHead);
@@ -36,13 +35,7 @@ PUBLIC void InitHalEnvironment()
     INIT_LIST_HEAD(&halListHead);
    
     lastSearchedHal = NULL;
-
-    // 初始化控制台
-	InitConsoleDebugDriver();
-#ifdef CONFIG_SERIAL_DEBUG
-    // 初始化串口驱动
-    InitSerialDebugDriver();
-#endif /* CONFIG_SERIAL_DEBUG */
+    
     /* 初始化调试输出，可以使用printk */
     InitDebugPrint();
 

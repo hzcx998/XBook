@@ -19,8 +19,7 @@ EXTERN int InitPcspeakerDriver();
 
 PUBLIC int InitSoundSystem()
 {
-    PART_START("Sound");
-
+    
 #ifdef CONFIG_SB16
     if (InitSoundBlaster16Driver()) {
         return -1;
@@ -31,7 +30,6 @@ PUBLIC int InitSoundSystem()
         printk("init pc speaker failed!\n");
     }
 
-    PART_END();
     //while(1);
     return 0;
 }

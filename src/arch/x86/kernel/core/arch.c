@@ -24,10 +24,6 @@ int InitArch()
 {	
 	// 初始化硬件抽象层的环境
 	InitHalEnvironment();
-	/*
-	 * 在硬件抽象中初始化了显示器，后面才可以显示字符
-	 */
-	PART_START("Arch");
 
 	// 初始化内核段描述符
 	InitSegmentDescriptor();
@@ -39,10 +35,6 @@ int InitArch()
 
 	// 初始化物理内存管理
 	InitPhysicMemory();
-
-	//Spin("a");
-
-	PART_END();
-
+    
 	return 0;
 }

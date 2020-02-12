@@ -85,7 +85,7 @@ PUBLIC bool TimerUpdate(struct Timer *timer)
 PUBLIC void AddTimer(struct Timer *timer)
 {
 	/* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
 	/* 保证定时器不在队列里面 */
 	ASSERT(!ListFind(&timer->list, &timerList));
@@ -96,7 +96,7 @@ PUBLIC void AddTimer(struct Timer *timer)
 	ListAddTail(&timer->list, &timerList);
 
 	/* 恢复之前的中断状态 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 /**
@@ -106,7 +106,7 @@ PUBLIC void AddTimer(struct Timer *timer)
 PUBLIC void RemoveTimer(struct Timer *timer)
 {
 	/* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
 	/* 保证定时器在队列里面 */
 	ASSERT(ListFind(&timer->list, &timerList));
@@ -114,7 +114,7 @@ PUBLIC void RemoveTimer(struct Timer *timer)
 	ListDelInit(&timer->list);
 
 	/* 恢复之前的中断状态 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 /**
@@ -124,13 +124,13 @@ PUBLIC void RemoveTimer(struct Timer *timer)
 PUBLIC void StopTimer(struct Timer *timer)
 {
 	/* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     /* 设置成停止状态 */
     timer->state = TIMER_STOP;
 
 	/* 恢复之前的中断状态 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 /**
@@ -140,13 +140,13 @@ PUBLIC void StopTimer(struct Timer *timer)
 PUBLIC void ResumeTimer(struct Timer *timer)
 {
 	/* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     /* 设置成停止状态 */
     timer->state = TIMER_RUNNING;
     
 	/* 恢复之前的中断状态 */
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 /**
@@ -164,13 +164,13 @@ PUBLIC void CancelTimer(struct Timer *timer)
  */
 PUBLIC void UpdateTimerSystem()
 {
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 	struct Timer *timer, *next;
 	/* 因为有可能会在更新后把定时器删除，所以这里要用安全 */
 	ListForEachOwnerSafe(timer, next, &timerList, list) {
 		TimerUpdate(timer);
 	}
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 
 #ifdef TIMER_TEST

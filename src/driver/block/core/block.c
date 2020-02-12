@@ -215,11 +215,8 @@ PUBLIC void BlockDeviceTest()
  */
 PUBLIC void InitBlockDevice()
 {
-    PART_START("BlockDevice");
+#ifdef CONFIG_BLOCK_DEVICE
     
-    /* 创建一个线程来同步磁盘 */
-    ThreadStart("dflush", 3, ThreadDiskFlush, "NULL");
-
     #ifdef CONFIG_DRV_RAMDISK
     /* 初始化ramdisk驱动 */
     if (InitRamdiskDriver()) {
@@ -233,8 +230,10 @@ PUBLIC void InitBlockDevice()
 		Panic("init ide failed!\n");	
 	}
     #endif
-
-   
+    
+    /* 创建一个线程来同步磁盘 */
+    ThreadStart("dflush", 3, ThreadDiskFlush, "NULL");
+    
     BlockDeviceTest();
     
     /* 打印磁盘，并打印分区 */
@@ -249,5 +248,5 @@ PUBLIC void InitBlockDevice()
         DumpBlockDevice(blkdev);
         //DumpDiskPartition(blkdev->part);
     }*/
-    PART_END();
+#endif
 }

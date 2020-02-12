@@ -70,43 +70,6 @@ PUBLIC void SpinUnlock(struct Spinlock *lock)
     /* 对于多处理器，应该打开内核抢占，由于目前是单处理器，就可以不用打开内核抢占 */
 }
 
-
-
-/**
- * SpinLockSaveIntrrupt - 自旋锁加锁并保存中断状态
- * @lock: 锁对象
- * 
- * 会关闭中断
- * 返回进入前的中断状态
- */
-PUBLIC enum InterruptStatus SpinLockSaveIntrrupt(struct Spinlock *lock)
-{
-    /* 获取中断状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
-
-    /* 自旋锁加锁 */
-    SpinLock(lock);
-
-    /* 返回之前的状态 */
-    return oldStatus;
-}
-
-/**
- * SpinUnlockRestoreInterrupt - 自旋锁解锁并恢复中断状态
- * @lock: 锁对象
- * 
- * 恢复进入自旋锁之前的中断状态
- */
-PUBLIC void SpinUnlockRestoreInterrupt(struct Spinlock *lock, enum InterruptStatus oldStatus)
-{
-    /* 自旋锁解锁 */
-    SpinUnlock(lock);
-    
-    /* 中断恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
-}
-
-
 /**
  * SpinLockIrqSave - 自旋锁加锁并保存中断状态
  * @lock: 锁对象

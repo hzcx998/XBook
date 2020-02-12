@@ -40,7 +40,7 @@ PRIVATE INLINE void WaitQueueInit(struct WaitQueue *waitQueue, struct Task *task
 PRIVATE INLINE void WaitQueueAdd(struct WaitQueue *waitQueue, struct Task *task)
 {
 	/* 添加到队列时，需要关闭中断 */
-	enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
 	/* 确保任务不在等待队列中 */
 	ASSERT(!ListFind(&task->list, &waitQueue->waitList));
@@ -48,7 +48,7 @@ PRIVATE INLINE void WaitQueueAdd(struct WaitQueue *waitQueue, struct Task *task)
 	/* 添加到等待队列中，添加到最后 */
 	ListAddTail(&task->list, &waitQueue->waitList);
 
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
 
 /**
@@ -59,8 +59,8 @@ PRIVATE INLINE void WaitQueueAdd(struct WaitQueue *waitQueue, struct Task *task)
 PRIVATE INLINE void WaitQueueRemove(struct WaitQueue *waitQueue, struct Task *task)
 {
 	/* 添加到队列时，需要关闭中断 */
-	enum InterruptStatus oldStatus = InterruptDisable();
-
+    unsigned long flags = InterruptSave();
+    
 	struct Task *target, *next;
 	/* 在队列中寻找任务，找到后就把任务从队列中删除 */
 	ListForEachOwnerSafe(target, next, &waitQueue->waitList, list) {
@@ -71,7 +71,7 @@ PRIVATE INLINE void WaitQueueRemove(struct WaitQueue *waitQueue, struct Task *ta
 		}
 	}
 	
-	InterruptSetStatus(oldStatus);
+	InterruptRestore(flags);
 }
  
 /**
@@ -81,8 +81,8 @@ PRIVATE INLINE void WaitQueueRemove(struct WaitQueue *waitQueue, struct Task *ta
 PRIVATE INLINE void WaitQueueWakeUp(struct WaitQueue *waitQueue)
 {
 	/* 添加到队列时，需要关闭中断 */
-	enum InterruptStatus oldStatus = InterruptDisable();
-
+	unsigned long flags = InterruptSave();
+    
 	/* 不是空队列就获取第一个等待者 */
 	if (!ListEmpty(&waitQueue->waitList)) {
 		/* 获取任务 */
@@ -94,7 +94,8 @@ PRIVATE INLINE void WaitQueueWakeUp(struct WaitQueue *waitQueue)
 		/* 唤醒任务 */
 		TaskWakeUp(task);
 	}
-	InterruptSetStatus(oldStatus);
+    
+	InterruptRestore(flags);
 }
 
 #endif   /*_BOOK_WAITQUEUE_H*/

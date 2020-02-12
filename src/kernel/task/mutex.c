@@ -53,16 +53,16 @@ PUBLIC int __MutexLock(struct Mutex *lock)
     /* 先把锁值减1，如果不为负，就说明获取成功，就直接返回 */
 
     /* 通过关闭中断保证dec 和 get两步操作是原子的 */
-    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&lock->countLock);
+    unsigned long flags = SpinLockIrqSave(&lock->countLock);
 
     AtomicDec(&lock->count);
     if (AtomicGet(&lock->count) >= 0) {
         /* 恢复之前的中断状态 */
-        SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
+        SpinUnlockIrqSave(&lock->countLock, flags);    
         return 0;     /* 获取成功，返回 */ 
     }
     /* 恢复之前的中断状态 */
-    SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
+    SpinUnlockIrqSave(&lock->countLock, flags);    
 
     /* 锁已经被其它任务获取了，自己需要等待锁被释放 */
     
@@ -151,16 +151,16 @@ PUBLIC int __MutexUnlock(struct Mutex *lock)
     说明该等待队列上还有任务需要获取锁 */
 
     /* 通过关闭中断保证inc 和 get两步操作是原子的 */
-    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&lock->countLock);
+    unsigned long flags = SpinLockIrqSave(&lock->countLock);
 
     AtomicInc(&lock->count);
     if (AtomicGet(&lock->count) == 1) {
         /* 恢复之前的中断状态 */
-        SpinUnlockRestoreInterrupt(&lock->countLock ,oldStatus);
+        SpinUnlockIrqSave(&lock->countLock ,flags);
         return 0;     /* 没有任务请求了，返回 */ 
     }
     /* 恢复之前的中断状态 */
-    SpinUnlockRestoreInterrupt(&lock->countLock, oldStatus);    
+    SpinUnlockIrqSave(&lock->countLock, flags);    
 
     /* 现在count != 0, 等待队列上还有任务要请求 */
 

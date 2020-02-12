@@ -438,8 +438,8 @@ PRIVATE void Test();
  */
 PUBLIC void InitFileSystem()
 {
-	PART_START("File System");
-
+#ifdef CONFIG_FILE_SYSTEM
+	
     InitBoFS();
     
     Test();
@@ -452,6 +452,7 @@ PUBLIC void InitFileSystem()
     MakeFifoFile();
 
     ConfigFiles();
+#endif /* CONFIG_FILE_SYSTEM */
 /*
     int fd[2];
     if (SysPipe(fd) < 0) {
@@ -470,8 +471,6 @@ PUBLIC void InitFileSystem()
 
     SysClose(fd[0]);
     SysClose(fd[1]);*/
-    //Spin("InitFileSystem");
-	PART_END();
 }
 
 PUBLIC void SysListDir(const char *pathname)

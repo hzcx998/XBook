@@ -105,6 +105,9 @@ EXTERN struct List taskReadyList;
 EXTERN struct List taskGlobalList;
 
 PUBLIC void InitTasks();
+
+PUBLIC void InitUserProcess();
+
 PUBLIC void PrintTask();
 PUBLIC void DumpTask(struct Task *task);
 

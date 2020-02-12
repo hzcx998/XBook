@@ -45,8 +45,12 @@
 #define CONFIG_SEMAPHORE_M /* 配置多元信号量（Multivariate semaphore） */
 //#define CONFIG_SEMAPHORE_B /* 配置二元信号量（Binary semaphore） */
 
-#define CONFIG_NETWORK  /* 配置网络模块 */
+/* 3大设备模块 */
+#define CONFIG_BLOCK_DEVICE     /* 配置块设备模块 */
+#define CONFIG_CHAR_DEVICE      /* 配置字符设备模块 */
+#define CONFIG_NET_DEVICE       /* 配置网络设备模块 */
 
+#define CONFIG_FILE_SYSTEM      /* 配置文件系统 */
 
 /**
  * ------------------------
@@ -60,32 +64,33 @@
  * 配置驱动
  * ------------------------
  */
-#define CONFIG_DRV_KEYBOARD /* 键盘驱动配置 */
-#define CONFIG_DRV_MOUSE  /* 鼠标驱动配置 */
-#define CONFIG_DRV_IDE      /* IDE驱动配置 */
-#define CONFIG_DRV_RAMDISK  /* RAMDISK驱动配置 */
-#define CONFIG_DRV_SERIAL   /* 串口驱动配置 */
-#define CONFIG_DRV_VESA     /* VESA图形驱动配置 */
-#define CONFIG_DRV_TTY      /* TTY驱动配置 */
+#define CONFIG_DRV_KEYBOARD     /* 键盘驱动配置 */
+#define CONFIG_DRV_MOUSE        /* 鼠标驱动配置 */
+#define CONFIG_DRV_IDE          /* IDE驱动配置 */
+#define CONFIG_DRV_RAMDISK      /* RAMDISK驱动配置 */
+#define CONFIG_DRV_SERIAL       /* 串口驱动配置 */
+#define CONFIG_DRV_VESA         /* VESA图形驱动配置 */
+#define CONFIG_DRV_TTY          /* TTY驱动配置 */
+#define CONFIG_DRV_CONSOLE      /* 控制台驱动 */
 
-//#define CONFIG_DRV_PCNET32  /* pcnet32驱动配置 */
-#define CONFIG_DRV_RTL8139  /* RTL8139驱动配置 */
-
-//#define CONFIG_DRV_SB16 /* 声霸卡16驱动 */
+//#define CONFIG_DRV_PCNET32    /* pcnet32驱动配置 */
+#define CONFIG_DRV_RTL8139    /* RTL8139驱动配置 */
+//#define CONFIG_DRV_SB16       /* 声霸卡16驱动 */
 
 /**
  * ------------------------
  * 配置调试方法
  * ------------------------
  */
-#define CONFIG_SERIAL_DEBUG /* 串口调试，输出到其他电脑进行调试 */
+//#define CONFIG_SERIAL_DEBUG     /* 串口调试，输出到其他电脑进行调试 */
+#define CONFIG_CONSOLE_DEBUG    /* 串口调试，输出到其他电脑进行调试 */
 
 /**
  * ------------------------
  * 配置显示方式
  * ------------------------
  */
-//#define CONFIG_DISPLAY_TEXT  /* 显示文本模式 */
+#define CONFIG_DISPLAY_TEXT  /* 显示文本模式 */
 #define CONFIG_DISPLAY_GRAPH /* 显示图形模式，注意loader中的图形配置 */
 
 #endif   /*_BOOK_CONFIG_H*/

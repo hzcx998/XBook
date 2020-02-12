@@ -45,7 +45,7 @@ PRIVATE INLINE void Semaphore2Init(struct Semaphore2 *sema, unsigned char vaule)
 PRIVATE INLINE void Semaphore2Down(struct Semaphore2 *sema)
 {
     /* 关闭中断保证原子操作 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     struct Task *current = CurrentTask();
     
@@ -75,7 +75,7 @@ PRIVATE INLINE void Semaphore2Down(struct Semaphore2 *sema)
     ASSERT(sema->value == 0);
 
     /* 恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 
 /**
@@ -90,7 +90,7 @@ PRIVATE INLINE void Semaphore2Down(struct Semaphore2 *sema)
 PRIVATE INLINE void Semaphore2Up(struct Semaphore2 *sema)
 {
     /* 关闭中断保证原子操作 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     // 执行up操作是，信号量必须为0，也就是锁已经被占用
     ASSERT(sema->value == 0);
@@ -114,7 +114,7 @@ PRIVATE INLINE void Semaphore2Up(struct Semaphore2 *sema)
     ASSERT(sema->value == 1);
 
     /* 恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     
 }
 

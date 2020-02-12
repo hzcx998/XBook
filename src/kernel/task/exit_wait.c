@@ -107,7 +107,7 @@ PUBLIC void SysExit(int status)
     //printk(PART_TIP "task name %s exit now!\n", current->name);
     
     /* 保存之前状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     /* 保存退出状态 */
     current->exitStatus = status;
@@ -134,7 +134,7 @@ PUBLIC void SysExit(int status)
     在完成父进程唤醒之前不能调度 */
     
     /* 恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 
     //printk(PART_TIP "I am gone, don't miss me!\n");
     
@@ -161,13 +161,13 @@ PUBLIC pid_t SysWait(int *status)
     struct Task *child, *safe;
 
     /* 中断状态 */
-    enum InterruptStatus oldStatus;
+    unsigned long flags;
 
 /* 在标签附件好像不能声明一个变量 */
 ToRepeat:
 
     /* 保存之前状态并关闭中断 */
-    oldStatus = InterruptDisable();
+    flags = InterruptSave();
 
     /* 如果找到指定子进程会把它删除，所以这里要用safe */
     ListForEachOwnerSafe(child, safe, &taskGlobalList, globalList) {
@@ -202,7 +202,7 @@ ToRepeat:
         goto EndWait;
     }
     /* 恢复中断状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 
     /* 找到了一个进程，但是进程还不是zombie状态，就不能删除进程 */
     if (found) {

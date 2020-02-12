@@ -72,19 +72,6 @@ struct TrapFrame {
 //中断处理函数的类型
 typedef void* intr_handler_t;
 
-/* 定义中断的两种状态:
- * INTERRUPT_OFF值为0,表示关中断,
- * INTERRUPT_ON值为1,表示开中断 */
-typedef enum InterruptStatus {		 // 中断状态
-    INTERRUPT_OFF,			 // 中断关闭
-    INTERRUPT_ON		         // 中断打开
-} InterruptStatus_t;
-
-enum InterruptStatus InterruptGetStatus();
-enum InterruptStatus InterruptSetStatus(enum InterruptStatus status);
-enum InterruptStatus InterruptEnable();
-enum InterruptStatus InterruptDisable();
-
 PUBLIC unsigned long InterruptSave();
 PUBLIC void InterruptRestore(unsigned long eflags);
 

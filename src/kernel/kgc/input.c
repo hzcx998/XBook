@@ -19,11 +19,3 @@
 /* 图形系统 */
 #include <kgc/draw.h>
 #include <kgc/input.h>
-
-#include <input/keyboard/keyboard.h>
-
-#ifdef CONFIG_DISPLAY_GRAPH
-
-
-#endif /* CONFIG_DISPLAY_GRAPH */
-

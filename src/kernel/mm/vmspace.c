@@ -620,10 +620,7 @@ ToEnd:
  */
 PUBLIC void InitVMSpace()
 {
-    PART_START("VMSpace");
-
     // 注册页故障处理中断
     InterruptRegisterHandler(0x0e, DoPageFault);
 
-    PART_END();
 }

@@ -89,10 +89,12 @@ VesaSetup:
 	cmp	ax, 0x004f	;ax=0x004f 指定的这种模式可以使用
 	jne	.VesaError
 
+%ifdef CONFIG_GRAPH
 	;切换到指定的模式
-	mov	bx, VESA_MODE + 0x4000	;bx=模式号
+	mov	bx, VESA_MODE + 0x4000	;bx=模式号和属性
 	mov	ax, 0x4f02	;切换模式模式功能，指定ax=0x4f01
 	int	0x10
+%endif
 
 	;由于初始化图形模式改变了ds的值，这里设置和cs一样
 	mov ax, cs

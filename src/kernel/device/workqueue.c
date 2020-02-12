@@ -138,7 +138,7 @@ PUBLIC void DestroyWorkQueue(struct WorkQueue *workQueue)
     FlushWorkQueue(workQueue);
 
     /* 删除工作队列期间要关闭中断，防止产生新的工作 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     /* 从工作队列链表删除 */
     ListDel(&workQueue->list);
@@ -149,7 +149,7 @@ PUBLIC void DestroyWorkQueue(struct WorkQueue *workQueue)
     /* 线程退出运行 */
     ThreadExit(cpuWorkQueue->thread);
 
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     /* 释放工作队列结构体 */
     kfree(workQueue);
 }
@@ -175,17 +175,16 @@ PUBLIC int QueueScheduleWork(struct WorkQueue *workQueue, struct Work *work)
     /* 2.把工作添加到工作队列中 */
 
     /* 修改链表的时候应该关闭中断 */
-    //enum InterruptStatus oldStatus = InterruptDisable();
+    //unsigned long flags = InterruptSave();
 
-    uint32_t eflags = LoadEflags();
-    DisableInterrupt();
-
+    unsigned long flags = InterruptSave();
+    
     /* 先后队列排序，添加到队列尾部 */
     ListAddTail(&work->list, &cpuWorkQueue->workList);
 
-    StoreEflags(eflags);
+    InterruptRestore(flags);
     
-    //InterruptSetStatus(oldStatus);
+    //InterruptRestore(flags);
     
     /* 3.尝试唤醒工作者线程 */
     
@@ -257,13 +256,10 @@ PUBLIC void PrintWorkQueue()
  */
 PUBLIC void InitWorkQueue()
 {
-    PART_START("Work queue");
-
     /* 初始化工作队列链表头 */
     INIT_LIST_HEAD(&workQueueList);
 
     /* 创建缺省工作者线程 */
     keventWorkQueue = CreateWorkQueue("events");
     //printk("work queue at %x\n", keventWorkQueue);
-    PART_END();
 }

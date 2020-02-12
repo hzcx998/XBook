@@ -73,8 +73,8 @@ PRIVATE void AddRequest(struct RequestQueue *queue, struct Request *req)
     struct Request *tmp;
 
     /* 准备添加到请求队列的时候，不允许产生其它进程进行访问 */
-    enum InterruptStatus oldStatus = InterruptDisable();
-
+    unsigned long flags = InterruptSave();
+    
     /* 记录请求所在的队列 */
     req->queue = queue;
 
@@ -84,7 +84,7 @@ PRIVATE void AddRequest(struct RequestQueue *queue, struct Request *req)
     /* 如果请求队列没有请求，就立即执行当前请求 */
     tmp = queue->currentRequest;
 
-    InterruptSetStatus(oldStatus); 
+	InterruptRestore(flags);
 
     if (tmp == NULL) {
         /* 更新当前请求 */
@@ -218,8 +218,8 @@ PUBLIC struct Request *BlockFetchRequest(struct RequestQueue *queue)
         return NULL;
     
     /* 获取请求过程中，不允许产生中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
-
+    unsigned long flags = InterruptSave();
+    
     /* 检测是否为空 */
     if (ListEmpty(queue->requestList)) {
         /* 切换成；另外一个请求队列再检测 */
@@ -244,11 +244,10 @@ PUBLIC struct Request *BlockFetchRequest(struct RequestQueue *queue)
     /* 更新当前请求指针 */
     queue->currentRequest = request;
 
-    InterruptSetStatus(oldStatus);
-
+    InterruptRestore(flags);
     return request;
 ToEnd:
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     return NULL;
 }
 
@@ -266,7 +265,7 @@ PUBLIC void BlockEndRequest(struct Request *request, int errors)
         return;
 
     /* 结束请求过程中，不允许产生中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     /* 记录请求错误数，可以根据请求的错误数做一些设定 */
     request->errors += errors;
@@ -300,7 +299,7 @@ PUBLIC void BlockEndRequest(struct Request *request, int errors)
     /* 把request添加到完成队列，以便重复利用 */
     ListAdd(&request->queueList, &doneRequestListHead);
 
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 
 /**

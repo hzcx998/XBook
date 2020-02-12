@@ -140,7 +140,7 @@ PUBLIC void DoSoftirq()
     /* 如果当前硬件中断嵌套，或者有软中断执行，则立即返回。*/
 
     /* 关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     /* 获取事件 */
     evens = GetSoftirqEvens();
@@ -150,7 +150,7 @@ PUBLIC void DoSoftirq()
         HandleSoftirq();
 
     /* 恢复之前状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 
 /**
@@ -163,7 +163,7 @@ PUBLIC void HighTaskAssistSchedule(struct TaskAssist *assist)
 {
     /* 如果状态还没有调度，才能进行调度 */
     if (!TestAndSetBit(TASKASSIST_SCHED, &assist->status)) {
-        enum InterruptStatus oldStatus = InterruptDisable();
+        unsigned long flags = InterruptSave();
 
         /* 把任务协助插入到队列最前面 */
         assist->next = highTaskAssistHead.head;
@@ -172,7 +172,7 @@ PUBLIC void HighTaskAssistSchedule(struct TaskAssist *assist)
         /* 激活HIGHTTASKASSIST_SOFTIRQ */
         ActiveSoftirq(HIGHTASKASSIST_SOFTIRQ);
 
-        InterruptSetStatus(oldStatus);
+        InterruptRestore(flags);
     }
 }
 
@@ -236,7 +236,7 @@ PUBLIC void TaskAssistSchedule(struct TaskAssist *assist)
 {
     /* 如果状态还没有调度，才能进行调度 */
     if (!TestAndSetBit(TASKASSIST_SCHED, &assist->status)) {
-        enum InterruptStatus oldStatus = InterruptDisable();
+        unsigned long flags = InterruptSave();
 
         /* 把任务协助插入到队列最前面 */
         assist->next = taskAssistHead.head;
@@ -245,7 +245,7 @@ PUBLIC void TaskAssistSchedule(struct TaskAssist *assist)
         /* 激活TASKASSIST_SOFTIRQ */
         ActiveSoftirq(TASKASSIST_SOFTIRQ);
 
-        InterruptSetStatus(oldStatus);
+        InterruptRestore(flags);
     }
 }
 

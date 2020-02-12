@@ -179,8 +179,6 @@ PUBLIC void SysMSleep(uint32_t msecond)
  */
 PUBLIC void InitPitClockDriver()
 {
-	PART_START("Clock driver");
-
 	//初始化时钟
 	Out8(PIT_CTRL, PIT_MODE_2 | PIT_MODE_MSB_LSB | 
             PIT_MODE_COUNTER_0 | PIT_MODE_BINARY);
@@ -224,6 +222,5 @@ PUBLIC void InitPitClockDriver()
 
 	/* 注册时钟中断并打开中断 */	
 	RegisterIRQ(IRQ0_CLOCK, &ClockHandler, IRQF_DISABLED, "clockirq", "clock", 0);
-    
-	PART_END();
+
 }

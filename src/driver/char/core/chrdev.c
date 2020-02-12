@@ -8,6 +8,7 @@
 #include <book/debug.h>
 #include <book/memcache.h>
 #include <book/arch.h>
+#include <book/atomic.h>
 #include <lib/string.h>
 #include <char/char.h>
 #include <char/chr-dev.h>
@@ -57,7 +58,9 @@ PUBLIC struct CharDevice *AllocCharDevice(dev_t devno)
         return NULL;
     
     device->super.devno = devno;
-    
+    // 设置引用
+    AtomicSet(&device->super.references, 0);
+
     return device;
 }
 

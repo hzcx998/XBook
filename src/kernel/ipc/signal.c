@@ -450,7 +450,7 @@ PUBLIC int DoSendSignal(pid_t pid, int signal, pid_t sender)
     int ret = 0;
 
     /* 信号上锁并关闭中断 */
-    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&task->signalMaskLock);
+    unsigned long flags = SpinLockIrqSave(&task->signalMaskLock);
     
     /* 如果是停止相关信号，就扫清后续信号屏蔽 */
     HandleStopSignal(signal, task);
@@ -470,7 +470,7 @@ PUBLIC int DoSendSignal(pid_t pid, int signal, pid_t sender)
     ret = DeliverSignal(signal, sender, task);
 
 ToOut:
-    SpinUnlockRestoreInterrupt(&task->signalMaskLock, oldStatus);
+    SpinUnlockIrqSave(&task->signalMaskLock, flags);
 
     /* 发送后，如果进程处于阻塞，并且还有信号需要处理，那么就唤醒进程 */
     if ((task->status == TASK_BLOCKED) && (task->signalPending != 1)) {
@@ -525,7 +525,7 @@ PUBLIC int ForceSignal(int signo, pid_t pid)
     }
 
     /* 信号上锁并关闭中断 */
-    enum InterruptStatus oldStatus = SpinLockSaveIntrrupt(&task->signalMaskLock);
+    unsigned long flags = SpinLockIrqSave(&task->signalMaskLock);
     
     /* 
     1.如果该信号的处理方法是忽略，那么就要变成默认处理方法，才会被处理
@@ -539,7 +539,7 @@ PUBLIC int ForceSignal(int signo, pid_t pid)
     /* 计算一下是否有信号需要处理 */
     CalcSignalLeft(task);
     
-    SpinUnlockRestoreInterrupt(&task->signalMaskLock, oldStatus);
+    SpinUnlockIrqSave(&task->signalMaskLock, flags);
 
     /* 正式发送信号过去 */
     return DoSendSignal(task->pid, signo, CurrentTask()->pid);

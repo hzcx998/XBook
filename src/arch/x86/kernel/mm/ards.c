@@ -12,7 +12,6 @@
 struct Ards *ards;
 uint64_t InitArds()
 {
-	PART_START("Ards");
 	uint64_t totalSize = 0;
 
 	unsigned int ardsNum =  *((uint64_t *)ARDS_ADDR);	//ards 结构数
@@ -37,6 +36,5 @@ uint64_t InitArds()
 		#endif
 		ards++;
 	}
-	PART_END();
 	return totalSize;
 }

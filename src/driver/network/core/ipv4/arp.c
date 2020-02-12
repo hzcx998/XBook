@@ -227,8 +227,7 @@ PUBLIC int ArpAddCache(unsigned int ip, unsigned char *mac)
 {
     ArpCache_t *cache = NULL;
     int i;
-    enum InterruptStatus oldStatus =  SpinLockSaveIntrrupt(&arpCacheLock);
-
+    unsigned long flags = SpinLockIrqSave(&arpCacheLock);
     for (i = 0; i < MAX_ARP_CACHE_NR; i++) {
         if (arpCacheTable[i].ipAddress == 0) {
             cache = &arpCacheTable[i];
@@ -242,8 +241,8 @@ PUBLIC int ArpAddCache(unsigned int ip, unsigned char *mac)
         //printk("ARP cacheed:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
     
-    SpinUnlockRestoreInterrupt(&arpCacheLock, oldStatus);
-
+    SpinUnlockIrqSave(&arpCacheLock, flags);
+    
     /* 如果缓存为空就返回0，不然就返回1 */
     return cache == NULL ? 0 : 1;
 }
@@ -260,7 +259,7 @@ PUBLIC int ArpLookupCache(unsigned int ip, unsigned char *mac)
     
     ArpCache_t *cache = NULL;
     int i;
-    enum InterruptStatus oldStatus =  SpinLockSaveIntrrupt(&arpCacheLock);
+    unsigned long flags = SpinLockIrqSave(&arpCacheLock);
 
     for (i = 0; i < MAX_ARP_CACHE_NR; i++) {
         /* ip地址一样才找到 */
@@ -276,7 +275,7 @@ PUBLIC int ArpLookupCache(unsigned int ip, unsigned char *mac)
         //printk("ARP lookup:ip(%x):mac(%x:%x:%x:%x:%x:%x)\n", ip, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
     
-    SpinUnlockRestoreInterrupt(&arpCacheLock, oldStatus);
+    SpinUnlockIrqSave(&arpCacheLock, flags);
 
     /* 如果缓存为空就返回0，不然就返回1 */
     return cache == NULL ? 0 : 1;
@@ -337,8 +336,9 @@ PUBLIC void ArpRequestTimeout(uint32 ip)
     DumpIpAddress(ip);
 
     /* 上锁关中断 */
-    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
     
+    unsigned long flags = SpinLockIrqSave(&arpQueueLock);
+
     ArpQueue_t *queue = NULL, *tmp;
     /* 遍历查找ip，是否已经在请求队列中了 */
     ListForEachOwner(tmp, &arpQueueList, list) {
@@ -353,8 +353,7 @@ PUBLIC void ArpRequestTimeout(uint32 ip)
         Timer_t *timer = queue->timer;
 
         /* 超时的时候，就删除定时器 */
-        RemoveTimer(timer);
-
+        //RemoveTimer(timer);
         if (queue->retryTimes-- > 0) {
             /* 还有剩余次数，就再次发送请求 */
             TimerInit(timer, ARP_TIMEOUT, ip, ArpTimeout);
@@ -393,7 +392,7 @@ PUBLIC void ArpRequestTimeout(uint32 ip)
         }
     }
 
-    SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+    SpinUnlockIrqSave(&arpQueueLock, flags);
 }
 
 /**
@@ -409,7 +408,7 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
     *///printk(" buf: 0x%x\n", buf);
 
     /* 上锁关中断 */
-    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
+    unsigned long flags = SpinLockIrqSave(&arpQueueLock);
 
     ArpQueue_t *queue = NULL, *tmp;
     /* 遍历查找ip，是否已经在请求队列中了 */
@@ -425,7 +424,7 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
     if (queue != NULL) {
         /* 把缓冲区添加到该队列里面 */
         ListAddTail(&buf->list, &queue->bufferList);
-        SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+        SpinUnlockIrqSave(&arpQueueLock, flags);
 
     } else {
         /* 没有找到ip，那么就需要创建一个新的队列来保存 */
@@ -454,8 +453,8 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
         /* 把定时器添加到系统 */
         AddTimer(timer);
         printk(">>>send arp request!\n");
-        
-        SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+        SpinUnlockIrqSave(&arpQueueLock, flags);
+
         /* 发送一个arp请求 */
         ArpRequest(ip);
     }
@@ -477,7 +476,7 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
         }
     }
     //SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
-
+    //while (1);
     
 }
 
@@ -490,7 +489,7 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
 {
     //printk("in processing...\n");
     /* 上锁关中断 */
-    InterruptStatus_t oldStatus = SpinLockSaveIntrrupt(&arpQueueLock);
+    unsigned long flags = SpinLockIrqSave(&arpQueueLock);
     //printk("end processing\n");
 
     ArpQueue_t *queue = NULL, *tmp;
@@ -504,6 +503,7 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
     }
     
     if (queue != NULL) {
+        printk("deal arp queue %x\n", queue);
         /* 对所有的缓冲区执行处理操作 */
         NetBuffer_t *tmpbuf, *safe;
         /* 遍历每一个缓冲区 */
@@ -511,9 +511,11 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
 #ifdef _ARP_DEBUG
             printk("buf:%x ", tmpbuf);
 #endif
-            
-            EthernetSend(ethAddr, PROTO_IP, tmpbuf->data, tmpbuf->dataLen);
+            printk("send to ethnet");
+            DumpEthernetAddress(ethAddr);
 
+            EthernetSend(ethAddr, PROTO_IP, tmpbuf->data, tmpbuf->dataLen);
+            
             /* 释放缓冲区 */
             ListDelInit(&tmpbuf->list);
             FreeNetBuffer(tmpbuf);
@@ -528,7 +530,7 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
         kfree(queue);
     }
 
-    SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
+    SpinUnlockIrqSave(&arpQueueLock, flags);
     //printk("end processing\n");
 }
 

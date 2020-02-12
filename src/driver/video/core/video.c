@@ -35,11 +35,11 @@ PRIVATE void InitGraphDrivers()
  */
 PUBLIC int InitVideoSystem()
 {
-    
     /* 初始化图形系统的驱动 */
     InitGraphDrivers();
 
+#ifdef CONFIG_DISPLAY_GRAPH
     InitKGC();
-    
+#endif /* CONFIG_DISPLAY_GRAPH */
     return 0;
 }

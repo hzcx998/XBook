@@ -8,7 +8,6 @@
 
 /* 系统内核 */
 #include <book/config.h>
-#ifdef CONFIG_DISPLAY_GRAPH
 
 #include <book/arch.h>
 #include <book/debug.h>
@@ -208,9 +207,3 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
     /* 打印事件状态 */
     //printk("type:%x state:%x button:%x\n", even->type, even->state, even->button);
 }   
-
-
-
-
-#endif /* CONFIG_DISPLAY_GRAPH */
-

@@ -212,15 +212,15 @@ PUBLIC struct Task *FindTaskByPid(pid_t pid)
 {
     struct Task *task;
     /* 关闭中断 */
-    enum InterruptStatus old = InterruptDisable();
+    unsigned long old = InterruptSave();
 
     ListForEachOwner(task, &taskGlobalList, globalList) {
         if (task->pid == pid) {
-            InterruptSetStatus(old);
+            InterruptRestore(old);
             return task;
         }
     }
-    InterruptSetStatus(old);
+    InterruptRestore(old);
     return NULL;
 }
 
@@ -271,7 +271,7 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     MakeTaskStack(thread, func, arg);
 
     /* 操作链表时关闭中断，结束后恢复之前状态 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     // 保证不存在于链表中
     ASSERT(!ListFind(&thread->list, &taskReadyList));
@@ -283,7 +283,7 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     // 添加到全局队列
     ListAddTail(&thread->globalList, &taskGlobalList);
     
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     return thread;
 }
 
@@ -297,7 +297,7 @@ PUBLIC void ThreadExit(struct Task *thread)
         return;
 
     /* 操作链表时关闭中断，结束后恢复之前状态 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     /* 如果在就绪队列中，就从就绪队列中删除 */
     if (ListFind(&thread->list, &taskReadyList)) 
@@ -308,7 +308,7 @@ PUBLIC void ThreadExit(struct Task *thread)
     // 添加到全局队列
     ListDelInit(&thread->globalList);
     
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     
     /* 释放线程占用的内存 */
     kfree(thread);
@@ -369,7 +369,7 @@ PUBLIC void TaskBlock(enum TaskStatus state)
             (state == TASK_ZOMBIE));
 
     // 先关闭中断，并且保存中断状态
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     // 改变状态
     struct Task *current = CurrentTask();
@@ -380,7 +380,7 @@ PUBLIC void TaskBlock(enum TaskStatus state)
     Schedule();
 
     // 恢复之前的状态
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }   
 
 /**
@@ -390,7 +390,7 @@ PUBLIC void TaskBlock(enum TaskStatus state)
 PUBLIC void TaskUnblock(struct Task *task)
 {
     // 先关闭中断，并且保存中断状态
-    //enum InterruptStatus oldStatus = InterruptDisable();
+    //unsigned long flags = InterruptSave();
     unsigned long eflags = InterruptSave();
 
     /*
@@ -416,7 +416,7 @@ PUBLIC void TaskUnblock(struct Task *task)
         task->status = TASK_READY;
     }
     // 恢复之前的状态
-    //InterruptSetStatus(oldStatus);
+    //InterruptRestore(flags);
     InterruptRestore(eflags);
 }
 
@@ -507,7 +507,7 @@ PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
     MakeTaskStack(thread, StartProcess, fileName);
     
     /* 操作链表时关闭中断，结束后恢复之前状态 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     // 保证不存在于链表中
     ASSERT(!ListFind(&thread->list, &taskReadyList));
@@ -519,7 +519,7 @@ PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
     // 添加到全局队列
     ListAddTail(&thread->globalList, &taskGlobalList);
     
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
     return thread;
 }
 
@@ -532,7 +532,7 @@ PUBLIC void TaskYield()
 {
     struct Task *current = CurrentTask();
     /* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     // 保证不存在于链表中
     ASSERT(!ListFind(&current->list, &taskReadyList));
     // 添加到就绪队列
@@ -545,7 +545,7 @@ PUBLIC void TaskYield()
     Schedule();
 
     /* 当再次运行到自己的时候就恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 
 /**
@@ -608,7 +608,7 @@ PRIVATE Spinlock_t consoleLock;
 
 PRIVATE void lockPrintk(char *buf)
 {
-    enum InterruptStatus old = SpinLockSaveIntrrupt(&consoleLock);
+    unsigned long old = SpinLockSaveIntrrupt(&consoleLock);
     printk(buf);
     SpinUnlockRestoreInterrupt(&consoleLock, old);
 }
@@ -676,12 +676,26 @@ PUBLIC void DumpTask(struct Task *task)
 }
 
 /**
+ * InitUserProcess - 初始化用户进程
+ */
+PUBLIC void InitUserProcess()
+{
+    /* 暂时的提示语言 */
+    printk("Book Say > Welcom to BookOS! Please input 'help' to get more help!\n");
+    printk("Book Say > You can press Alt + F1~F3 to select a different console.\n");
+#ifdef CONFIG_BLOCK_DEVICE
+	/* 加载init进程 */
+	InitFirstProcess("root:/init", "init");
+#endif
+
+}
+
+/**
  * InitTasks - 初始化多任务环境
  */
 PUBLIC void InitTasks()
 {
-    PART_START("Task");
-    
+
     /* 跳过init进程的pid = 0，后面执行init的时候会把它的pid设置为0*/
     nextPid = 1;
 
@@ -704,6 +718,5 @@ PUBLIC void InitTasks()
     
 	// 在初始化多任务之后才初始化任务的虚拟空间
 	InitVMSpace();
-	
-    PART_END();
+
 }

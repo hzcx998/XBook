@@ -10,7 +10,6 @@
 
 /* 系统内核 */
 #include <book/config.h>
-#ifdef CONFIG_DISPLAY_GRAPH
 
 #include <book/arch.h>
 #include <book/debug.h>
@@ -99,6 +98,3 @@ PUBLIC void KGC_EvenHandler(KGC_Even_t *even)
     }
 
 }
-
-#endif /* CONFIG_DISPLAY_GRAPH */
-

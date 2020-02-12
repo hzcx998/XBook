@@ -270,7 +270,7 @@ PRIVATE int CopyTask(struct Task *childTask, struct Task *parentTask)
 PUBLIC pid_t SysFork()
 {
     /* 保存之前状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     /* 把当前任务当做父进程 */
     struct Task *parentTask = CurrentTask();
@@ -282,8 +282,7 @@ PUBLIC pid_t SysFork()
     }
         
     /* 当前中断处于关闭中，并且父进程有页目录表 */
-    ASSERT(InterruptGetStatus() == INTERRUPT_OFF && \
-    parentTask->pgdir != NULL);
+    ASSERT(parentTask->pgdir != NULL);
     
     /* 复制进程 */
     if (CopyTask(childTask, parentTask)) {
@@ -311,7 +310,7 @@ PUBLIC pid_t SysFork()
     ListAddTail(&childTask->globalList, &taskGlobalList);
 
     /* 恢复之前的状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 
     /*
     printk(PART_TIP "task %s pid %d fork task %s pid %d\n", 

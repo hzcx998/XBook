@@ -300,8 +300,11 @@ PRIVATE int VesaWrite(struct Device *device, unsigned int offset, void *buffer, 
         int y1 = y0 + LOW16(size);
         for (y0 = LOW16(offset); y0 < y1; y0++) {    
             for (x0 = HIGH16(offset); x0 < x1; x0++) {
-                /* 绘制像素 */
-                self->vesaWriteOnePixel(self, x0, y0, *p++);
+                /* 在屏幕范围内才绘制 */
+                if (x0 >= 0 && y0 >= 0 && x0 < self->xResolution && y0 < self->yResolution) {
+                    /* 绘制像素 */
+                    self->vesaWriteOnePixel(self, x0, y0, *p++);
+                }
             }
         }
     }
@@ -455,7 +458,10 @@ PUBLIC int VesaInitOne(struct VesaPrivate *self)
         /* 设置初始化完成标志 */
         self->flags = VESA_FLAGS_INIT_DONE;
     }
-    
+    printk("video: %d*%d*%d, phy:%x vir:%x\n", 
+        self->xResolution, self->yResolution, self->bitsPerPixel, 
+        self->phyBasePtr, self->vram);
+
     /* 分配一个字符设备 */
 	self->chrdev = AllocCharDevice(DEV_VIDEO);
 	if (self->chrdev == NULL) {
@@ -471,6 +477,9 @@ PUBLIC int VesaInitOne(struct VesaPrivate *self)
 	
 	/* 把字符设备添加到系统 */
 	AddCharDevice(self->chrdev);
+    
+    printk("grpah devno %x\n", self->chrdev->super.devno);
+
 	return 0;
 }
 
@@ -479,6 +488,7 @@ PUBLIC int VesaInitOne(struct VesaPrivate *self)
  */
 PUBLIC int InitVesaDriver()
 {
+    
 	if (VesaInitOne(&vesaPrivate)) {
         printk("init vesa driver failed!\n ");
     }

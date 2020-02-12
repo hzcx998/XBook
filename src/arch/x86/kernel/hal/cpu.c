@@ -149,8 +149,6 @@ PRIVATE int CpuHalRead(unsigned char *buffer, unsigned int count)
 
 PRIVATE void CpuHalInit()
 {
-	PART_START("Cpu hal");
-
 	register_t eax, ebx, ecx, edx;
 	/* 
 	 * 获取vendor ID
@@ -273,7 +271,6 @@ PRIVATE void CpuHalInit()
 	//默认是string
 	private.steerType = STEERING_TYPE_STRING;
 
-	PART_END();
 }
 
 /* hal操作函数 */

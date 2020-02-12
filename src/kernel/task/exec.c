@@ -541,7 +541,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         goto ToEnd;
     }
     
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
 
     //printk("end load\n");
     /* 7.设置中断栈 */
@@ -642,7 +642,7 @@ ToEnd:
         idx++;
     }
 
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 
     /* 返回值为-1就返回-1，其实还应该释放之前分配的数据 */
     if (ret)

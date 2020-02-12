@@ -32,7 +32,7 @@ PUBLIC void TaskWakeUp(struct Task *task)
 PUBLIC void TaskSleepOn(struct Task *task)
 {
     // 先关闭中断，并且保存中断状态
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     //printk(PART_TIP "task %s blocked with status %d\n", current->name, state);
     task->status = TASK_BLOCKED;
@@ -43,7 +43,7 @@ PUBLIC void TaskSleepOn(struct Task *task)
     }
     
     // 恢复之前的状态
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 }
 /**
  * TaskTimeout - 任务超时，就接触任务阻塞
@@ -62,7 +62,7 @@ PRIVATE void TaskTimeout(uint32_t data)
 PUBLIC uint32_t TaskSleep(uint32_t ticks)
 {
     /* 保存状态并关闭中断 */
-    enum InterruptStatus oldStatus = InterruptDisable();
+    unsigned long flags = InterruptSave();
     
     struct Task *current = CurrentTask();
     /* 添加一个定时器来唤醒当前任务 */
@@ -80,7 +80,7 @@ PUBLIC uint32_t TaskSleep(uint32_t ticks)
     current->status = TASK_BLOCKED;
 
     /* 恢复之前中断状态 */
-    InterruptSetStatus(oldStatus);
+    InterruptRestore(flags);
 
     /* 调度到其他进程 */
     Schedule();
