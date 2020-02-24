@@ -163,3 +163,52 @@ fsync:
 	
     pop ebx
     ret
+global tell
+; long tell(int fd);
+tell:
+    push ebx 
+
+	mov eax, SYS_TELL
+	mov ebx, [esp + 4 + 4]
+	int INT_VECTOR_SYS_CALL
+	
+    pop ebx
+    ret
+global isfoot
+; long isfoot(int fd);
+isfoot:
+    push ebx 
+
+	mov eax, SYS_ISFOOT
+	mov ebx, [esp + 4 + 4]
+	int INT_VECTOR_SYS_CALL
+    
+    pop ebx
+    ret
+
+global dup
+; int dup(int oldfd);
+dup:
+    push ebx 
+
+	mov eax, SYS_DUP
+	mov ebx, [esp + 4 + 4]
+	int INT_VECTOR_SYS_CALL
+    
+    pop ebx
+    ret
+
+global dup2
+; int dup2(int oldfd, int newfd);
+dup2:
+    push ebx 
+    push ecx 
+
+	mov eax, SYS_DUP2
+	mov ebx, [esp + 8 + 4]
+	mov ecx, [esp + 8 + 8]
+	int INT_VECTOR_SYS_CALL
+
+    pop ecx 
+    pop ebx 
+	ret

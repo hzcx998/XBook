@@ -1,0 +1,20 @@
+
+ram memory size:1FFF0000 bytes 511 MB
+vendor:GenuineIntel brand:Intel(R) Core(TM) i5-8300H CPU @ 2.30GHz 
+-> Ramdisk Driver <-
+Ide disks are 2
+tty name tty0
+tty name tty1
+tty name tty2
+tty name tty3
+video: 1024*768*24, phy:E0000000 vir:F8101000
+-> BOFS device:rda
+device:hda
+device:hdb
+data disk, continue!
+list drives
+drive: sys
+drive: root
+<-
+Book Say > Welcom to BookOS! Please input 'help' to get more help!
+Book Say > You can press Alt + F1~F3 to select a different console.

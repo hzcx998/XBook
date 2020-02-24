@@ -294,6 +294,20 @@ PRIVATE INLINE int ListEmpty(const struct List *head)
 })
 
 /*
+ * ListLastOwnerOrNull - 获取链表中的最后一个宿主
+ * @head： 链表头
+ * @type： 宿主结构体的类型
+ * @member: 节点在宿主结构体中的名字 
+ * 
+ * 注：如果链表是空就返回NULL
+ */
+#define ListLastOwnerOrNull(head, type, member) ({ \
+      struct List *__head = (head); \
+      struct List *__pos = (__head->prev); \
+      __pos != __head ? ListOwner(__pos, type, member) : NULL; \
+})
+
+/*
  * ListNextOwner - 获取链表中的下一个宿主
  * @pos： 临时宿主的指针
  * @member: 节点在宿主结构体中的名字 

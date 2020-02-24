@@ -39,10 +39,9 @@ typedef struct NetBuffer {
     unsigned int status;            /* 缓冲区的状态 */          
     unsigned int dataLen;           /* 实际拥有的数据长度 */
     unsigned char *data;            /* 实际数据的指针 */
-    unsigned char pad0[ASSUME_SIZEOF_NET_BUFFER-20];
+    unsigned char pad0[ASSUME_SIZEOF_NET_BUFFER-16];
     unsigned char pad[NET_BUF_SIZE-ASSUME_SIZEOF_NET_BUFFER];  /* 要用总大小-结构大小 */
 } PACKED NetBuffer_t;
-
 
 PUBLIC int InitNetBuffer();
 PUBLIC void FreeNetBuffer(NetBuffer_t *buf);

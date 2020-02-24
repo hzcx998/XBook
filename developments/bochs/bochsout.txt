@@ -31,12 +31,12 @@
 00000000000i[     ]   SB16 support: yes
 00000000000i[     ]   USB support: yes
 00000000000i[     ]   VGA extension support: vbe cirrus
-00000000000i[MEM0 ] allocated memory at 037FE020. after alignment, vector=037FF000
+00000000000i[MEM0 ] allocated memory at 03785020. after alignment, vector=03786000
 00000000000i[MEM0 ] 512.00MB
 00000000000i[MEM0 ] mem block size = 0x00100000, blocks=512
 00000000000i[MEM0 ] rom at 0xfffe0000/131072 ('D:/Softwares/Bochs-2.5/BIOS-bochs-latest')
 00000000000i[CMOS ] Using local time for initial clock
-00000000000i[CMOS ] Setting initial clock to: Tue Feb 11 22:40:34 2020 (time0=1581432034)
+00000000000i[CMOS ] Setting initial clock to: Mon Feb 24 15:20:59 2020 (time0=1582528859)
 00000000000i[DMA  ] channel 4 used by cascade
 00000000000i[DMA  ] channel 2 used by Floppy Drive
 00000000000i[FDD  ] fd0: '../developments/image/a.img' ro=0, h=2,t=80,spt=18
@@ -167,24 +167,29 @@
 00001875388i[BIOS ] ata0-0: PCHS=20/16/63 translation=none LCHS=20/16/63
 00001933535i[BIOS ] ata0-1: PCHS=20/16/63 translation=none LCHS=20/16/63
 00014262745i[BIOS ] Booting from 0000:7c00
-00159102122i[CPU0 ] WARNING: HLT instruction with IF=0!
-00956804000p[WGUI ] >>PANIC<< Window closed, exiting!
-00956804000i[CPU0 ] CPU is in protected mode (halted)
-00956804000i[CPU0 ] CS.mode = 32 bit
-00956804000i[CPU0 ] SS.mode = 32 bit
-00956804000i[CPU0 ] | EAX=0000002f  EBX=00000000  ECX=00000000  EDX=000003d5
-00956804000i[CPU0 ] | ESP=81286b68  EBP=81286c94  ESI=81c9f800  EDI=81ca3400
-00956804000i[CPU0 ] | IOPL=0 id vip vif ac vm rf nt of df if tf sf ZF af PF cf
-00956804000i[CPU0 ] | SEG selector     base    limit G D
-00956804000i[CPU0 ] | SEG sltr(index|ti|rpl)     base    limit G D
-00956804000i[CPU0 ] |  CS:0008( 0001| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] |  DS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] |  SS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] |  ES:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] |  FS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] |  GS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
-00956804000i[CPU0 ] | EIP=801000ec (801000ec)
-00956804000i[CPU0 ] | CR0=0xe0000011 CR2=0x00000010
-00956804000i[CPU0 ] | CR3=0x01287000 CR4=0x00000000
-00956804000i[CPU0 ] 0x00000000801000ec>> ret  : C3
-00956804000i[CMOS ] Last time is 1581432273 (Tue Feb 11 22:44:33 2020)
+00061989493i[BXVGA] VBE set bpp (24)
+00061989512i[BXVGA] VBE set xres (1024)
+00061989554i[BXVGA] VBE set yres (768)
+00061989591i[BXVGA] VBE enabling x 1024, y 768, bpp 24, 2359296 bytes visible
+00061989591i[WGUI ] dimension update x=1024 y=768 fontheight=0 fontwidth=0 bpp=24
+09890624000p[WGUI ] >>PANIC<< Window closed, exiting!
+09890624000i[CPU0 ] CPU is in protected mode (active)
+09890624000i[CPU0 ] CS.mode = 32 bit
+09890624000i[CPU0 ] SS.mode = 32 bit
+09890624000i[CPU0 ] | EAX=00500003  EBX=00000000  ECX=00000160  EDX=81287f5c
+09890624000i[CPU0 ] | ESP=81287f08  EBP=81287f34  ESI=00000000  EDI=00000000
+09890624000i[CPU0 ] | IOPL=0 id vip vif ac vm rf nt of df IF tf SF zf AF PF cf
+09890624000i[CPU0 ] | SEG selector     base    limit G D
+09890624000i[CPU0 ] | SEG sltr(index|ti|rpl)     base    limit G D
+09890624000i[CPU0 ] |  CS:0008( 0001| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] |  DS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] |  SS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] |  ES:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] |  FS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] |  GS:0010( 0002| 0|  0) 00000000 ffffffff 1 1
+09890624000i[CPU0 ] | EIP=8010f0f5 (8010f0f5)
+09890624000i[CPU0 ] | CR0=0xe0000011 CR2=0x00000000
+09890624000i[CPU0 ] | CR3=0x00201000 CR4=0x00000000
+09890624000i[CPU0 ] 0x000000008010f0f5>> push ebp : 55
+09890624000i[CMOS ] Last time is 1582531331 (Mon Feb 24 16:02:11 2020)
+09890624000i[     ] restoring default signal behavior

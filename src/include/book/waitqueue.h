@@ -14,10 +14,10 @@
 #include <book/task.h>
 #include <book/debug.h>
 
-struct WaitQueue {
+typedef struct WaitQueue {
 	struct List waitList;	// 记录所有被挂起的进程（等待中）的链表
 	struct Task *task;		// 当前被挂起的进程
-};
+} WaitQueue_t;
 
 /**
  * WaitQueueInit - 等待队列初始化
@@ -85,17 +85,18 @@ PRIVATE INLINE void WaitQueueWakeUp(struct WaitQueue *waitQueue)
     
 	/* 不是空队列就获取第一个等待者 */
 	if (!ListEmpty(&waitQueue->waitList)) {
-		/* 获取任务 */
-		struct Task *task = ListFirstOwner(&waitQueue->waitList, struct Task, list);
+		/* 获取任务 */		
+        struct Task *task = ListFirstOwner(&waitQueue->waitList, struct Task, list);
 		
-		/* 从当前队列删除 */
+        /* 从当前队列删除 */
 		ListDel(&task->list);
-
 		/* 唤醒任务 */
 		TaskWakeUp(task);
-	}
+		
+    }
     
 	InterruptRestore(flags);
 }
+
 
 #endif   /*_BOOK_WAITQUEUE_H*/

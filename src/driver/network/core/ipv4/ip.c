@@ -93,12 +93,12 @@ PUBLIC bool IpCheckIp(uint32_t ip)
         printk("DO NOT support broadcast now!\n");
         return false;
     }
-    
+#ifndef _NET_LOOPBACK     
     if (ip == NetworkGetIpAddress()) {
         printk("DO NOT support loopback now!\n");
         return false;
     }
-    
+#endif  /* _NET_LOOPBACK */
     return true;
 }
 
@@ -186,7 +186,7 @@ PUBLIC int IpTransmit(uint32 ip, uint8 *data, uint32 len, uint8 protocol)
     } else {
         printk("not find mac addr of ip in arp cache\n");
         /* 添加到arp等待队列 */
-        ArpAddToWaitQueue(ip, buffer);
+        ArpAddToWaitQueue(destIP, buffer);
     }
     
     return 0;

@@ -6,9 +6,7 @@ extern exit
 
 global _start
 _start:
-	call main 
-	
+	call main     
 	push eax
 	call exit
-	
 	jmp $

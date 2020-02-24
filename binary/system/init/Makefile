@@ -10,31 +10,28 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-INCLUDE_DIR = ../../src/include/
-H_USER_DIR = $(INCLUDE_DIR)user/
-H_SHARE_DIR = $(INCLUDE_DIR)share/
-
-LIBARY_DIR = ../../src/
+LIB_H_DIR = ../../../src/include/lib
+LIB_A_DIR = ../../../src/
 
 BIN = a.out
 
-BIN_OFF = 600 
-BIN_CNTS = 50
+BIN_OFF = 0 
+BIN_CNTS = 100
 
 #img dir
-IMG_DIR = ../../img/
+IMG_DIR = ../../../developments/image/
 
-DISK_IMG = a.img
+DISK_IMG = d.img
 
-DISK_VHD = a.vhd
+DISK_VHD = d.vhd
 
 HD_IMG = $(IMG_DIR)$(DISK_IMG)
 HD_VHD = $(IMG_DIR)$(DISK_VHD)
 
 #flags
-ASM_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
+ASM_FLAGS	= -I $(LIB_H_DIR) \
 			-f elf
-C_FLAGS	= -I $(INCLUDE_DIR) -I $(H_USER_DIR) -I $(H_SHARE_DIR) \
+C_FLAGS	= -I $(LIB_H_DIR) \
 			-c -fno-builtin -Wall -Wunused -m32
 
 #LDFLAGS		= --oformat binary -e _start -Ttext 0x00000000
@@ -44,7 +41,7 @@ LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 OBJS =  _start.o \
 		main.o
 
-LD_OBJS = 	$(LIBARY_DIR)libc.a \
+LD_OBJS = 	$(LIB_A_DIR)libc.a \
 
 #First read here
 .PHONY: all

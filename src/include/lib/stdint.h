@@ -35,6 +35,21 @@ typedef signed short    s16;
 typedef unsigned char   u8;
 typedef signed char     s8;
 
+typedef unsigned long   __uint64;
+typedef signed long     __int64;
+typedef unsigned int    __uint32;
+typedef signed int      __int32;
+typedef unsigned short  __uint16;
+typedef signed short    __int16;
+typedef unsigned char   __uint8;
+typedef signed char     __int8;
+
+typedef int ptrdiff_t;
+typedef int intptr_t;
+
+#define _LONGLONG __int64
+#define _ULONGLONG unsigned __int64
+
 /*
 #ifndef QWORD
 typedef unsigned long   QWORD;

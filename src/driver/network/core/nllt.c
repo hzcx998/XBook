@@ -16,6 +16,10 @@
 #include <net/network.h>
 #include <net/nllt.h>
 
+/* 导入网卡传输函数 */
+EXTERN int Rtl8139Transmit(char *buf, uint32 len);
+
+
 /**
  * NlltSend - 发送数据
  * @buf: 要发送的数据
@@ -40,19 +44,15 @@ int NlltSend(NetBuffer_t *buf)
     //DumpArpHeader(arpHeader);
 
     /* 环回测试，自己发送给自己作为测试 */
-#ifdef _LOOPBACL_DEBUG
+#ifdef _NET_LOOPBACK
 
     /* 打印数据结构 */
-    uint8_t *src = buf->data;
+    /*uint8_t *src = buf->data;
 
     EthernetHeader_t *ethHeader = (EthernetHeader_t *)src;
     DumpEthernetHeader(ethHeader);
-
-    src += SIZEOF_ETHERNET_HEADER;
-
-    ArpHeader_t *arpHeader = (ArpHeader_t *)src;
-    DumpArpHeader((ArpHeader_t *)arpHeader);
-    
+    */
+    printk("<loop back>\n");
     NlltReceive(buf->data, buf->dataLen);
 #else 
 
@@ -60,7 +60,7 @@ int NlltSend(NetBuffer_t *buf)
     Rtl8139Transmit((char *)buf->data, buf->dataLen);
 #endif /* CONFIG_DRV_RTL8139 */
 
-#endif /* _LOOPBACL_DEBUG */
+#endif /* _NET_LOOPBACK */
 
     return 0;
 }

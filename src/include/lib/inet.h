@@ -8,9 +8,7 @@
 #ifndef _LIB_INET_H
 #define _LIB_INET_H
 
-#include <lib/stdint.h>
-
-
+#include "stdint.h"
 
 uint32_t htonl(uint32_t hostlong);  // htonl()–“Host to Network Long”
 uint16_t htons(uint16_t hostshort); // ntohl()–“Network to Host Long”

@@ -44,6 +44,11 @@ PUBLIC int SysClose(int fd);
 PUBLIC int SysStat(const char *pathname, struct stat *buf);
 PUBLIC int SysFcntl(int fd, int cmd, int arg);
 PUBLIC int SysFsync(int fd);
+PUBLIC long SysTell(int fd);
+PUBLIC int SysIsFoot(int fd);
+PUBLIC int SysDup(int oldfd);
+PUBLIC int SysDup2(int oldfd, int newfd);
+
 
 PUBLIC int SysRemove(const char *pathname);
 PUBLIC int SysIoctl(int fd, int cmd, int arg);

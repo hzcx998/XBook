@@ -206,12 +206,15 @@ PRIVATE void ConsolePutChar(Console_t *console, char ch)
             
 			break;
 		case '\b':
-            if (console->x >= 0 && console->y > 0) {
+            if (console->x >= 0 && console->y >= 0) {
                 console->x--;
                 /* 调整为上一行尾 */
                 if (console->x < 0) {
                     console->x = SCREEN_WIDTH - 1;
                     console->y--;
+                    /* 对y进行修复 */
+                    if (console->y < 0)
+                        console->y = 0;
                 }
                 *(vram-2) = '\0';
 				*(vram-1) = COLOR_DEFAULT;
@@ -267,8 +270,7 @@ PRIVATE void SelectConsole(int consoleID)
 	}
 
 	currentConsoleID = consoleID;
-    //console->cursor = console->originalAddr + console->y * SCREEN_WIDTH + console->x;
-	
+
     /* 刷新成当前控制台的光标位置 */
 	Flush(&consoleTable[consoleID]);
 }
@@ -405,10 +407,13 @@ PUBLIC void ConsoleInitSub(Console_t *console, int id)
 PUBLIC int ConsoleInitOne(Console_t *console, int id)
 {
     /* 初始化控制台信息 */
+#ifdef CONFIG_CONSOLE_DEBUG
     if (id != 0) {
         ConsoleInitSub(console, id);
     }
-    
+#else 
+    ConsoleInitSub(console, id);
+#endif  /* CONFIG_CONSOLE_DEBUG */    
     /* 添加字符设备 */
     console->chrdev = AllocCharDevice(MKDEV(CONSOLE_MAJOR, id));
     if (console->chrdev == NULL) {
@@ -426,6 +431,7 @@ PUBLIC int ConsoleInitOne(Console_t *console, int id)
 	/* 把字符设备添加到系统 */
 	AddCharDevice(console->chrdev);
 	
+    ConsoleClean(console);
 	//SetCursor(console->cursor);
     return 0;
 }
@@ -453,6 +459,4 @@ PUBLIC int InitConsoleDriver()
             return -1;
     }
     return 0;
-    /* 选择第一个控制台 */
-    //SelectConsole(0);
 }

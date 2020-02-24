@@ -80,7 +80,8 @@ PRIVATE void AdopeChildren(struct Task *cur)
 PRIVATE void ReleaseZombie(struct Task *task)
 {
     /* 回收页目录 */
-    kfree(task->pgdir);
+    if (task->pgdir)
+        kfree(task->pgdir);
     /* 回收MM */
     FreeTaskMemory(task);
 
@@ -94,8 +95,41 @@ PRIVATE void CancelEverything(struct Task *task)
     if (task->sleepTimer) {
         RemoveTimer(task->sleepTimer);
     }
+
+    /* 关闭窗口 */
+    if (task->window) {
+        KGC_WindowClose(task->window);
+    }
 }
 
+/**
+ * ThreadExit - 关闭线程
+ * @thread: 要关闭的线程
+ */
+PUBLIC void ThreadExit(struct Task *thread)
+{
+    if (!thread)
+        return;
+    
+    /* 过继给init进程（pid为0） */
+    AdopeChildren(thread);
+
+    CancelEverything(thread);
+    
+    /* 操作链表时关闭中断，结束后恢复之前状态 */
+    unsigned long flags = InterruptSave();
+
+    /* 如果在就绪队列中，就从就绪队列中删除 */
+    if (ListFind(&thread->list, &taskReadyList)) {
+        ListDelInit(&thread->list);
+    }
+    
+    InterruptRestore(flags);
+    
+    //printk("thread %s exit\n", thread->name);
+    /* 调度出去，僵尸状态，等待父进程收尸 */
+    TaskBlock(TASK_ZOMBIE);
+}
 
 /**
  * SysExit - 进程退出运行

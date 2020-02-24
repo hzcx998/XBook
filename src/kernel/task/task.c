@@ -37,7 +37,6 @@ PUBLIC LIST_HEAD(taskReadyList);
 // 全局队列链表，用来查找所有存在的任务
 PUBLIC LIST_HEAD(taskGlobalList);
 
-
 /**
  * KernelThread - 执行内核线程
  * @function: 要执行的线程
@@ -169,7 +168,10 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     thread->priority = priority;
     thread->ticks = priority;
     thread->elapsedTicks = 0;
+    
+    /* 线程没有页目录表和虚拟内存管理 */
     thread->pgdir = NULL;
+    thread->mm = NULL;
 
     thread->pid = AllocatePid();
     thread->groupPid = 0;       // 没有进程组id
@@ -178,7 +180,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
 
     memset(thread->cwd, 0, MAX_PATH_LEN);
     /* 默认的工作目录是根目录 */
-    strcpy(thread->cwd, "root:/");
+    strcpy(thread->cwd, TASK_PWD_DEFAULT);
     
     // 设置中断栈为当前线程的顶端
     thread->kstack = (uint8_t *)(((uint32_t )thread) + PAGE_SIZE);
@@ -191,7 +193,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
         thread->fdTable[idx] = -1;      /* 设置为-1表示未使用 */
         idx++;
     }
-
+    
     /* 信号相关 */
     InitSignalInTask(thread);
 
@@ -202,6 +204,10 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     
     /* 休眠定时器 */
     thread->sleepTimer = NULL;
+
+    /* 窗口为空 */
+    thread->window = NULL;
+    
 }
 
 /**
@@ -243,7 +249,8 @@ PUBLIC void AllocTaskMemory(struct Task *task)
  */
 PUBLIC void FreeTaskMemory(struct Task *task)
 {
-    kfree(task->mm);
+    if (task->mm)
+        kfree(task->mm);
 }
 
 /**
@@ -285,33 +292,6 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     
     InterruptRestore(flags);
     return thread;
-}
-
-/**
- * ThreadExit - 关闭线程
- * @thread: 要关闭的线程
- */
-PUBLIC void ThreadExit(struct Task *thread)
-{
-    if (!thread)
-        return;
-
-    /* 操作链表时关闭中断，结束后恢复之前状态 */
-    unsigned long flags = InterruptSave();
-
-    /* 如果在就绪队列中，就从就绪队列中删除 */
-    if (ListFind(&thread->list, &taskReadyList)) 
-       ListDelInit(&thread->list);
-
-    // 保证存在于链表中
-    ASSERT(ListFind(&thread->globalList, &taskGlobalList));
-    // 添加到全局队列
-    ListDelInit(&thread->globalList);
-    
-    InterruptRestore(flags);
-    
-    /* 释放线程占用的内存 */
-    kfree(thread);
 }
 
 /**
@@ -360,14 +340,13 @@ PRIVATE void MakeMainThread()
 PUBLIC void TaskBlock(enum TaskStatus state)
 {
     /*
-    state有3种状态，分别是TASK_BLOCKED, TASK_WAITING, TASK_ZOMBIE
+    state有4种状态，分别是TASK_BLOCKED, TASK_WAITING, TASK_STOPPED, TASK_ZOMBIE
     它们不能被调度
     */
-    ASSERT((state == TASK_BLOCKED) || 
+    ASSERT ((state == TASK_BLOCKED) || 
             (state == TASK_WAITING) || 
             (state == TASK_STOPPED) ||
             (state == TASK_ZOMBIE));
-
     // 先关闭中断，并且保存中断状态
     unsigned long flags = InterruptSave();
     
@@ -389,17 +368,22 @@ PUBLIC void TaskBlock(enum TaskStatus state)
  */
 PUBLIC void TaskUnblock(struct Task *task)
 {
-    // 先关闭中断，并且保存中断状态
-    //unsigned long flags = InterruptSave();
-    unsigned long eflags = InterruptSave();
-
     /*
     state有2种状态，分别是TASK_BLOCKED, TASK_WAITING
     只有它们能被唤醒, TASK_ZOMBIE只能阻塞，不能被唤醒
     */
-    ASSERT((task->status == TASK_BLOCKED) || 
-            (task->status == TASK_WAITING) ||
-            (task->status == TASK_STOPPED));
+    /*ASSERT((task->status == TASK_BLOCKED) || 
+        (task->status == TASK_WAITING) ||
+        (task->status == TASK_STOPPED));
+    */
+    if (!((task->status == TASK_BLOCKED) || 
+        (task->status == TASK_WAITING) ||
+        (task->status == TASK_STOPPED))) {
+        printk("can't unlock, %x status:%x", task, task->status);
+    }
+
+    // 先关闭中断，并且保存中断状态
+    unsigned long eflags = InterruptSave();
 
     // 没有就绪才能够唤醒，并且就绪
     if (task->status != TASK_READY) {
@@ -424,15 +408,18 @@ PUBLIC void TaskUnblock(struct Task *task)
  * StartProcess - 开始运行一个进程
  * @fileName: 进程的文件名
  */
-PRIVATE void StartProcess(void *fileName)
+PRIVATE void StartProcess(void *argv)
 {
     /* 开启进程的时候，需要去执行init程序，所以这里
     调用execv来完成这个工作 */
     //SysExecv((char *)fileName, NULL);
-    SysExecv((char *)fileName, NULL);
+    const char **arg = (const char **)argv;
+
+    SysExecv((char *)arg[0], arg);
     
+    printk("exec for first process failed!\n");
     /* 如果运行失败就停在这里 */
-    Panic("start init failed!\n");
+    //Panic("start init failed!\n");
 }
 
 /**
@@ -479,10 +466,10 @@ PUBLIC void TaskActivate(struct Task *task)
 
 /**
  * InitFirstProcess - 初始化第一个进程
- * @fileName: 任务的文件名
+ * @argv: 参数 
  * @name: 任务的名字
  */
-PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
+PUBLIC struct Task *InitFirstProcess(char **argv, char *name)
 {
     // 创建一个新的线程结构体
     struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
@@ -495,7 +482,7 @@ PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
     FreePid();
     /* 将pid设置为0，表明他是init进程 */
     thread->pid = 0;
-
+    
     AllocTaskMemory(thread);
     // 创建页目录
     thread->pgdir = CreatePageDir();
@@ -504,7 +491,7 @@ PUBLIC struct Task *InitFirstProcess(void *fileName, char *name)
     
     //printk("alloc a thread at %x\n", thread);
     // 创建一个线程
-    MakeTaskStack(thread, StartProcess, fileName);
+    MakeTaskStack(thread, StartProcess, (void *)argv);
     
     /* 操作链表时关闭中断，结束后恢复之前状态 */
     unsigned long flags = InterruptSave();
@@ -675,6 +662,11 @@ PUBLIC void DumpTask(struct Task *task)
     printk(PART_TIP "exit code:%d mm:%x stack mageic:%d\n", task->exitStatus, task->mm, task->stackMagic);
 }
 
+/* 配置直接运行应用程序，可用于应用开发调试 */
+#define CONFIG_APP_DIRECT 1
+
+PRIVATE char *initArgv[3];
+
 /**
  * InitUserProcess - 初始化用户进程
  */
@@ -684,8 +676,20 @@ PUBLIC void InitUserProcess()
     printk("Book Say > Welcom to BookOS! Please input 'help' to get more help!\n");
     printk("Book Say > You can press Alt + F1~F3 to select a different console.\n");
 #ifdef CONFIG_BLOCK_DEVICE
+
+#if CONFIG_APP_DIRECT == 0
 	/* 加载init进程 */
-	InitFirstProcess("root:/init", "init");
+    initArgv[0] =  "root:/init";
+    initArgv[1] =  0;
+    
+#else
+    /* 直接加载应用程序 */
+    initArgv[0] =  "root:/nes";
+    initArgv[1] =  "bee";
+    initArgv[2] =  0;
+#endif /* CONFIG_APP_DIRECT */
+
+    InitFirstProcess(initArgv, "init");
 #endif
 
 }

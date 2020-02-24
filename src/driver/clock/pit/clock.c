@@ -15,6 +15,7 @@
 #include <lib/math.h>
 #include <lib/stddef.h>
 #include <clock/clock.h>
+#include <clock/pit/clock.h>
 
 /* 时钟 */
 
@@ -27,17 +28,13 @@
 /* 1 ticks 对应的毫秒数 */
 #define MILLISECOND_PER_TICKS (1000 / HZ)
 
-PUBLIC struct SystemDate systemDate;
-
-PRIVATE int ticks;
-
 /**
  * ClockHandler - 时钟中断处理函数
  */
 PRIVATE void ClockHandler(unsigned int irq, unsigned int data)
 {
     /* 改变ticks计数 */
-	ticks++;
+	systicks++;
 	
 	/* 激活定时器软中断 */
 	ActiveSoftirq(TIMER_SOFTIRQ);
@@ -47,73 +44,11 @@ PRIVATE void ClockHandler(unsigned int irq, unsigned int data)
 	
 }
 
-/**
- * ClockChangeSystemDate - 改变系统的时间
-*/
-PRIVATE void ClockChangeSystemDate()
-{
-	systemDate.second++;
-	if(systemDate.second >= 60){
-		systemDate.minute++;
-		systemDate.second = 0;
-		if(systemDate.minute >= 60){
-			systemDate.hour++;
-			systemDate.minute = 0;
-			if(systemDate.hour >= 24){
-				systemDate.day++;
-				systemDate.hour = 0;
-				//现在开始就要判断平年和闰年，每个月的月数之类的
-				if(systemDate.day > 30){
-					systemDate.month++;
-					systemDate.day = 1;
-					
-					if(systemDate.month > 12){
-						systemDate.year++;	//到年之后就不用调整了
-						systemDate.month = 1;
-					}
-				}
-			}
-		}
-	}
-}
-
-/**
- * GetLocalTime - 获取本地时间
- * @time: 时间结构体
- */
-PUBLIC void GetLocalTime(struct SystemDate *time)
-{
-    *time = systemDate;
-}
-
-/**
- * PrintSystemDate - 打印系统时间
- */
-PUBLIC void PrintSystemDate()
-{
-	printk(PART_TIP "----Time & Date----\n");
-
-	printk("Time:%d:%d:%d Date:%d/%d/%d\n", \
-		systemDate.hour, systemDate.minute, systemDate.second,\
-		systemDate.year, systemDate.month, systemDate.day);
-	
-	/*char *weekday[7];
-	weekday[0] = "Monday";
-	weekday[1] = "Tuesday";
-	weekday[2] = "Wednesday";
-	weekday[3] = "Thursday";
-	weekday[4] = "Friday";
-	weekday[5] = "Saturday";
-	weekday[6] = "Sunday";
-	printk("weekday:%d", systemDate.weekDay);
-	*/
-}
-
 /* 定时器软中断处理 */
 PRIVATE void TimerSoftirqHandler(struct SoftirqAction *action)
 {
 	/* 改变系统时间 */
-    if (ticks % HZ == 0) {  /* 1s更新一次 */
+    if (systicks % HZ == 0) {  /* 1s更新一次 */
         ClockChangeSystemDate();
         //printk("t");
     }
@@ -151,10 +86,10 @@ PRIVATE void SchedSoftirqHandler(struct SoftirqAction *action)
 PRIVATE void SleepByTicks(uint32_t sleepTicks)
 {
 	/* 获取起始ticks，后面进行差值运算 */
-	uint32_t startTicks = ticks;
+	uint32_t startTicks = systicks;
 
 	/* 如果最新ticks和开始ticks差值小于要休眠的ticks，就继续休眠 */
-	while (ticks - startTicks < sleepTicks) {
+	while (systicks - startTicks < sleepTicks) {
 		/* 让出cpu占用，相当于休眠 */
 		TaskYield();
         //CpuNop();
@@ -189,7 +124,7 @@ PUBLIC void InitPitClockDriver()
 	Out8(PIT_COUNTER0, 0x2e);
     printk("timer value:%x , %x\n", COUNTER0_VALUE, (0x2e << 8) | 0x9c);
     */
-	ticks = 0;
+	systicks = 0;
 
 	//用一个循环让秒相等
 	do{
@@ -203,12 +138,14 @@ PUBLIC void InitPitClockDriver()
 		systemDate.weekDay = CMOS_GetDayOfWeek();
 		
 		/* 转换成本地时间 */
-		/*if(systemDate.hour >= 16){
+		/* 自动转换时区 */
+#if CONFIG_TIMEZONE_AUTO == 1
+        /*if(systemDate.hour >= 16){
 			systemDate.hour -= 16;
 		}else{
 			systemDate.hour += 8;
 		}*/
-
+#endif /* CONFIG_TIMEZONE_AUTO */
 	}while(systemDate.second != CMOS_GetSecHex());
 
 	/* 初始化定时器 */

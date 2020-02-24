@@ -285,6 +285,8 @@ PRIVATE void VesaWriteOnePixel32(struct VesaPrivate *self, int x, int y, uint32_
 }
 
 /**
+ * VesaWrite - 绘制图形
+ * 
  * 
  */
 PRIVATE int VesaWrite(struct Device *device, unsigned int offset, void *buffer, unsigned int size)
@@ -313,24 +315,26 @@ PRIVATE int VesaWrite(struct Device *device, unsigned int offset, void *buffer, 
 }
 
 /**
- * 
+ * VesaWriteDirect - 直接使用绘制功能，不通过驱动层。
  */
-PUBLIC int VesaWriteDirect(unsigned int offset, void *buffer, unsigned int size)
+PUBLIC int VesaWriteDirect(int x, int y, int width, int height, unsigned int color)
 {
     struct VesaPrivate *self = &vesaPrivate;
 
-    if (self->vesaWriteOnePixel) {    
-        uint32_t *p = (uint32_t *)buffer;
-
-        int x0 = HIGH16(offset), y0 = LOW16(offset);
-        int x1 = x0 + HIGH16(size);
-        int y1 = y0 + LOW16(size);
-        for (y0 = LOW16(offset); y0 < y1; y0++) {    
-            for (x0 = HIGH16(offset); x0 < x1; x0++) {
-                /* 绘制像素 */
-                self->vesaWriteOnePixel(self, x0, y0, *p++);
+    if (self->vesaWriteOnePixel) {   
+        
+        int x0, y0;
+        int x1 = x + width;
+        int y1 = y + height;
+        for (y0 = y; y0 < y1; y0++) {    
+            for (x0 = x; x0 < x1; x0++) {
+                /* 在屏幕范围内才绘制 */
+                if (x0 >= 0 && y0 >= 0 && x0 < self->xResolution && y0 < self->yResolution) {
+                    /* 绘制像素 */
+                    self->vesaWriteOnePixel(self, x0, y0, color);
+                }
             }
-        }    
+        }
     }
     
     return 0;
@@ -478,8 +482,6 @@ PUBLIC int VesaInitOne(struct VesaPrivate *self)
 	/* 把字符设备添加到系统 */
 	AddCharDevice(self->chrdev);
     
-    printk("grpah devno %x\n", self->chrdev->super.devno);
-
 	return 0;
 }
 

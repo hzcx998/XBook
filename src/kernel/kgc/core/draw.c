@@ -1,5 +1,5 @@
 /*
- * file:		kernel/kgc/draw.c
+ * file:		kernel/kgc/core/draw.c
  * auther:		Jason Hu
  * time:		2020/2/5
  * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
@@ -18,7 +18,11 @@
 /* 图形系统 */
 #include <book/kgc.h>
 #include <kgc/draw.h>
+#include <kgc/video.h>
 
+#if KGC_DIRECT_DRAW == 1
+EXTERN int VesaWriteDirect(int x, int y, int width, int height, unsigned int color);
+#endif /* KGC_DIRECT_DRAW */
 /**
  * KGC_DrawPixel - 绘制像素
  * @x: 横坐标
@@ -27,8 +31,12 @@
  */
 PUBLIC void KGC_DrawPixel(int x, int y, uint32_t color)
 {
+#if KGC_DIRECT_DRAW == 0
     /* 绘制一个非缓冲区类型的图形 */
     KGC_CoreDraw(MERGE32(x, y), MERGE32(1, 1), NULL, color);
+#else
+    VesaWriteDirect(x, y, 1, 1, color);
+#endif /* KGC_DIRECT_DRAW */
 }
 
 /**
@@ -101,8 +109,12 @@ PUBLIC void KGC_DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
  */
 PUBLIC void KGC_DrawRectangle(int x, int y, int width, int height, uint32_t color)
 {
+#if KGC_DIRECT_DRAW == 0
     /* 绘制一个非缓冲区类型的图形 */
     KGC_CoreDraw(MERGE32(x, y), MERGE32(width, height), NULL, color);
+#else
+    VesaWriteDirect(x, y, width, height, color);
+#endif /* KGC_DIRECT_DRAW */
 }
 
 /**
@@ -115,8 +127,20 @@ PUBLIC void KGC_DrawRectangle(int x, int y, int width, int height, uint32_t colo
  */
 PUBLIC void KGC_DrawBitmap(int x, int y, int width, int height, void *bitmap)
 {
+#if KGC_DIRECT_DRAW == 0
     /* 绘制一个缓冲区类型的图形 */
     KGC_CoreDraw(MERGE32(x, y), MERGE32(width, height), bitmap, 0);
+#else
+    int x0, y0;
+    uint32_t color;
+    uint32_t *p = (uint32_t *)bitmap;
+    for (y0 = x; y0 < y + height; y0++) {
+        for (x0 = x; x0 < x + width; x0++) {
+            color = p[y0 * width + x0];
+            VesaWriteDirect(x, y, 1, 1, color);
+        }
+    }
+#endif /* KGC_DIRECT_DRAW */
 }
 
 /**
@@ -149,4 +173,19 @@ PUBLIC void KGC_DrawCircle(uint32_t center_x,uint32_t center_y, uint32_t radius,
             p += 2*x - 2*y + 1;  
         }  
     }  
+}
+
+/**
+ * KGC_CleanVideo - 清空视频显存
+ * @x: 横坐标
+ * @y: 纵坐标
+ * @width: 宽度
+ * @height: 高度 
+ * @color: 颜色
+ * 
+ * 清空显存的某个区域
+ */
+PUBLIC void KGC_CleanVideo(int x, int y, int width, int height, uint32_t color)
+{
+    KGC_DrawRectangle(x, y, width, height, color);
 }

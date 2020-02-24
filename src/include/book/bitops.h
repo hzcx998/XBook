@@ -13,20 +13,20 @@
 #include <book/bitops.h>
 
 /* 求位数值 */
-#define LOW8(a) (unsigned char)(a & 0xff) 
-#define HIGH8(a) (unsigned char)((a >> 8) & 0xff) 
+#define LOW8(a) (unsigned char)((a) & 0xff) 
+#define HIGH8(a) (unsigned char)(((a) >> 8) & 0xff) 
 
-#define LOW16(a) (unsigned short)(a & 0xffff) 
-#define HIGH16(a) (unsigned short)((a >> 16) & 0xffff) 
+#define LOW16(a) (unsigned short)((a) & 0xffff) 
+#define HIGH16(a) (unsigned short)(((a) >> 16) & 0xffff) 
 
-#define LOW32(a) (unsigned int)(a & 0xffffffff) 
-#define HIGH32(a) (unsigned int)((a >> 32) & 0xffffffff) 
+#define LOW32(a) (unsigned int)((a) & 0xffffffff) 
+#define HIGH32(a) (unsigned int)(((a) >> 32) & 0xffffffff) 
 
 /* 合并操作 */
-#define MERGE64(a, b) (unsigned long)(((a & 0xffffffff) << 32) | (b & 0xffffffff)) 
-#define MERGE32(a, b) (unsigned int)(((a & 0xffff) << 16) | (b & 0xffff)) 
-#define MERGE16(a, b) (unsigned short)(((a & 0xff) << 8) | (b & 0xff)) 
-#define MERGE8(a, b) (unsigned char)(((a & 0xf) << 4) | (b & 0xf)) 
+#define MERGE64(a, b) (unsigned long)((((a) & 0xffffffff) << 32) | ((b) & 0xffffffff)) 
+#define MERGE32(a, b) (unsigned int)((((a) & 0xffff) << 16) | ((b) & 0xffff)) 
+#define MERGE16(a, b) (unsigned short)((((a) & 0xff) << 8) | ((b) & 0xff)) 
+#define MERGE8(a, b) (unsigned char)((((a) & 0xf) << 4) | ((b) & 0xf)) 
 
 /**
  * SetBit - 设置位为1

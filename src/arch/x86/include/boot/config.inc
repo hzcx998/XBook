@@ -11,8 +11,7 @@
 %define CONFIG_VESA
 
 ; 配置图形模式
-;%define CONFIG_GRAPH
-
+%define CONFIG_GRAPH
 
 %ifdef CONFIG_VESA
 ;图形模式列表：
@@ -31,5 +30,5 @@ VMODE_1280_1024_24          EQU 0x11B
 VMODE_VMWARE_800_600_24     EQU	0x140
 
 ; 使用的模式
-VESA_MODE	EQU	VMODE_1024_768_16
+VESA_MODE	EQU	VMODE_1024_768_24
 %endif  ; CONFIG_VESA

@@ -39,7 +39,7 @@ int mkdir(const char *pathname);
 int rmdir(const char *pathname);
 int getcwd(char* buf, unsigned int size);
 int chdir(const char *pathname);
-int rename(const char *pathname, char *name);
+int rename(const char *pathname, const char *name);
 
 /* 目录打开读取关闭操作 */
 DIR *opendir(const char *pathname);

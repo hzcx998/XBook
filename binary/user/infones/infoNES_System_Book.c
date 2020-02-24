@@ -4,12 +4,17 @@
 #include <conio.h>
 #include <stdarg.h>
 #include <vsprintf.h>
+#include <sys/kgc.h>
 
 #include <InfoNES.h>
 #include <InfoNES_System.h>
 #include <InfoNES_pAPU.h>
 
+//#define CONFIG_SOUND
+
+#ifdef CONFIG_SOUND
 #define SOUND_DEVICE "sys:/dev/pcspeaker2"
+#endif /* CONFIG_SOUND */
 
 void start_application( char *filename );
 int InfoNES_Load( const char *pszFileName );
@@ -88,6 +93,15 @@ int main(int argc,char *argv[])
 /*===================================================================*/
 void start_application( char *filename )
 {
+    /* 创建窗口 */
+    KGC_Message_t msg;
+    msg.type = KGC_MSG_WINDOW_CREATE;
+    msg.window.title = "infones";
+    msg.window.width = NES_DISP_WIDTH;
+    msg.window.height = NES_DISP_HEIGHT;
+    msg.window.flags = KGC_MSG_WINDOW_SHOW;
+    kgcmsg(KGC_MSG_SEND, &msg);
+
   //printf("load ");
   /* Set a ROM image name */
   strcpy( szRomName, filename );
@@ -399,17 +413,17 @@ void InfoNES_LoadFrame()
   //pBuf = pbyRgbBuf;
 
     register DWORD *q = graphBuffer;
-    static int sum = 0;
-  // Exchange 16-bit to 24-bit  
+    // Exchange 16-bit to 24-bit  
   for ( register int y = 0; y < NES_DISP_HEIGHT; y++ )
   {
     for ( register int x = 0; x < NES_DISP_WIDTH; x++ )
     {  
       WORD wColor = WorkFrame[ ( y << 8 ) + x ];
-	  sum += wColor;
+	  
       *q = (guchar)( ( wColor & 0x7c00 ) >> 7 )<<16;
         *q |= (guchar)( ( wColor & 0x03e0 ) >> 2 )<<8;
         *q |= (guchar)( ( wColor & 0x001f ) << 3 );
+        *q |= (0xff << 24);
         q++;
       //*(pBuf++) = (guchar)( ( wColor & 0x7c00 ) >> 7 );
       
@@ -418,7 +432,15 @@ void InfoNES_LoadFrame()
       //*(pBuf++) = (guchar)( ( wColor & 0x001f ) << 3 );
     }
   }
-    graph(0, (NES_DISP_WIDTH << 16) | NES_DISP_HEIGHT, graphBuffer);
+    KGC_Message_t msg;
+    msg.type = KGC_MSG_DRAW_BITMAP_PLUS;
+    msg.draw.left = 0;
+    msg.draw.top = 0;
+    msg.draw.width = NES_DISP_WIDTH;
+    msg.draw.height = NES_DISP_HEIGHT;
+    msg.draw.bitmap = graphBuffer;
+    kgcmsg(KGC_MSG_SEND, &msg);
+    //graph(0, (NES_DISP_WIDTH << 16) | NES_DISP_HEIGHT, graphBuffer);
     //printf("sum:%d", sum);
 }
 
@@ -470,6 +492,109 @@ status = read(0, &key, 4);
 
 // 按键处理
 void PollEvent(void)
+{
+    /* 轮训 */
+    KGC_Message_t msg;
+    if (!kgcmsg(KGC_MSG_RECV, &msg)) {
+        if (msg.type == KGC_MSG_KEY_DOWN) {
+            
+            switch (msg.key.code)
+			{
+			case SDLK_RIGHT:
+			case SDLK_RIGHT2:
+            	dwKeyPad1 |= (1 << 7);
+				break;
+			case SDLK_LEFT:
+            case SDLK_LEFT2:
+            
+				dwKeyPad1 |= (1 << 6);
+				break;
+			case SDLK_DOWN:
+            case SDLK_DOWN2:
+            
+				dwKeyPad1 |= (1 << 5);
+				break;
+			case SDLK_UP:
+			case SDLK_UP2:
+				dwKeyPad1 |= (1 << 4);
+				break;
+			case SDLK_RETURN:
+			case SDLK_RETURN2:
+				dwKeyPad1 |= (1 << 3);
+				break;			/* Start */
+			case SDLK_ESCAPE:
+			case SDLK_ESCAPE2:
+				dwKeyPad1 |= (1 << 2);
+				break;			/* Select */
+			case SDLK_J:
+			case SDLK_J2:
+				dwKeyPad1 |= (1 << 1);
+				break;			/* 'B' */
+			case SDLK_K:
+			case SDLK_K2:
+				dwKeyPad1 |= (1 << 0);
+				break;			/* 'A' */
+			case SDLK_C:
+			case SDLK_C2:
+				/* 切换剪裁 */
+				PPU_UpDown_Clip = (PPU_UpDown_Clip ? 0 : 1);
+				break;
+			case SDLK_R:
+            case SDLK_R2:
+            
+				SaveSRAM();
+				break;
+			}
+
+        } else if (msg.type == KGC_MSG_KEY_UP) {
+            switch (msg.key.code)
+			{
+			case SDLK_RIGHT:
+			case SDLK_RIGHT2:
+				dwKeyPad1 &= ~(1 << 7);
+				break;
+			case SDLK_LEFT:
+			case SDLK_LEFT2:
+				dwKeyPad1 &= ~(1 << 6);
+				break;
+			case SDLK_DOWN:
+			case SDLK_DOWN2:
+				dwKeyPad1 &= ~(1 << 5);
+				break;
+			case SDLK_UP:
+			case SDLK_UP2:
+				dwKeyPad1 &= ~(1 << 4);
+				break;
+			case SDLK_RETURN:
+			case SDLK_RETURN2:
+				dwKeyPad1 &= ~(1 << 3);
+				break;			/* Start */
+			case SDLK_ESCAPE:
+			case SDLK_ESCAPE2:
+				dwKeyPad1 &= ~(1 << 2);
+				break;			/* Select */
+			case SDLK_J:
+			case SDLK_J2:
+				dwKeyPad1 &= ~(1 << 1);
+				break;			/* 'B' */
+			case SDLK_K:
+			case SDLK_K2:
+				dwKeyPad1 &= ~(1 << 0);
+				break;			/* 'A' */
+			}					/* 按键松开 */
+		} else if (msg.type == KGC_MSG_QUIT) {
+            /* 退出 */
+            msg.type = KGC_MSG_WINDOW_CLOSE;
+            kgcmsg(KGC_MSG_SEND, &msg);
+            
+            exit(0);
+        }
+    }
+}
+
+
+// 按键处理
+void PollEvent2(void)
 {
     /* 轮训 */
     unsigned int key = 0;
@@ -582,6 +707,8 @@ void InfoNES_SoundInit( void )
 /*===================================================================*/
 int InfoNES_SoundOpen( int samples_per_sync, int sample_rate ) 
 {
+    
+#ifdef CONFIG_SOUND
     soundFd = open(SOUND_DEVICE, O_RDWR);
     if (soundFd < 0) {
         soundFd = 0;
@@ -589,6 +716,7 @@ int InfoNES_SoundOpen( int samples_per_sync, int sample_rate )
     }
     /* 开始播放声音 */
     ioctl(soundFd, 0, 0);
+#endif
   /* Successful */
   return 1;
 }
@@ -600,9 +728,12 @@ int InfoNES_SoundOpen( int samples_per_sync, int sample_rate )
 /*===================================================================*/
 void InfoNES_SoundClose( void ) 
 {
+
+#ifdef CONFIG_SOUND
   if (soundFd) {
       close(soundFd);
     }
+#endif
 }
 
 /*===================================================================*/
@@ -612,6 +743,8 @@ void InfoNES_SoundClose( void )
 /*===================================================================*/
 void InfoNES_SoundOutput( int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3, BYTE *wave4, BYTE *wave5 )
 {
+
+#ifdef CONFIG_SOUND
   int i;
   BYTE finalWave;
   wavflag = 1;
@@ -641,6 +774,7 @@ void InfoNES_SoundOutput( int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3, BY
       /* 设置频率 */
       //ioctl(soundFd, 4, finalWave);
   }
+#endif /* CONFIG_SOUND */
 }
 
 /*===================================================================*/

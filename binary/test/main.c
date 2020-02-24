@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <unistd.h>
 #include <signal.h>
+#include <file.h>
 
 char test[4096];
 
@@ -247,6 +248,47 @@ void sigsuspendTest2()
 
 }
 
+void stream_file()
+{
+    FILE *fp = fopen("root:/ff", "w+");
+    if (fp == NULL)
+        printf("open file failed!\n");
+    printf("fptr: %x\n", fp);
+    /*fputc('a', fp);
+
+    fputs("hello, world!", fp);
+    
+    fprintf(fp, "fprintf:%d %c %x %s\n", 123456789,
+        'f', 0x1234abcd, "this is a string");
+    */
+    /*uint8_t data[100];
+    memset(data, 0, 100);
+    int ret = fread(data, 10, 10, fp);
+    
+    printf("read size %d\n", ret);
+    while (ret--)
+        printf("%x ", data[ret]);
+    */
+    //fprintf(fp, "hello, world1\nthis\n");
+    /*
+    char buf[20];
+
+    fgets(buf, 20, fp);
+    printf("buf:%s", buf);
+    
+    fgets(buf, 20, fp);
+    printf("buf:%s", buf);
+    */
+    char buf[128];
+    memset(buf, 0x77, 128);
+
+    fread(buf, 32, 4, fp);
+    
+    printf("is eof\n", feof(fp));
+    
+    fclose(fp);
+}
+
 int main(int argc, char *argv[])
 {
 	printf("Welcome to test. my pid %d\n", getpid());
@@ -258,6 +300,10 @@ int main(int argc, char *argv[])
 	}
 
     printf("I will do some test and exit\n");	
+
+    printf("----stream file----\n");
+    stream_file();
+    return 0;
 
     printf("----signal test----\n");
     

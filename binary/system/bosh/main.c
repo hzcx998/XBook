@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <share/string.h>
-#include <share/const.h>
+#include <string.h>
+#include <const.h>
 #include <unistd.h>
 #include <conio.h>
 #include <signal.h>
@@ -19,7 +19,7 @@ char tty_path[MAX_PATH_LEN] = {0};
 
 int shell_next_line;
 
-int stdin; /* 标准输入文件时tty，退出时，需要抛弃持有者 */ 
+int stdinno; /* 标准输入文件时tty，退出时，需要抛弃持有者 */ 
 
 void signal_handler(int signo) 
 {
@@ -33,32 +33,33 @@ int main(int argc, char *argv0[])
         //printf("argc must >= 1, now exit!\n");  
         return -1;    
     }
-
     /* 保存对应的tty路径 */
     memset(tty_path, 0, MAX_PATH_LEN);
     strcpy(tty_path, argv0[0]);
     
-    stdin = open(argv0[0], O_RDONLY);
-    if (stdin < 0)
+    stdinno = open(argv0[0], O_RDONLY);
+    if (stdinno < 0)
         return -1;
 
-    int stdout = open(argv0[0], O_WRONLY);
-    if (stdout < 0)
+    int stdoutno = open(argv0[0], O_WRONLY);
+    if (stdoutno < 0)
         return -1;
 
-    int stderr = open(argv0[0], O_WRONLY);
-    if (stderr < 0)
+    int stderrno = open(argv0[0], O_WRONLY);
+    if (stderrno < 0)
         return -1;
     
     // 把当前进程设置为tty持有者
-    ioctl(stdin, TTY_CMD_HOLD, getpid());
-
+    ioctl(stdinno, TTY_CMD_HOLD, getpid());
+    
     //printf("hello, shell!\n");
-
+    
 	memset(cwd_cache, 0, MAX_PATH_LEN);
-
+    
 	getcwd(cwd_cache, 32);
-	//printf("cwd:%s\n", cwd_cache);
+	//while (1);
+    
+    //printf("cwd:%s\n", cwd_cache);
 	
 	int arg_idx = 0;
     int status = 0;
@@ -94,7 +95,6 @@ int main(int argc, char *argv0[])
     //printf("old handler %x\n", oldact.sa_handler);
 
     //abort();
-
 
 	while(1){ 
         /* 显示提示符 */
@@ -150,13 +150,13 @@ int main(int argc, char *argv0[])
                 if (pid > 0) {  /* 父进程 */
                     if (!daemon) {
                         // 把子进程设置为前台
-                        ioctl(stdin, TTY_CMD_HOLD, pid);
+                        ioctl(stdinno, TTY_CMD_HOLD, pid);
                         
                         /* shell程序等待子进程退出 */
                         pid = wait(&status);
 
                         // 恢复自己为前台
-                        ioctl(stdin, TTY_CMD_HOLD, getpid());
+                        ioctl(stdinno, TTY_CMD_HOLD, getpid());
 
                         printf("parent %d wait %d exit %d\n",
                             getpid(), pid, status);

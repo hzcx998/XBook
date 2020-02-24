@@ -8,10 +8,25 @@
 #ifndef _LIB_STDIO_H
 #define _LIB_STDIO_H
 
-#include "../lib/stdint.h"
-#include "../lib/stddef.h"
+#include "stdint.h"
+#include "stddef.h"
 
-#include "../lib/file.h"
-#include "../lib/dir.h"
+#include "file.h"
+#include "dir.h"
+
+#include "libio.h"
+
+#define EOF     -1
+
+/* 标准输入、输出、错误流 */
+extern FILE *stdin, *stdout, *stderr; 
+
+#ifndef BUFSIZ
+#define BUFSIZ _IO_BUFSIZ
+#endif /* BUFSIZ */
+
+
+#define _P_tmpdir   "sys:/tmp"
+#define L_tmpnam   (sizeof(_P_tmpdir) + 12)
 
 #endif  /* _LIB_STDIO_H */

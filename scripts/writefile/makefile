@@ -10,11 +10,11 @@ FILE_OFF = 0
 FILE_CNTS = 1536
 
 #img dir
-IMG_DIR = ../../img/
+IMG_DIR = ../../developments/image/
 
 DISK_IMG = d.img
 
-DISK_VHD = a.vhd
+DISK_VHD = d.vhd
 
 HD_IMG = $(IMG_DIR)$(DISK_IMG)
 HD_VHD = $(IMG_DIR)$(DISK_VHD)

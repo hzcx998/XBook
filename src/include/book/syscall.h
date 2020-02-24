@@ -59,6 +59,12 @@ enum {
     SYS_GETPGID,            /* 44 */
     SYS_SETPGID,            /* 45 */
     SYS_GRAPHW,             /* 46 */
+    SYS_TELL,               /* 47 */
+    SYS_ISFOOT,             /* 48 */
+    SYS_DUP,                /* 49 */
+    SYS_DUP2,               /* 50 */
+    SYS_KGCMSG,             /* 51 */
+    
     MAX_SYSCALL_NR,
 };
 

@@ -551,7 +551,7 @@ PRIVATE int TTY_InitOne(TTY_t *tty)
 		printk(PART_ERROR "alloc char device for tty failed!\n");
 		return -1;
 	}
-
+    
 	/* 初始化字符设备信息 */
 	CharDeviceInit(tty->chrdev, 1, tty);
 	CharDeviceSetup(tty->chrdev, &ttyOpSets);

@@ -31,22 +31,16 @@
 #include <fs/bofs/fifo.h>
 
 /* 同步磁盘上的数据到文件系统 */
-//#define SYNC_DISK_DATA
-
-#define FLOPPY_DATA_ADDR	0x80050000
-
-/* 数据是在硬盘上的 */
-#define DATA_ON_IDE 0
+#define SYNC_DISK_DATA
 
 #define DATA_BLOCK 256
 
-
 /* 要写入文件系统的文件 */
-#define FILE_ID 1
+#define FILE_ID 5
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
-	#define FILE_SECTORS 40
+	#define FILE_SECTORS 100
 #elif FILE_ID == 2
 	#define FILE_NAME "root:/shell"
 	#define FILE_SECTORS 100
@@ -58,7 +52,7 @@
 	#define FILE_SECTORS 50
 #elif FILE_ID == 5
 	#define FILE_NAME "root:/nes"
-	#define FILE_SECTORS 620
+	#define FILE_SECTORS 640
 #elif FILE_ID == 6
 	#define FILE_NAME "root:/bee"
 	#define FILE_SECTORS 1536
@@ -74,9 +68,10 @@
 
 PRIVATE void WriteDataToFS()
 {
-    printk("ready load file to fs.\n");
-	#ifdef SYNC_DISK_DATA
-	char *buf = kmalloc(FILE_SECTORS * SECTOR_SIZE, GFP_KERNEL);
+    #ifdef SYNC_DISK_DATA
+	printk("ready load file to fs.\n");
+	
+    char *buf = kmalloc(FILE_SECTORS * SECTOR_SIZE, GFP_KERNEL);
 	if (buf == NULL) {
 		Panic("kmalloc for buf failed!\n");
 	}
@@ -90,31 +85,11 @@ PRIVATE void WriteDataToFS()
 	
 	memset(buf, 0, FILE_SECTORS * SECTOR_SIZE);
 	
-#if DATA_ON_IDE == 1
     int ret = DeviceOpen(DEV_HDB, O_RDONLY);
     
     if (ret < 0) {
         printk("open device failed!\n");
     } else {
-        /**
-        int lba = 0;
-        int left = FILE_SECTORS;
-        int count = left % READ_BLOCK_SECTORS;
-
-        char *p = buf;
-        while (left > 0) {
-            printk("read at lba:%d buf:%x count:%d\n", lba, p, count);
-            DeviceRead(DEV_HDB, lba, p, count);
-            printk("%x %x %x %x\n", p[0], p[511], p[512], p[1023]);
-            
-            count = left % READ_BLOCK_SECTORS;
-            p += READ_BLOCK_SECTORS * SECTOR_SIZE;
-            left -= READ_BLOCK_SECTORS;
-            lba += READ_BLOCK_SECTORS;
-        }
-        
-        DeviceClose(DEV_HDB);
-        */
         int leftCount = FILE_SECTORS;
        
         /* 小于1个块 */
@@ -137,22 +112,10 @@ PRIVATE void WriteDataToFS()
                 /* 每次处理BLOCK个 */
                 chunk = DATA_BLOCK;
             }
-       }
-#if FILE_ID == 5
-        DeviceRead(DEV_HDB, 0, buf, 512);
-        DeviceRead(DEV_HDB, 0, buf + 512 * SECTOR_SIZE, FILE_SECTORS - 512);
-#elif FILE_ID == 6
-        //DeviceRead(DEV_HDB, 0, buf, FILE_SECTORS);
-    
-#endif        
-        DeviceClose(DEV_HDB);
-               
+        }        
+        DeviceClose(DEV_HDB);       
     }
-#else
-    char *data = (char *)FLOPPY_DATA_ADDR;
 
-    memcpy(buf, data, FILE_SIZE);
-#endif
 	
 	if (SysWrite(fd, buf, FILE_SIZE) != FILE_SIZE) {
 		printk("write failed!\n");
@@ -431,47 +394,6 @@ PRIVATE void ConfigFiles()
 
 
 PRIVATE void Test();
-
-/**
- * InitFileSystem - 初始化文件系统
- * 
- */
-PUBLIC void InitFileSystem()
-{
-#ifdef CONFIG_FILE_SYSTEM
-	
-    InitBoFS();
-    
-    Test();
-
-    WriteDataToFS();
-
-    MakeDeviceFile();
-    MakeTaskFile();
-    MakeDriveFile();
-    MakeFifoFile();
-
-    ConfigFiles();
-#endif /* CONFIG_FILE_SYSTEM */
-/*
-    int fd[2];
-    if (SysPipe(fd) < 0) {
-        printk("pipe failed!\n");
-    }
-
-    printk("fd0 %d, fd1 %d\n", fd[0], fd[1]);
-
-    char buf[20] = {0};
-    strcpy(buf, "hello, world!\n");
-    SysWrite(fd[1], buf, strlen(buf));
-
-    memset(buf, 0, 20);
-    SysRead(fd[0], buf, 20);
-    printk(buf);
-
-    SysClose(fd[0]);
-    SysClose(fd[1]);*/
-}
 
 PUBLIC void SysListDir(const char *pathname)
 {
@@ -865,6 +787,16 @@ PUBLIC int SysLseek(int fd, unsigned int offset, char flags)
     return BOFS_Lseek(fd, offset, newFlags);
 }
 
+PUBLIC long SysTell(int fd)
+{
+    return BOFS_Tell(fd);
+}
+
+PUBLIC int SysIsFoot(int fd)
+{
+    return BOFS_IsFoot(fd);
+}
+
 PUBLIC int SysRead(int fd, void *buffer, unsigned int size)
 {
     return BOFS_Read(fd, buffer, size);
@@ -972,6 +904,17 @@ PUBLIC int SysFcntl(int fd, int cmd, int arg)
     
 	return 0;
 }
+
+PUBLIC int SysDup(int oldfd)
+{
+	return BOFS_Dup(oldfd);
+}
+
+PUBLIC int SysDup2(int oldfd, int newfd)
+{
+	return BOFS_Dup2(oldfd, newfd);
+}
+
 
 PUBLIC int SysFsync(int fd)
 {
@@ -1238,4 +1181,104 @@ PUBLIC int SysReadDir(DIR *dir, dirent *buf)
 PUBLIC void SysRewindDir(DIR *dir)
 {
 	BOFS_RewindDir((struct BOFS_Dir *)dir);
+}
+
+
+/**
+ * InitFileSystem - 初始化文件系统
+ * 
+ */
+PUBLIC void InitFileSystem()
+{
+#ifdef CONFIG_FILE_SYSTEM
+	
+    InitBoFS();
+    
+    WriteDataToFS();
+
+    MakeDeviceFile();
+    MakeTaskFile();
+    MakeDriveFile();
+    MakeFifoFile();
+
+    ConfigFiles();
+
+    Test();
+    /*
+    int fd1 = SysOpen("/ff", O_RDWR);
+    if (fd1 < 0)
+        printk("file open failed!\n");
+
+    printk("fd:%d\n", fd1);
+
+    int fd2 = SysDup(fd1);
+    if (fd1 < 0)
+        printk("dup file failed!\n");
+    printk("fd:%d\n", fd2);
+
+    char buf[12];
+    memset(buf, 0, 12);
+
+    strcpy(buf, "jason.\n");
+
+    SysWrite(fd1, buf, 7);
+
+    SysLseek(fd2, 0, SEEK_SET);
+
+    memset(buf, 0, 12);
+
+    SysRead(fd2, buf, 7);
+
+    printk("str:%s\n", buf);
+    */
+    /*
+    int fd1 = SysOpen("/ff", O_RDWR);
+    if (fd1 < 0)
+        printk("file open failed!\n");
+
+    int fd3 = SysOpen("/ff", O_RDWR);
+    if (fd3 < 0)
+        printk("file open failed!\n");
+    
+    int fd2 = SysDup2(fd1, 1);
+    if (fd2 < 0)
+        printk("file dup2 failed!\n");
+    printk("fd1:%d fd2:%d\n", fd1, fd2);
+
+    char buf[12];
+    memset(buf, 0, 12);
+
+    strcpy(buf, "xbook.\n");
+
+    SysWrite(fd1, buf, 7);
+
+    SysLseek(fd2, 0, SEEK_SET);
+
+    memset(buf, 0, 12);
+
+    SysRead(fd2, buf, 7);
+
+    printk("str:%s\n", buf);    
+
+    while (1);
+    */
+#endif /* CONFIG_FILE_SYSTEM */
+/*
+    int fd[2];
+    if (SysPipe(fd) < 0) {
+        printk("pipe failed!\n");
+    }
+
+    printk("fd0 %d, fd1 %d\n", fd[0], fd[1]);
+
+    char buf[20] = {0};
+    strcpy(buf, "hello, world!\n");
+    SysWrite(fd[1], buf, strlen(buf));
+
+    memset(buf, 0, 20);
+    SysRead(fd[0], buf, 20);
+    printk(buf);
+
+    SysClose(fd[0]);
+    SysClose(fd[1]);*/
 }

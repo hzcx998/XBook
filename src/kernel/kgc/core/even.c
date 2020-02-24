@@ -1,5 +1,5 @@
 /*
- * file:		kernel/kgc/even.c
+ * file:		kernel/kgc/core/even.c
  * auther:		Jason Hu
  * time:		2020/2/6
  * copyright:	(C) 2018-2020 by Book OS developers. All rights reserved.
@@ -139,6 +139,7 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             /* 按下的时候，可以是多个按键，所以用或 */
             even->button |= KGC_MOUSE_LEFT;   /* 左键 */
             mouseRecord.left = 1;
+            //printk("left down>");
         }
     } else {
         /* 如果上次是按下，这次又没有按下，就是弹起 */
@@ -148,6 +149,7 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             even->button = KGC_MOUSE_LEFT;   /* 左键 */
 
             mouseRecord.left = 0; 
+            //printk("left up>");
             
             /* 打印事件状态 */
             //printk("type:%x state:%x button:%x\n", even->type, even->state, even->button);  
@@ -162,7 +164,9 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             /* 按下的时候，可以是多个按键，所以用或 */
             
             even->button |= KGC_MOUSE_RIGHT;   /* 右键 */
-            mouseRecord.right = 1;    
+            mouseRecord.right = 1;   
+            //printk("right down>");
+        
         }
     } else {
         /* 如果上次是按下，这次又没有按下，就是弹起 */
@@ -172,7 +176,8 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             even->button = KGC_MOUSE_RIGHT;   /* 右键 */
         
             mouseRecord.right = 0;
-
+            //printk("right up>");
+        
             /* 打印事件状态 */
             //printk("type:%x state:%x button:%x\n", even->type, even->state, even->button);      
             return;   /* 如果有按键弹起就直接返回，不再往后面检测 */         
@@ -187,7 +192,9 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             /* 按下的时候，可以是多个按键，所以用或 */
             
             even->button |= KGC_MOUSE_MIDDLE;   /* 中键 */
-            mouseRecord.middle = 1;    
+            mouseRecord.middle = 1; 
+            //printk("mid down>");
+        
         }
     } else {
         /* 如果上次是按下，这次又没有按下，就是弹起 */
@@ -197,7 +204,8 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
             even->button = KGC_MOUSE_MIDDLE;   /* 中键 */
         
             mouseRecord.middle = 0;
-
+            //printk("md up>");
+        
             /* 打印事件状态 */
             //printk("type:%x state:%x button:%x\n", even->type, even->state, even->button);      
             return;   /* 如果有按键弹起就直接返回，不再往后面检测 */         
@@ -207,3 +215,19 @@ PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even)
     /* 打印事件状态 */
     //printk("type:%x state:%x button:%x\n", even->type, even->state, even->button);
 }   
+
+
+/**
+ * KGC_EvenTimer - 事件事件分析
+ * 
+ */
+PUBLIC void KGC_EvenTimer(int32_t ticks, KGC_TimerEven_t *even)
+{
+    even->type = KGC_NOEVENT;
+    even->ticks = 0;    
+    /* 如果有一个是变化的，那么就说明鼠标移动了 */
+    if (ticks) {
+        even->type = KGC_TIMER_EVEN;
+        even->ticks = ticks;
+    }
+}

@@ -15,6 +15,7 @@
 #include <net/ipv4/ethernet.h>
 
 #include <book/timer.h>
+#include <book/waitqueue.h>
 
 /* ARP操作 */
 #define ARP_OP_REQUEST  1   // 请求

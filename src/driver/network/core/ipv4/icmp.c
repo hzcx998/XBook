@@ -38,17 +38,17 @@ PUBLIC bool IcmpEechoRequest(uint32 ip, uint16 id, uint16 seq, uint8* data, uint
         return false;
     }
 
-    printk("send an icmp echo request to ip: ");
+    printk("[OUT] send an icmp echo request to ip: ");
     DumpIpAddress(ip);
-    printk(" seq: %x\n", seq);
+    printk(" seq: %d\n", seq);
 
     IcmpEchoHeader_t header;
     IcmpEchoHeaderInit(&header,
-            ICMP_ECHO_REQUEST,          /* type */
-            0,                     /* code */ 
-            0,                     /* check sum */
-            htons(id),      /* id */
-            htons(seq));    /* seq no */
+            ICMP_ECHO_REQUEST,      /* type */
+            0,                      /* code */ 
+            0,                      /* check sum */
+            htons(id),              /* id */
+            htons(seq));            /* seq no */
     header.checkSum = NetworkCheckSum((uint8 *) &header, SIZEOF_ICMP_ECHO_HEADER);
 
     memcpy(buffer->data, &header, SIZEOF_ICMP_ECHO_HEADER);
@@ -71,9 +71,9 @@ PUBLIC bool IcmpEchoReply(uint32 ip, uint16 id, uint16 seq, uint8 *data, uint32 
         return false;
     }
 
-    printk("send an icmp echo reply to ip: ");
+    printk("[OUT] send an icmp echo reply to ip: ");
     DumpIpAddress(ip);
-    printk(" seq: %u\n", seq);
+    printk(" seq: %d\n", seq);
 
     IcmpEchoHeader_t header;
     IcmpEchoHeaderInit(&header,
@@ -105,7 +105,7 @@ PRIVATE void IcmpEchoRequestReceive(NetBuffer_t *buf, uint32 ip)
         return;
     }
 
-    printk("receive an icmp echo request from ip: ");
+    printk("[IN] receive an icmp echo request from ip: ");
     DumpIpAddress(ip);
     printk(" seq: %x\n", ntohs(header->seqNO));
     IcmpEchoReply(ip, ntohs(header->id), ntohs(header->seqNO), NULL, 0);
@@ -120,7 +120,7 @@ PRIVATE void IcmpEchoReplyReceive(NetBuffer_t *buf, uint32 ip)
         return;
     }
 
-    printk("receive an icmp echo reply from ip: ");
+    printk("[IN] receive an icmp echo reply from ip: ");
     DumpIpAddress(ip);
     printk(" seq: %u\n", ntohs(header->seqNO));
 }
@@ -137,7 +137,7 @@ PUBLIC void IcmpReceive(NetBuffer_t *buf, uint32 ip)
         IcmpEchoReplyReceive(buf, ip);
         break;
     default:
-        printk("receive an icmp package, but not support the type %x now.\n", type);
+        printk("[IN] receive an icmp package, but not support the type %x now.\n", type);
         break;
     }
 }

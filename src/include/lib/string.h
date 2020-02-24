@@ -8,8 +8,9 @@
 #ifndef _LIB_STRING_H_
 #define _LIB_STRING_H_
 
-#include "../lib/types.h"
-#include "../lib/stdint.h"
+#include "types.h"
+#include "stdint.h"
+#include "stddef.h"
 
 char* itoa(char ** ps, int val, int base);
 int atoi(const char *src);
@@ -35,6 +36,10 @@ int strpos(char *str, char ch);
 char* strncpy(char* dst_, char* src_, int n) ;
 char *strncat(char *dst, const char *src, int n);
 int strmet(const char *src, char *buf, char ch);
+char *strstr(const char *dest, const char *src);
+size_t strspn(const char *s, const char *accept);
+const char *strpbrk(const char *str1, const char *str2);
+int strcoll(const char *str1, const char *str2);
 
 #endif  /*_LIB_STDINT_H*/
 

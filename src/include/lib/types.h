@@ -41,18 +41,26 @@
 
 #endif
 
-
+/* 共有，可以被整个内核使用 */
 #ifndef PUBLIC
 #define PUBLIC 
 #endif
 
-#ifndef PRIVATE
+/* 私有，只能被本文件使用 */
+#ifndef PRIVATE 
 #define PRIVATE static
 #endif
 
+/* 扩展，如果是PUBLIC的，扩展后，引用该扩展的文件可以使用 */
 #ifndef EXTERN
 #define EXTERN extern
 #endif
+
+/* 保护，同类可以扩展，其它的不可以扩展。即不在头文件中EXTERN,而是在C文件中EXTERN */
+#ifndef PROTECT
+#define PROTECT 
+#endif
+
 
 #ifndef INLINE
 #define INLINE inline
@@ -67,7 +75,7 @@
 #endif
 
 #ifndef PACKED
-#define PACKED __attribute__ ((packed))
+#define PACKED __attribute__((packed))
 #endif
 
 #ifndef CONST

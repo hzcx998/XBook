@@ -60,8 +60,8 @@ LOADER_CNTS = 8
  
 KERNEL_OFF = 10
 
-# assume 256 kb 
-KERNEL_CNTS = 512	
+# assume 512 kb 
+KERNEL_CNTS = 1024	
 
 #----dir----
 #arch
@@ -112,12 +112,12 @@ OPTFLAGS		:= -O0 -g -ggdb
 endif
 endif
 
-CFLAGS	:=  -fno-builtin -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTFLAGS) $(INCLUDE_PATH) -c
+CFLAGS	:=  -fno-builtin -nostdinc -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTFLAGS) $(INCLUDE_PATH) -c
 NASM_FLAGS	:= $(INCLUDE_PATH)
 ARFLAGS := -r
 
 #kernel file	
-KERNEL_ELF =  kernel.a
+KERNEL_ELF =  kernel.elf
 
 #libary file
 LIBC_A = libc.a
@@ -178,17 +178,17 @@ endif
 #	2.Tap/tun network : Tap网络
 #		-net tap
 # 		-net tap,vlan=0,ifname=tap0
+#	example: -net nic,model=rtl8139 -net tap,ifname=tap0,script=no,downscript=no 
+		
 # 音频配置：
 # 	a.使用蜂鸣器：-soundhw pcspk
 #	b.使用声霸卡：-soundhw sb16
+# 控制台串口调试： -serial stdio 
 QEMU_ARGUMENT = -m 512M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-net nic,model=rtl8139 \
-		-net tap,ifname=tap0,script=no,downscript=no \
 		-serial stdio \
 		-soundhw pcspk,sb16
-
 qemu: disk
 	$(QEMU) $(QEMU_ARGUMENT)
 

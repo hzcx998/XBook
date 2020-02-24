@@ -96,7 +96,25 @@
         "graph.h": "c",
         "keymap.h": "c",
         "input.h": "c",
-        "draw.h": "c"
+        "draw.h": "c",
+        "waitqueue.h": "c",
+        "lcode.h": "c",
+        "errno.h": "c",
+        "video.h": "c",
+        "taskbar.h": "c",
+        "kgc.h": "c",
+        "view.h": "c",
+        "mouse.h": "c",
+        "bitops.h": "c",
+        "window.h": "c",
+        "bar.h": "c",
+        "menubar.h": "c",
+        "message.h": "c",
+        "container.h": "c",
+        "font.h": "c",
+        "widget.h": "c",
+        "even.h": "c",
+        "desktop.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -20,12 +20,12 @@
 #include <net/ipv4/icmp.h>
 #include <clock/clock.h>
 
-/* ----驱动程序初始化文件导入---- */
+/* ----驱动程序导入---- */
 EXTERN int InitRtl8139Driver();
-/* ----驱动程序初始化文件导入完毕---- */
-
+EXTERN unsigned char *Rtl8139GetMACAddress();
+/* ----驱动程序导入完毕---- */
 /* 配置信息 */
-#define NETWORK_TEST
+//#define NETWORK_TEST
 
 /* ip地址，以大端字序保存，也就是网络字序 */
 PRIVATE unsigned int networkIpAddress;
@@ -175,7 +175,6 @@ PRIVATE int NetworkConfig()
     };
     EthernetSetAddress(ethAddr);
 #else 
-
     
 #ifdef CONFIG_DRV_RTL8139
     EthernetSetAddress(Rtl8139GetMACAddress());
@@ -193,10 +192,10 @@ PRIVATE int NetworkConfig()
 #ifdef CONFIG_DRV_RTL8139
 
     // 设置和tapN同一网段
-    ipAddress = NetworkMakeIpAddress(192,168,0,105);
+    ipAddress = NetworkMakeIpAddress(192,168,137,105);
 
     // 网关和设置为tapN的ip地址
-    gateway = NetworkMakeIpAddress(192,168,0,104);
+    gateway = NetworkMakeIpAddress(192,168,137,1);
     
     subnetMask = NetworkMakeIpAddress(255,255,255,0);
 #endif
@@ -225,8 +224,8 @@ PRIVATE void NetwrokTest()
         uint32_t ipAddr;
         
         //ipAddr = NetworkMakeIpAddress(10,0,251,18);   // 和外网沟通
-        ipAddr = NetworkMakeIpAddress(192,168,0,104);  // 和物理机沟通
-        //ipAddr = NetworkMakeIpAddress(192,168,43,1);  // 和物理机沟通
+        //ipAddr = NetworkMakeIpAddress(192,168,0,104);  // 和物理机沟通
+        ipAddr = NetworkMakeIpAddress(192,168,43,216);  // 和物理机沟通
         
         //ipAddr = NetworkMakeIpAddress(10,253,0,1);    // 和网关沟通
         int seq = 0;
@@ -234,18 +233,17 @@ PRIVATE void NetwrokTest()
         
         while(1){
             seq++;
-
             //EthernetSend(test, PROTO_ARP, str, strlen(str));
             //ArpRequest(ipAddr);
-
-            //IpTransmit(ipAddr, str, strlen(str), 255);
-            IcmpEechoRequest(ipAddr, 0, seq, "", 0);
-            //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
             
-            SysSleep(20);
+            
+            //IpTransmit(ipAddr, str, strlen(str), 255);
+            //IcmpEechoRequest(ipAddr, 0, seq, "", 0);
+            //ArpRequest(NetworkMakeIpAddress(169,254,221,124));
+            //SysSleep(1);
 
             //SysSleep(1);
-            //printk("wakeup");
+            printk("<network>\n");
         }
     #endif
 }
@@ -319,7 +317,6 @@ PRIVATE void TaskNetworkIn(void *arg)
         }
     }
 }
-
 /**
  * InitNetwork - 初始化网络模块
  * 

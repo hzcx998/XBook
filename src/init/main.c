@@ -82,11 +82,10 @@ PUBLIC int main()
     
     /* 初始化视频系统 */
     InitVideoSystem();
-    
-	/* 初始化文件系统 */
+    /* 初始化文件系统 */
     InitFileSystem();
-
-    /* 执行最后的初始化设置 */
+    
+    /* 执行最后的初始化设置，进入群雄逐鹿的场面 */
 	InitUserProcess();
 	/* main thread 就是idle线程 */
 	while (1) {

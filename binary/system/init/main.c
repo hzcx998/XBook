@@ -1,8 +1,9 @@
 #include <conio.h>
 #include <mman.h>
 #include <stdlib.h>
-#include <share/types.h>
+#include <types.h>
 #include <stdio.h>
+#include <unistd.h>
 
 //#define CONFIG_MORE_TTY
 
@@ -29,12 +30,16 @@ int main(int argc, char *argv[])
             if (pid > 0) {  /* 本身 */
 #endif  /* CONFIG_MORE_TTY */
                 /* 打开标准输入，输出，错误 */
-                int stdin = open("sys:/dev/tty0", O_RDONLY);
-                if (stdin < 0)
+                int stdinno = open("sys:/dev/tty0", O_RDONLY);
+                if (stdinno < 0)
                     return -1;
 
-                int stdout = open("sys:/dev/tty0", O_WRONLY);
-                if (stdout < 0)
+                int stdoutno = open("sys:/dev/tty0", O_WRONLY);
+                if (stdoutno < 0)
+                    return -1;
+                
+                int stderrno = open("sys:/dev/tty0", O_WRONLY);
+                if (stderrno < 0)
                     return -1;
                 
                 /* 关闭文件描述符 */
@@ -85,7 +90,7 @@ int main(int argc, char *argv[])
         args[1] = NULL;
 
         /* 开启第一个shell */
-        if (execv("/shell", args)) {
+        if (execv("root:/shell", args)) {
             //printf("execute failed!\n");
             return -1;
         }

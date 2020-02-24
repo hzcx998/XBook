@@ -10,7 +10,7 @@
 
 /* 系统信息 */
 #define OS_NAME     "Book OS -X"
-#define OS_VERSION  "v0.6.6"
+#define OS_VERSION  "v0.6.9"
 
 /* 内存常量的定义 */
 #define KB      1024

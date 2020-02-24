@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <share/string.h>
-#include <share/const.h>
+#include <string.h>
+#include <const.h>
 #include <unistd.h>
 #include <conio.h>
 #include <signal.h>
@@ -291,11 +291,11 @@ void cmd_mm(uint32_t argc, char** argv)
 	*/
 }
 
-extern int stdin;
+extern int stdinno;
 
 void cmd_exit(uint32_t argc, char** argv)
 {
-    ioctl(stdin, TTY_CMD_HOLD, 0);
+    ioctl(stdinno, TTY_CMD_HOLD, 0);
 	//关闭进程
 	exit(0);
 }

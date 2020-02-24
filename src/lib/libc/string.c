@@ -134,6 +134,15 @@ int8_t strcmp (const char* a, const char* b) {
    return *a < *b ? -1 : *a > *b;
 }
 
+/**
+ * strcoll - 需要根据本地语言做处理，为了简便，直接调用strcmp
+ * 
+*/
+int strcoll(const char *str1, const char *str2)
+{
+    return strcmp(str1, str2);
+}
+
 int memcmp(const void * s1, const void *s2, int n)
 {
 	if ((s1 == 0) || (s2 == 0)) { /* for robustness */
@@ -297,6 +306,73 @@ int strmet(const char *src, char *buf, char ch)
 	return p - (char *)src;
 }
 
+/* 朴素的模式匹配算法 ，只用一个外层循环 */
+char *strstr(const char *dest, const char *src) 
+{
+	char *tdest = (char *)dest;
+	char *tsrc = (char *)src;
+	int i = 0;//tdest 主串的元素下标位置，从下标0开始找，可以通过变量进行设置，从其他下标开始找！
+	int j = 0;//tsrc 子串的元素下标位置
+	while (i <= strlen(tdest) - 1 && j <= strlen(tsrc) - 1) {
+		//字符相等，则继续匹配下一个字符
+        if (tdest[i] == tsrc[j]) {
+			i++;
+			j++;
+		} else { //在匹配过程中发现有一个字符和子串中的不等，马上回退到 下一个要匹配的位置
+			i = i - j + 1;
+			j = 0;
+		}
+	}
+	//循环完了后j的值等于strlen(tsrc) 子串中的字符已经在主串中都连续匹配到了
+	if (j == strlen(tsrc)) {
+		return tdest + i - strlen(tsrc);
+	}
+ 
+	return NULL;
+}
+
+size_t strspn(const char *s, const char *accept)
+{
+    const char *p = s;
+    const char *a;
+    size_t count = 0;
+
+    for (; *p != '\0'; ++p) {
+        for (a = accept; *a != '\0'; ++a) {
+            if (*p == *a)
+                break;
+        }
+        if (*a == '\0')
+            return count;
+        ++count;
+    }
+    return count;
+}
+
+const char *strpbrk(const char *str1, const char *str2)
+{
+    if (str1 == NULL || str2 == NULL)
+    {
+        //perror("str1 or str2");
+        return NULL;
+    }
+    const char *temp1 = str1;
+    const char *temp2 = str2;
+
+    while (*temp1 != '\0')
+    {
+        temp2 = str2; //将str2 指针从新指向在字符串的首地址
+        while (*temp2 != '\0')
+        {
+            if (*temp2 == *temp1)
+                return temp1;
+            else
+                temp2++;
+        }
+        temp1++;
+    }
+return NULL;
+}
 
 /*
  *本文件大部分都是从网上搜索到的代码，如有侵权，请联系我。

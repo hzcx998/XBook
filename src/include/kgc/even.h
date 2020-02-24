@@ -42,7 +42,13 @@ typedef struct KGC_MouseButtonEven {
     u8 button;              /* 按钮值 */
 } KGC_MouseButtonEven_t;
 
-/* 图形的输入类型 */
+/* 图形鼠标按扭 */
+typedef struct KGC_TimerEven {
+    u8 type;                /* 时间事件，每秒产生一次 */
+    u32 ticks;               /* 事件产生时的ticks */
+} KGC_TimerEven_t;
+
+/* 图形的事件类型 */
 typedef enum {
     KGC_NOEVENT = 0,      /* 未使用 */
     KGC_KEY_DOWN,         /* 按键按下 */
@@ -50,6 +56,7 @@ typedef enum {
     KGC_MOUSE_MOTION,     /* 鼠标移动 */
     KGC_MOUSE_BUTTON_DOWN,/* 鼠标按钮按下 */
     KGC_MOUSE_BUTTON_UP,  /* 鼠标按钮弹起 */
+    KGC_TIMER_EVEN,       /* 时钟事件 */
     MAX_KGC_EVENT_NR,     /* 最大的事件数量 */
 } KGC_EvenType_t;
 
@@ -60,11 +67,13 @@ typedef union KGC_Even {
     u8 type;    /* 输入类型，由于下面每一个成员的第一个成员都是type，所以次type就是该成员的type */
     KGC_KeyboardEven_t key;
     KGC_MouseMotionEven_t motion;
-    KGC_MouseButtonEven_t button;    
+    KGC_MouseButtonEven_t button;   
+    KGC_TimerEven_t timer; 
 } KGC_Even_t;
 
 PUBLIC void KGC_EvenKeyboardKey(int key, KGC_KeyboardEven_t *even);
 PUBLIC void KGC_EvenMouseMotion(int32_t x, int32_t y, int32_t z, KGC_MouseMotionEven_t *even);
 PUBLIC void KGC_EvenMouseButton(uint8_t button, KGC_MouseButtonEven_t *even);
+PUBLIC void KGC_EvenTimer(int32_t ticks, KGC_TimerEven_t *even);
 
 #endif   /* _KGC_EVEN_H */

@@ -11,6 +11,7 @@
 #include <book/task.h>
 #include <lib/stdint.h>
 #include <lib/types.h>
+#include <lib/time.h>
 #include <fs/bofs/super_block.h>
 #include <fs/bofs/pipe.h>
 
@@ -100,8 +101,12 @@ PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count);
 PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count);
 PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence);
 PUBLIC int BOFS_Ioctl(int fd, int cmd, int arg);
-
+PUBLIC int BOFS_Trancate(int fd);
 PUBLIC int BOFS_Fsync(int fd);
+PUBLIC long BOFS_Tell(int fd);
+PUBLIC long BOFS_IsFoot(int fd);
+PUBLIC int BOFS_Dup(int oldfd);
+PUBLIC int BOFS_Dup2(int oldfd, int target_fd);
 
 PUBLIC int BOFS_Stat(const char *pathname,
     struct BOFS_Stat *buf,

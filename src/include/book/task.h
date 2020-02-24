@@ -16,6 +16,7 @@
 #include <book/vmspace.h>
 #include <book/signal.h>
 #include <book/timer.h>
+#include <kgc/window/window.h>
 
 /* 在线程中作为形参 */
 typedef void ThreadFunc(void *);
@@ -58,6 +59,8 @@ struct ThreadStack {
 
 #define MAX_STACK_ARGC 16
 
+#define TASK_PWD_DEFAULT    "root:/"
+
 typedef struct Task {
     uint8_t *kstack;                // 内核栈
     pid_t pid;                      // 自己的进程id
@@ -95,6 +98,8 @@ typedef struct Task {
 
     struct Timer *sleepTimer;       /* 休眠的时候的定时器 */
 
+    KGC_Window_t *window;           /* 任务对应的窗口 */
+    
     unsigned int stackMagic;         /* 任务的魔数 */
 } Task_t;
 
@@ -118,7 +123,7 @@ PUBLIC void TaskUnblock(struct Task *thread);
 
 PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void *arg);
 PUBLIC void ThreadExit(struct Task *thread);
-PUBLIC struct Task *InitFirstProcess(void *fileName, char *name);
+PUBLIC struct Task *InitFirstProcess(char **argv, char *name);
 PUBLIC struct Task *FindTaskByPid(pid_t pid);
 PUBLIC void InitSignalInTask(struct Task *task);
 

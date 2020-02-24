@@ -25,7 +25,7 @@ boot: a
 log: ../developments/bochs/bochsout.txt
 
 # enable the mouse
-mouse: enabled=1
+mouse: enabled=0
 
 # enable key mapping, using US layout as default.
 #

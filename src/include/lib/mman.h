@@ -8,7 +8,7 @@
 #ifndef _LIB_MMAN_H
 #define _LIB_MMAN_H
 
-#include <lib/stdint.h>
+#include "stdint.h"
 
 void *mmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags);
 int munmap(uint32_t addr, uint32_t len);

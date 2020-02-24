@@ -19,3 +19,4 @@ obj-y	+= signal.o
 obj-y	+= signal2.o
 obj-y	+= time.o
 obj-y	+= task.o
+obj-y	+= kgcmsg.o

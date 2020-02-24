@@ -184,6 +184,33 @@ PUBLIC int TaskInstallFD(int globalFdIdx)
     return localFdIdx;
 }
 
+/**
+ * BOFS_IsFileOpened - 检查文件是否已经打开
+ * @fd: 文件描述符
+ * 
+ * @return: 是打开返回1，否则返回0
+ */
+PUBLIC int BOFS_IsFileOpened(int fd)
+{
+    if (fd < 0 || fd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs: fd error\n");
+		return -1;
+	}
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(fd);
+
+	struct BOFS_FileDescriptor *fdptr = BOFS_GetFileByFD(globalFD);
+    if (fdptr == NULL) {
+        return 0;
+    }
+    if (fdptr->flags & BOFS_FD_USING) {
+        return 1;
+    }
+        
+    return 0;
+}
+
 PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
@@ -269,7 +296,7 @@ PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 
         AtomicSet(&BOFS_GlobalFdTable[fd].reference, 1);
 		
-		BOFS_GlobalFdTable[fd].flags = flags;
+		BOFS_GlobalFdTable[fd].flags |= flags;
 
 		BOFS_GlobalFdTable[fd].superBlock = sb;
 		
@@ -281,6 +308,41 @@ PRIVATE int BOFS_CreateFile(struct BOFS_DirEntry *parentDir,
 		kfree(inode);
 		return -1;
 	}
+}
+
+/**
+ * BOFS_Trancate - 文件截断
+ * @fd: 文件
+ */
+PUBLIC int BOFS_Trancate(int fd)
+{
+    if (fd < 0 || fd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs trancate: fd error\n");
+		return -1;
+	}
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(fd);
+
+	struct BOFS_FileDescriptor *fdptr = &BOFS_GlobalFdTable[globalFD];
+	
+    if (IS_PIPE_FILE(fdptr)) {
+        return -1;
+    }
+
+    /* 把节点数据都清除 */
+    BOFS_ReleaseInodeData(fdptr->superBlock, fdptr->inode);
+    
+    /* 大小置0 */
+    fdptr->inode->size = 0;
+    
+    /* 修改了大小，需要同步回磁盘 */
+    BOFS_SyncInode(fdptr->inode, fdptr->superBlock);
+
+    /* 移动到最前面 */
+    fdptr->pos = 0;
+
+    return 0;
 }
 
 PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence)
@@ -331,6 +393,173 @@ PUBLIC int BOFS_Lseek(int fd, int offset, unsigned char whence)
 	return fdptr->pos;
 }
 
+/**
+ * BOFS_Tell - 告诉文件的位置
+ * @fd: 文件描述符
+ * 
+ * @return: 返回文件位置
+ */
+PUBLIC long BOFS_Tell(int fd)
+{
+    if (fd < 0 || fd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs tell: fd error\n");
+		return -1;
+	}
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(fd);
+
+	struct BOFS_FileDescriptor *fdptr = &BOFS_GlobalFdTable[globalFD];
+	
+    if (IS_PIPE_FILE(fdptr)) {
+        return -1;
+    }
+
+    return fdptr->pos;
+}
+
+/**
+ * BOFS_Dup - 复制一个文件描述符
+ * @fd: 旧文件描述符
+ * 
+ * @return: 返回新的描述符，失败返回-1
+ */
+PUBLIC int BOFS_Dup(int oldfd)
+{
+    if (oldfd < 0 || oldfd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs dup: fd error\n");
+		return -1;
+	}
+    /* old  must open */
+    if (!BOFS_IsFileOpened(oldfd)) {
+        return -1;
+    }
+
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(oldfd);
+
+	struct BOFS_FileDescriptor *fdptr = &BOFS_GlobalFdTable[globalFD];
+	/*
+    if (IS_PIPE_FILE(fdptr)) {
+        return -1;
+    }*/
+    /* 分配一个新的描述符 */
+
+    int newfd = BOFS_AllocFdGlobal();
+    if (newfd == -1) {
+        printk("alloc new fd for failed!\n");
+        return -1;
+    }
+    /* 内容设置和旧描述符一样 */
+    BOFS_GlobalFdTable[newfd].parentEntry = fdptr->parentEntry;
+    BOFS_GlobalFdTable[newfd].dirEntry = fdptr->dirEntry;
+    
+    BOFS_GlobalFdTable[newfd].inode = fdptr->inode;
+    
+    BOFS_GlobalFdTable[newfd].pos = fdptr->pos;
+
+    AtomicSet(&BOFS_GlobalFdTable[newfd].reference, AtomicGet(&fdptr->reference));
+    
+    BOFS_GlobalFdTable[newfd].flags = fdptr->flags;
+
+    BOFS_GlobalFdTable[newfd].superBlock = fdptr->superBlock;
+    
+    /* 安装新的描述符到任务中 */
+    return TaskInstallFD(newfd);    
+}
+
+/**
+ * BOFS_Dup2 - 复制一个文件描述符
+ * @oldfd: 旧文件描述符
+ * @target_fd: 想要使用的文件描述符
+ * 
+ * @return: 返回新的描述符，失败返回-1
+ */
+PUBLIC int BOFS_Dup2(int oldfd, int target_fd)
+{
+    if (oldfd < 0 || oldfd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs dup: fd error\n");
+		return -1;
+	}
+    
+    /* old  must open */
+    if (!BOFS_IsFileOpened(oldfd)) {
+        return -1;
+    }
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(oldfd);
+
+	struct BOFS_FileDescriptor *fdptr = &BOFS_GlobalFdTable[globalFD];
+	/*
+    if (IS_PIPE_FILE(fdptr)) {
+        return -1;
+    }*/
+    /* 判断二者是否相等 */
+    if (oldfd == target_fd) {
+        /* 直接返回新的描述符 */
+        return target_fd;
+    }
+    /* 如果目标描述符已经打开，那么就关闭它 */
+    if (BOFS_IsFileOpened(target_fd)) {
+        BOFS_Close(target_fd);
+    }
+    
+    /* 把旧的内容复制给新的内容 */
+    
+    /* 分配一个新的全局描述符 */
+    int newfd = BOFS_AllocFdGlobal();
+    if (newfd == -1) {
+        printk("alloc new fd for failed!\n");
+        return -1;
+    }
+    /* 内容设置和旧描述符一样 */
+    BOFS_GlobalFdTable[newfd].parentEntry = fdptr->parentEntry;
+    BOFS_GlobalFdTable[newfd].dirEntry = fdptr->dirEntry;
+    
+    BOFS_GlobalFdTable[newfd].inode = fdptr->inode;
+    
+    BOFS_GlobalFdTable[newfd].pos = fdptr->pos;
+
+    AtomicSet(&BOFS_GlobalFdTable[newfd].reference, AtomicGet(&fdptr->reference));
+    
+    BOFS_GlobalFdTable[newfd].flags = fdptr->flags;
+
+    BOFS_GlobalFdTable[newfd].superBlock = fdptr->superBlock;
+
+    /* 安装到表中去 */        
+    CurrentTask()->fdTable[target_fd] = newfd;
+    
+    /* 安装新的描述符到任务中 */
+    return target_fd;
+}
+
+/**
+ * BOFS_IsFoot - 告诉是否在末尾
+ * @fd: 文件描述符
+ * 
+ * @return: 如果在文件末尾，就返回1，不然，返回0
+ */
+PUBLIC long BOFS_IsFoot(int fd)
+{
+    if (fd < 0 || fd >= MAX_OPEN_FILES_IN_PROC) {
+		printk("bofs tell: fd error\n");
+		return 0;
+	}
+    unsigned int globalFD = 0;
+    /* 局部fd转换成全局fd */
+    globalFD = FdLocal2Global(fd);
+
+	struct BOFS_FileDescriptor *fdptr = &BOFS_GlobalFdTable[globalFD];
+	
+    if (IS_PIPE_FILE(fdptr)) {
+        return 0;
+    }
+    /* 如果位置是在文件末尾，就返回1 */
+    return fdptr->pos >= fdptr->inode->size ? 1 : 0;
+}
+
 PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 	char *name,
 	unsigned int mode,
@@ -377,7 +606,7 @@ PRIVATE int BOFS_OpenFile(struct BOFS_DirEntry *parentDir,
 		BOFS_GlobalFdTable[fd].pos = 0;
 		
 		AtomicSet(&BOFS_GlobalFdTable[fd].reference, 1);
-		BOFS_GlobalFdTable[fd].flags = flags;
+		BOFS_GlobalFdTable[fd].flags |= flags;
 
 		BOFS_GlobalFdTable[fd].superBlock = sb;
 		
@@ -467,9 +696,11 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 	/*make file mode*/
 	unsigned int mode = 0;
 	/*read and write set*/
-	if(flags & BOFS_O_RDONLY){
-		mode |= BOFS_IMODE_R;
-	}else if(flags & BOFS_O_WRONLY){
+	//if(flags & BOFS_O_RDONLY){
+    /* 默认都有读取属性 */
+    mode = BOFS_IMODE_R;
+
+    if(flags & BOFS_O_WRONLY){
 		mode |= BOFS_IMODE_W;
 	}else if(flags & BOFS_O_RDWR){
 		mode |= BOFS_IMODE_R;
@@ -480,11 +711,15 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 		mode |= BOFS_IMODE_X;
 	}
 	
-	char append = 0;
-	if(flags & BOFS_O_APPEDN){
-		append = 1;
+    /* 扩展标志 */
+    char extend = 0;
+    /* 只能是截断或者追加其中之一 */
+    if(flags & BOFS_O_TRUNC){
+		extend = 1; /* 截断 */
+	} else if(flags & BOFS_O_APPEDN){
+		extend = 2; /* 追加 */
 	}
-	
+
 	//printk("file mode:%x\n", mode);
 	if(flags & BOFS_O_CREAT) {	
 		/* 没有重打开才进行创建 */
@@ -494,11 +729,8 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
 			if(fd != -1){
 				/*create sucess! we can't close record parent dir, we will use in fd_parent*/
 				
-				/*if need append, we set it here*/
-				if(append){
-					BOFS_Lseek(fd, 0, BOFS_SEEK_END);
-				}
-				
+				/* 创建的时候不需要截断也不需要追加到末尾操作，因为文件时空的 */
+                
 				/*close record child dir, we don't use it
 				fd_dir was alloced in bofs_create_file
 				*/
@@ -544,11 +776,18 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
         }
 		if(fd != -1){
 			/*open sucess! we can't close record parent dir, we will use it in fd_parent*/
-			/*if need append, we set it here*/
-			if(append){
-				BOFS_Lseek(fd, 0, BOFS_SEEK_END);
-			}
-
+			
+            /* 如果需要拓展文件截断或者追加 */
+            if (extend == 1) {
+                /* 文件截断 */
+                if (BOFS_Trancate(fd)) {
+                    printk("truncate file failed!\n");
+                }
+            } else if (extend == 2) {
+                /* 移动到文件末尾 */
+                BOFS_Lseek(fd, 0, BOFS_SEEK_END);
+            }
+            
 			/*close record child dir, we don't use it
 			fd_dir was alloced in bofs_create_file
 			*/
@@ -874,6 +1113,10 @@ PRIVATE int BOFS_FileWrite(struct BOFS_FileDescriptor *fdptr,
 	BOFS_SyncInode(fdptr->inode, sb);
 	
     kfree(iobuf);
+    /* 如果写入0字节，那么表示出错 */
+    if (!bytesWritten)
+        bytesWritten = -1;
+    
 	return bytesWritten;
 
 ToFailed:
@@ -881,6 +1124,11 @@ ToFailed:
     return -1;
 }
 
+/**
+ * BOFS_Write - 写入数据到文件
+ * 
+ * @return: 成功返回写入的字节数，失败返回-1
+ */
 PUBLIC int BOFS_Write(int fd, void *buf, unsigned int count)
 {
 	if (count == 0) {
@@ -1063,6 +1311,11 @@ PRIVATE int BOFS_FileRead( struct BOFS_FileDescriptor *fdptr, void* buf, uint32 
 	
     //printk("read ok!\n");
     kfree(iobuf);
+    
+    /* 如果读取0字节，那么就到文件末尾，EOF */
+    if (!bytesRead)
+        bytesRead = -1;
+
 	return bytesRead;
 
 ToFailed:
@@ -1071,6 +1324,15 @@ ToFailed:
     return -1;
 }
 
+
+/**
+ * BOFS_Read - 读取数据
+ * @fd: 文件描述符
+ * @buf: 缓冲区
+ * @count: 字节数
+ * 
+ * @return: 成功返回读取的数据量，失败返回-1 
+*/
 PUBLIC int BOFS_Read(int fd, void *buf, unsigned int count)
 {
     int ret = -1;

@@ -8,7 +8,6 @@
 #ifndef _LIB_STDDEF_H
 #define _LIB_STDDEF_H
 
-
 /*
  *这里是typedef类型的
  */
@@ -22,7 +21,6 @@ typedef unsigned int address_t;     //地址类型的变量
 typedef unsigned int off_t;         //偏移类型的变量
 typedef unsigned long sector_t;
 typedef unsigned char mode_t;
-typedef unsigned int time_t;
 typedef unsigned int dev_t;
 
 typedef unsigned int ino_t;
@@ -43,6 +41,8 @@ typedef unsigned long address_t;
 typedef unsigned char * buf8_t;     // 字节类型的缓冲区
 typedef unsigned short * buf16_t;   // 字类型的缓冲区
 typedef unsigned int * buf32_t;     // 双字类型的缓冲区
+
+typedef short wchar_t;
 
 /*
  *这里是define类型的
@@ -69,6 +69,7 @@ __buildin_expect((x), 0)表示x的值为假的可能性更大.
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#include "types.h"
 
 
 

@@ -41,10 +41,11 @@ PUBLIC NetBuffer_t *AllocNetBuffer(size_t len)
     /* 遍历查找 */
     for (i = 0; i < MAX_NET_BUF_NR; i++) {
         if (netBufferTable[i].status == NET_BUF_UNUSED) {
-            netBufferTable[i].status = NET_BUF_USING;
             buf = &netBufferTable[i];
+            buf->status = NET_BUF_USING;
             buf->data = (unsigned char *)buf + ASSUME_SIZEOF_NET_BUFFER;
             memset(buf->data, 0, NET_BUF_DATA_SIZE);
+            
             //printk("[-]Net Buffer Alloc At %x\n", buf);
             break;
         }

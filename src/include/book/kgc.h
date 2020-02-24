@@ -15,6 +15,8 @@
 /* KGC内核图形核心kernel graph core */
 PUBLIC int InitKGC();
 
+PUBLIC void *KGC_AllocBuffer(size_t size);
+
 PUBLIC void SysGraphWrite(int offset, int size, void *buffer);
 
 PUBLIC void KGC_CoreDraw(uint32_t position, uint32_t area, void *buffer, uint32_t color);

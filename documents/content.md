@@ -1,5 +1,8 @@
 # Book OS
 
+## 2020.2.24
+* make a simple GUI based on KGC  
+
 ## 2020.2.10
 * refactor source directory  
 

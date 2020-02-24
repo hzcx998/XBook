@@ -26,4 +26,6 @@ typedef struct KGC_VideoInfo {
     uint8_t bitsPerPixel;       /* 像素位数 */
 } KGC_VideoInfo_t;
 
+EXTERN KGC_VideoInfo_t videoInfo;
+
 #endif   /* _KGC_VIDEO_H */

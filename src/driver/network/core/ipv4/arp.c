@@ -376,6 +376,8 @@ PUBLIC void ArpRequestTimeout(uint32 ip)
 #ifdef _ARP_DEBUG                   
                 printk("buf:%x ", tmpbuf);
 #endif
+                
+            
                 /* 从链表中删除 */
                 ListDelInit(&tmpbuf->list);
                 
@@ -443,7 +445,7 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
         }
 
         ArpQueueInit(queue, ip, ARP_RETRY, timer);
-
+    
         /* 把缓冲区添加到该队列里面 */
         ListAddTail(&buf->list, &queue->bufferList);
 
@@ -452,7 +454,7 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
         
         /* 把定时器添加到系统 */
         AddTimer(timer);
-        printk(">>>send arp request!\n");
+        //printk(">>>send arp request!\n");
         SpinUnlockIrqSave(&arpQueueLock, flags);
 
         /* 发送一个arp请求 */
@@ -475,9 +477,6 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
 #endif
         }
     }
-    //SpinUnlockRestoreInterrupt(&arpQueueLock, oldStatus);
-    //while (1);
-    
 }
 
 /**
@@ -487,11 +486,9 @@ PUBLIC void ArpAddToWaitQueue(uint32 ip, NetBuffer_t *buf)
  */
 PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
 {
-    //printk("in processing...\n");
     /* 上锁关中断 */
     unsigned long flags = SpinLockIrqSave(&arpQueueLock);
-    //printk("end processing\n");
-
+    
     ArpQueue_t *queue = NULL, *tmp;
     /* 遍历查找ip，是否已经在请求队列中了 */
     ListForEachOwner(tmp, &arpQueueList, list) {
@@ -511,27 +508,23 @@ PUBLIC void ArpProcessWaitQueue(uint32 ip, uint8 *ethAddr)
 #ifdef _ARP_DEBUG
             printk("buf:%x ", tmpbuf);
 #endif
-            printk("send to ethnet");
-            DumpEthernetAddress(ethAddr);
 
             EthernetSend(ethAddr, PROTO_IP, tmpbuf->data, tmpbuf->dataLen);
-            
+
             /* 释放缓冲区 */
             ListDelInit(&tmpbuf->list);
             FreeNetBuffer(tmpbuf);
         }
-        
         /* 删除定时器 */
         RemoveTimer(queue->timer);
         kfree(queue->timer);
-
+        
         /* 删除队列 */
         ListDel(&queue->list);
         kfree(queue);
     }
 
     SpinUnlockIrqSave(&arpQueueLock, flags);
-    //printk("end processing\n");
 }
 
 /**

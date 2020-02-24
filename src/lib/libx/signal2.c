@@ -9,6 +9,7 @@
 #include <lib/stdint.h>
 #include <lib/signal.h>
 #include <lib/stdlib.h>
+#include <lib/file.h>
 
 /* 信号延缓的上半部分 */
 int sigsuspendhalf(const sigset_t *set, sigset_t *oldSet);
@@ -22,10 +23,10 @@ int raise(int signum)
 }
 
 /* do nothing now. */
-void fflush(void *__unused)
+/*void fflush(void *__unused)
 {
     
-}
+}*/
 
 /* POSIX-style abort() function */
 void abort(void)

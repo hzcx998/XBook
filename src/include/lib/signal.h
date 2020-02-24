@@ -8,8 +8,8 @@
 #ifndef _LIB_SIGNAL_H
 #define _LIB_SIGNAL_H
 
-#include <lib/stdint.h>
-#include <lib/stddef.h>
+#include "stdint.h"
+#include "stddef.h"
 
 /* 只支持32个信号 */
 /* 信号值 */
@@ -54,6 +54,9 @@ typedef void (*sighandler_t) (int);
 
 /* 信号集 */
 typedef unsigned int sigset_t;
+
+/* 处理信号时，希望是原子操作 */
+typedef int sig_atomic_t;
 
 /* sigprocmask的how参数值 */
 #define SIG_BLOCK   1 //在阻塞信号集中加上给定的信号集
@@ -107,7 +110,7 @@ void abort(void);
 int raise(int signum);
 
 /* 进程暂停 */
-int pause();
+int pause(void);
 
 int sigsuspend(const sigset_t *mask);
 

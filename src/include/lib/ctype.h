@@ -17,5 +17,8 @@ long strtol(const char *cp,char **endp,unsigned int base);
 int isalpha(int ch);
 double strtod(const char* s, char** endptr);
 double atof(char *str);
+int tolower(int c);
+int toupper(int c);
+
 
 #endif  /* _LIB_CTYPE_H */

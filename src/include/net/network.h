@@ -18,21 +18,11 @@
 /***** 配置区域 *****/
 
 /* 回环测试 */
-//#define _LOOPBACL_DEBUG
-
-/* 网卡配置 */
-//#define _NIC_RTL8139
-//#define _NIC_AMD79C973
-
-/* 虚拟机配置 */
-//#define _VM_VMWARE
-//#define _VM_VBOX
-#define _VM_QEMU
+//#define _NET_LOOPBACK
 
 /* 网络协议 */
 #define PROTO_IP            0x0800
 #define PROTO_ARP           0x0806
-
 
 /*备注以太网的情况*/
 #define ETH_ALEN 6 /*以太网地址，即MAC地址，6字节*/
@@ -40,9 +30,6 @@
 #define ETH_ZLEN 60 /*不含CRC校验的数据最小长度*/
 #define ETH_DATA_LEN 1500 /*帧内数据的最大长度*/
 #define ETH_FRAME_LEN 1514 /*不含CRC校验和的最大以太网数据长度*/
-
-
-
 
 PUBLIC unsigned int NetworkMakeIpAddress(
     unsigned char ip0,
@@ -67,7 +54,6 @@ PUBLIC void DumpIpAddress(unsigned int ip);
 PUBLIC uint16 NetworkCheckSum(uint8_t *data, uint32_t len);
 
 PUBLIC int NetworkAddBuf(void *data, size_t len);
-
 
 STATIC INLINE int IsValidMulticastAddr(const uint8_t *addr)
 {
@@ -96,11 +82,5 @@ STATIC INLINE int IsValidEtherAddr(const uint8_t *addr)
     /* 不是多播和0地址，才是有效的以太网地址 */
     return !IsValidMulticastAddr(addr) && !IsZeroEtherAddr(addr);
 }
-
-/* 驱动注册入口，以及传输函数 */
-PUBLIC int InitRtl8139Driver();
-PUBLIC int Rtl8139Transmit(char *buf, uint32 len);
-PUBLIC unsigned char *Rtl8139GetMACAddress();
-
 
 #endif   /* _NET_NETWORK_H */

@@ -8,6 +8,12 @@
 #ifndef _LIB_FILE_H
 #define _LIB_FILE_H
 
+#include "stdint.h"
+#include "stddef.h"
+#include "types.h"
+#include "time.h"
+
+
 /* 高4位是属性位 */
 #define S_IFSOCK 0x90    //scoket
 #define S_IFLNK 0x50     //符号连接
@@ -63,5 +69,63 @@ int ioctl(int fd, int cmd, int arg);
 int getmode(const char* pathname);
 int setmode(const char* pathname, int mode);
 int fcntl(int fd, int cmd, long arg);
+long tell(int fd);
+int isfoot(int fd);
+
+#define MAX_STREAM_FILE_NR  32
+#define __CONFIG_STREAM_FILE_BUF
+
+typedef struct file_struct {
+    int fd;     /* 文件描述符 */
+    char flags;  /* 文件标志 */
+    char *buf;  /* 数据缓冲区 */
+    int pos;    /* 缓冲区的位置 */
+} FILE;
+
+FILE *fopen(const char *path, const char *mode);
+int fclose(FILE *stream);
+
+int fputc(int c, FILE *fp);
+int fputs(const char *s, FILE *fp);
+int fprintf(FILE *fp, const char *fmt, ...);
+
+int fgetc(FILE *fp);
+char *fgets(char *str, int num, FILE *fp);
+
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t fread(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+int feof(FILE *fp);
+int fflush(FILE *fp);
+
+char *getenv(const char *name);
+
+int fileno(FILE *fp);
+FILE *freopen(const char *fileName, const char *type, FILE *stream);
+
+
+/* 获取字符宏 */
+#define getc(fp)    fgetc(fp)
+
+int ferror(FILE *stream);
+
+FILE *tmpfile(void);
+
+int ungetc(int c, FILE *stream);
+
+void clearerr(FILE *stream);
+
+
+long ftell(FILE *stream);
+int fseek(FILE *stream, long offset, int fromwhere);
+
+
+#define _IOFBF      0X01
+#define _IOLBF      0X02
+#define _IONBF      0X04
+
+int setvbuf(FILE *stream, char *buffer, int mode, size_t size);
+
+char *tmpnam(char *str);
+
 
 #endif  /* _LIB_FILE_H */

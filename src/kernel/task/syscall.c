@@ -14,6 +14,7 @@
 #include <book/kgc.h>
 #include <clock/clock.h>
 #include <char/console/console.h>
+#include <kgc/window/message.h>
 
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
@@ -64,6 +65,11 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysGetPgid,             /* 44 */
     SysSetPgid,             /* 45 */
     SysGraphWrite,          /* 46 */
+    SysTell,                /* 47 */
+    SysIsFoot,              /* 48 */
+    SysDup,                 /* 49 */
+    SysDup2,                /* 50 */
+    SysKGC_Message,         /* 51 */
 };
 
 /**

@@ -8,7 +8,7 @@
 #ifndef _LIB_VSPRINTF_H
 #define _LIB_VSPRINTF_H
 
-#include "../lib/stdarg.h"
+#include "stdarg.h"
 
 #define STR_DEFAULT_LEN 256
 
