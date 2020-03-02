@@ -207,8 +207,8 @@ PUBLIC int BOFS_Pipe(int fd[2])
     files[0]->pos = 0;  /* 读管道文件 */
     files[1]->pos = 1;  /* 写管道文件 */
 
-    files[0]->flags |= BOFS_FLAGS_PIPE;     /* 管道文件 */
-    files[1]->flags |= BOFS_FLAGS_PIPE;       /* 管道文件 */
+    files[0]->flags = BOFS_FLAGS_PIPE;     /* 管道文件 */
+    files[1]->flags = BOFS_FLAGS_PIPE;       /* 管道文件 */
 
     /* 设置文件引用 */
     AtomicSet(&files[0]->reference, 1);
@@ -247,7 +247,10 @@ PUBLIC unsigned int BOFS_PipeRead(int fd, void *buffer, size_t count)
     unsigned int iolen;
     /* 判断写端是否关闭 */
     if (AtomicGet(&pipe->writeReference) > 0) {
-
+        //printk("try get char\n", (char *)buffer);
+        if (!IO_QUEUE_LENGTH(ioqueue)) {
+            return -1;
+        }
         /* 尝试获取一个字符，如果成功，继续往后，不然就会阻塞 */
         *buf++ = IoQueueGet(ioqueue);
         bytesRead++;
@@ -261,7 +264,9 @@ PUBLIC unsigned int BOFS_PipeRead(int fd, void *buffer, size_t count)
             bytesRead++;
             iolen--;
         }
+        //printk(">>> pipe readcal: %s\n", (char *)buffer);
     } else {
+        //printk("close pipe!\n");
         /* 已经关闭，读取剩余量 */
         iolen = IO_QUEUE_LENGTH(ioqueue);
         while (iolen > 0) {
@@ -270,6 +275,9 @@ PUBLIC unsigned int BOFS_PipeRead(int fd, void *buffer, size_t count)
             iolen--;
         }
     }
+    if (!bytesRead)
+        bytesRead = -1;
+
     return bytesRead;
 }
 
@@ -291,6 +299,7 @@ PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count)
     struct IoQueue *ioqueue = (struct IoQueue *)&file->pipe->ioqueue;
     /* 判断写端是否关闭 */
     if (AtomicGet(&pipe->readReference) > 0) {
+        //printk(">>> pipe write: %s\n", buf);
         while (count > 0) {
             IoQueuePut(ioqueue, *buf++);
             bytesWrite++;
@@ -301,6 +310,10 @@ PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count)
         printk(PART_ERROR "pipe write occur a SIGPIPE!\n");
         ForceSignal(SIGPIPE, SysGetPid());
     }
+    
+    if (!bytesWrite)
+        bytesWrite = -1;
+
     return bytesWrite;
 }
 
@@ -310,19 +323,22 @@ PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file)
     
     /* 主动close的时候会减少一个，自动close的时候会再进入之前做一个减少，导致可能为负 */
     AtomicDec(&file->reference);
-
+    
     if (AtomicGet(&file->reference) <= 0) {
+        
         struct BOFS_Pipe *pipe = file->pipe;
-
+        
         if (file->pos == 0) {
+            //printk("will free read pipe file\n");
             /* 是读文件，把管道读引用设置为0 */
             AtomicSet(&pipe->readReference, 0);
-            //printk("will free read pipe file\n");
         } else if (file->pos == 1) {
+            
+            //printk("will free write pipe file\n");
             /* 是写文件，把管道写引用设置为0 */
             AtomicSet(&pipe->writeReference, 0);
-            //printk("will free write pipe file\n");
         }
+        
         BOFS_FreeFileDescriptorByPionter(file);
         
         /* 如果管道读写引用都为0，那么就释放管道 */

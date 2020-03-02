@@ -10,6 +10,16 @@
 
 #include "stdint.h"
 
+
+/* 物理内存信息 */
+typedef struct meminfo {
+    unsigned long mi_total;    /* 物理内存总大小 */
+    unsigned long mi_free;     /* 物理内存空闲大小 */
+    unsigned long mi_used;     /* 物理内存已使用大小 */
+} meminfo_t;
+
+void getmem(meminfo_t *mi);
+
 void *mmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags);
 int munmap(uint32_t addr, uint32_t len);
 

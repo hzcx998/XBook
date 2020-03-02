@@ -6,6 +6,9 @@
  */
 
 #include <lib/errno.h>
+#include <lib/unistd.h>
+#include <lib/file.h>
+#include <lib/string.h>
 
 int errno = 0;
 
@@ -67,5 +70,7 @@ char *strerror(int errnum)
 void perror(char *str)
 {
     char *error = strerror(errno);
-    printf("%s: %s\n", str, error);
+    write(STDERR_FILENO, str, strlen(str));
+    write(STDERR_FILENO, ": ", 2);
+    write(STDERR_FILENO, error, strlen(error));
 }

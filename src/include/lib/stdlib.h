@@ -44,4 +44,10 @@ void graph(int offset, int size, void *buffer);
 
 int system(const char *command);
 
+int reboot();
+
+void getver(char *buf, int buflen);
+
+#include "taskscan.h"
+
 #endif  /* _LIB_STDLIB_H */

@@ -55,6 +55,8 @@ PUBLIC int SysIoctl(int fd, int cmd, int arg);
 PUBLIC int SysGetMode(const char* pathname);
 PUBLIC int SysChangeMode(const char* pathname, int mode);
 
+PUBLIC void SysRedirect(unsigned int oldfd, unsigned int newfd);
+
 /* dir operation目录操作 */
 PUBLIC int SysMakeDir(const char *pathname);
 PUBLIC int SysRemoveDir(const char *pathname);
@@ -87,5 +89,6 @@ PUBLIC int DelTaskFromFS(char *name, pid_t pid);
 /* 管道文件 */
 PUBLIC int SysPipe(int fd[2]);
 PUBLIC int SysMakeFifo(const char *pathname, mode_t mode);
+
 
 #endif  /* _FS_SYMPHYSES_H */

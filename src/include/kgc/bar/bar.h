@@ -18,7 +18,9 @@
 #include <kgc/controls/label.h>
 #include <kgc/controls/button.h>
 
-#define KGC_BAR_COLOR KGCC_ARGB(255, 50, 50, 50) 
+#define KGC_MENU_BAR_COLOR KGCC_ARGB(255, 50, 50, 50) 
+
+#define KGC_TASK_BAR_COLOR KGCC_ARGB(255, 80, 80, 80) 
 
 /* bar的结构 */
 typedef struct KGC_Bar {

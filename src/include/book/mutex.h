@@ -48,7 +48,7 @@ typedef struct Mutex {
     waitLock就是拿来保护waitList的访问的 */
     Spinlock_t waitLock;
 
-    
+
     struct List waitList;   /* 等待队列 */
 
     struct Task *owner;     /* 锁的持有者 */

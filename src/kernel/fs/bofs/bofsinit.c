@@ -133,21 +133,21 @@ PRIVATE int BOFS_UnmountFileSystem(struct BOFS_SuperBlock *sb)
 
 PUBLIC int InitBoFS()
 {
-    PART_START("BOFS");
-
     BOFS_InitFdTable();
 
     /* 获取设备文件 */
     struct BlockDevice *device;
 
     struct BOFS_SuperBlock *sb;
-
+    
     char driveName[BOFS_DRIVE_NAME_LEN];
     /* 根据设备来创建一个文件系统，如果已经存在，直接加载即可 */
     ListForEachOwner(device, &allBlockDeviceList, list) {
         printk("device:%s\n", device->super.name);
+        
+        /* 不在数据传输磁盘上搭建文件系统 */
         if (!strcmp(device->super.name, "hdb")) {
-            printk("data disk, continue!\n");
+            printk("%s is data disk, don't make fs on it!\n", device->super.name);
             continue;
         }
         /* 探测是否有文件系统 */
@@ -179,9 +179,7 @@ PUBLIC int InitBoFS()
         
         BOFS_AddDrive(driveName, sb, device);
     }
-
+    
     BOFS_ListDrive();
-
-    PART_END();
     return 0;
 }

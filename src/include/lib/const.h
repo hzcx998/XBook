@@ -9,8 +9,8 @@
 #define _LIB_CONST_H
 
 /* 系统信息 */
-#define OS_NAME     "Book OS -X"
-#define OS_VERSION  "v0.6.9"
+#define OS_NAME     "Book Operating System"
+#define OS_VERSION  " 0.7.0"
 
 /* 内存常量的定义 */
 #define KB      1024

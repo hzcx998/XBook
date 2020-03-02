@@ -20,3 +20,7 @@ obj-y	+= signal2.o
 obj-y	+= time.o
 obj-y	+= task.o
 obj-y	+= kgcmsg.o
+obj-y	+= kgcgraph.o
+obj-y	+= getmem.o
+obj-y	+= power.o
+obj-y	+= getver.o

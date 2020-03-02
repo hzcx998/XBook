@@ -92,4 +92,7 @@ PUBLIC unsigned int MemNode2Page(struct MemNode *node);
 
 PUBLIC struct MemNode *GetFreeMemNode();
 
+PUBLIC unsigned int GetPhysicMemoryFreeSize();
+PUBLIC unsigned int GetPhysicMemoryTotalSize();
+
 #endif   /*_X86_MM_PHYMEN_H */

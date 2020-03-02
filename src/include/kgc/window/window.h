@@ -41,7 +41,7 @@ typedef struct KGC_Window {
     uint32_t flags;                             /* 窗口标志 */
     /* 窗口对应的任务，避免互相引用，使用空指针，使用时转换 */
     void *task;
-
+    
     struct List messageListHead;                /* 消息队列头 */
     Spinlock_t messageLock;                     /* 消息锁 */
     char title[KGC_WINDOW_TITLE_NAME_LEN];      /* 窗口的标题 */

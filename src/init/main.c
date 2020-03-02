@@ -8,14 +8,13 @@
 #include <book/arch.h>
 #include <book/hal.h>
 #include <book/debug.h>
-#include <book/memcache.h>
 #include <book/task.h>
 #include <book/interrupt.h>
 #include <book/device.h>
-#include <book/vmarea.h>
-#include <book/lowmem.h>
 #include <book/cpu.h>
 #include <book/fs.h>
+#include <book/mmu.h>
+#include <book/power.h>
 #include <net/network.h>
 #include <pci/pci.h>
 #include <clock/clock.h>
@@ -38,14 +37,9 @@ PUBLIC int main()
 
     /* 初始化平台总线 */
 	InitPci();
-	/* 初始化内存缓存 */
-	InitMemCaches();
-    
-	/* 初始化内存区域 */
-	InitVMArea();
 
-    /* 初始化内存片段 */
-    InitMemFragment();
+    /* 初始化内存管理单元 */
+    InitMMU();
 
 	/* 初始化IRQ描述结构 */
 	InitIrqDescription();
@@ -84,7 +78,9 @@ PUBLIC int main()
     InitVideoSystem();
     /* 初始化文件系统 */
     InitFileSystem();
-    
+
+    //SysReboot(REBOOT_KBD);
+
     /* 执行最后的初始化设置，进入群雄逐鹿的场面 */
 	InitUserProcess();
 	/* main thread 就是idle线程 */

@@ -348,8 +348,6 @@ void RamdiskDelDevice(struct RamdiskDevice *dev)
  */
 PUBLIC int InitRamdiskDriver()
 {
-	PART_START("Ramdisk Driver");
-
 	int status;
 
 	/* 创建一个块设备 */
@@ -367,8 +365,6 @@ PUBLIC int InitRamdiskDriver()
 		}
 		memset(devices[i].data, i+1, devices[i].disk->capacity * SECTOR_SIZE);
 	}
-
-    PART_END();
 	return 0;
 }
 

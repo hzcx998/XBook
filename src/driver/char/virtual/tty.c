@@ -559,7 +559,7 @@ PRIVATE int TTY_InitOne(TTY_t *tty)
     char devname[DEVICE_NAME_LEN] = {0};
     sprintf(devname, "%s%d", DEVNAME, id);
 	CharDeviceSetName(tty->chrdev, devname);
-	printk("tty name %s\n", devname);
+	//printk("tty name %s\n", devname);
 	/* 把字符设备添加到系统 */
 	AddCharDevice(tty->chrdev);
 

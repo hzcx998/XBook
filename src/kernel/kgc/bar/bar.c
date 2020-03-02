@@ -104,7 +104,7 @@ PUBLIC int KGC_BarKeyDown(KGC_KeyboardEven_t *even)
                 return -1;
             }
         }
-    } else if (even->keycode.code == KGCK_SPACE) {
+    } else if (even->keycode.code == KGCK_ESCAPE) {
         if (GET_CURRENT_WINDOW()) {
             
             /* 查看当前窗口的可否获取系统快捷键 */
@@ -116,19 +116,6 @@ PUBLIC int KGC_BarKeyDown(KGC_KeyboardEven_t *even)
         } else {
             /* 没有屏蔽才能进行操作 */
             KGC_SwitchNextWindowAuto();
-            return -1;
-        }
-    } else if (even->keycode.code == KGCK_ENTER) {
-        if (GET_CURRENT_WINDOW()) {   
-            /* 查看当前窗口的可否获取系统快捷键 */
-            if (GET_CURRENT_WINDOW()->flags & KGC_WINDOW_FLAG_KEY_SHORTCUTS)
-                return 0;
-            
-            /* 没有屏蔽才能进行操作 */
-            KGC_SwitchPrevWindowAuto();
-        } else {
-            /* 没有屏蔽才能进行操作 */
-            KGC_SwitchPrevWindowAuto();
             return -1;
         }
     }
@@ -201,12 +188,13 @@ PUBLIC int KGC_BarKeyUp(KGC_KeyboardEven_t *even)
     return 0;   
 }
 
-
-
 void KGC_DrawBar(KGC_Container_t *container)
 {
     KGC_ContainerDrawRectangle(container, 0, 0, 
-        container->width, KGC_BAR_HEIGHT, KGC_BAR_COLOR);
+        container->width, KGC_MENU_BAR_HEIGHT, KGC_MENU_BAR_COLOR);
+
+    KGC_ContainerDrawRectangle(container, 0, KGC_MENU_BAR_HEIGHT, 
+        container->width, KGC_TASK_BAR_HEIGHT, KGC_TASK_BAR_COLOR);
 
 }
 

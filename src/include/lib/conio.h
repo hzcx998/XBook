@@ -8,7 +8,10 @@
 #ifndef _LIB_CONIO_H
 #define _LIB_CONIO_H
 
-void log(char *buf);
 int printf(const char *fmt, ...);
+
+int getch(void);
+int putch(int ch);
+
 
 #endif  /* _LIB_CONIO_H */

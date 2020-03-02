@@ -114,7 +114,14 @@
         "font.h": "c",
         "widget.h": "c",
         "even.h": "c",
-        "desktop.h": "c"
+        "desktop.h": "c",
+        "vm.h": "c",
+        "phymem.h": "c",
+        "ctype.h": "c",
+        "x86.h": "c",
+        "power.h": "c",
+        "taskscan.h": "c",
+        "ioctl.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

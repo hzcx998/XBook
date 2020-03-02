@@ -117,5 +117,7 @@ PUBLIC void BOFS_InitFile();
 PUBLIC void BOFS_UpdateInodeOpenCounts(struct Task *task);
 PUBLIC void BOFS_ReleaseTaskFiles(struct Task *task);
 
+void BOFS_Redirect(unsigned int oldfd, unsigned int newfd);
+
 #endif
 

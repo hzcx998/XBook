@@ -399,7 +399,6 @@ int fputs(const char *s, FILE *fp)
     return 0;
 }
 
-
 /**
  * fputs - 把字符串写入到fp所指向输出流中
  * @str: 字符串缓冲区

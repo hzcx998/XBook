@@ -14,7 +14,7 @@ qemu中运行稍微慢一些，所以配置5。
 vbox和vmware中运行快一些，所以配置10。
 不然会崩！！！
  */
-#define CLOCK_QUICKEN     10		
+#define CLOCK_QUICKEN     5		
 /* 该参数应该由架构体系来定义，然后在对于的驱动实现过程中进行解析 */
 #define HZ             (100 * CLOCK_QUICKEN)	    //1000 快速 100 普通0.001
 

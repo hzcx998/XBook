@@ -11,6 +11,7 @@
 #include <lib/types.h>
 #include <lib/const.h>
 #include <lib/stddef.h>
+#include <lib/taskscan.h>
 #include <book/list.h>
 #include <book/arch.h>
 #include <book/vmspace.h>
@@ -143,6 +144,9 @@ PUBLIC pid_t SysGetPgid(pid_t pid);
 
 PUBLIC void TaskYield();
 
+PUBLIC int SysTaskScan(taskscan_status_t *ts, unsigned int *idx);
+PUBLIC void SysGetVersion(char *buf, int buflen);
+
 /* fork.c */
 PUBLIC pid_t SysFork();
 
@@ -158,5 +162,6 @@ PUBLIC void TaskSleepOn(struct Task *task);
 /* exit_wait.c */
 PUBLIC void SysExit(int status);
 PUBLIC pid_t SysWait(int *status);
+
 
 #endif   /*_BOOK_TASK_H*/

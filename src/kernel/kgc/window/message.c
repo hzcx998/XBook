@@ -106,6 +106,7 @@ PUBLIC int KGC_SendMessage(KGC_Message_t *message)
     case KGC_MSG_DRAW_LINE:
     case KGC_MSG_DRAW_CHAR:
     case KGC_MSG_DRAW_STRING:
+    case KGC_MSG_DRAW_PIXEL_PLUS:
     case KGC_MSG_DRAW_BITMAP_PLUS:
     case KGC_MSG_DRAW_RECTANGLE_PLUS:
     case KGC_MSG_DRAW_LINE_PLUS:

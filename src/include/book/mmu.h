@@ -12,10 +12,10 @@
  * 内存管理单元
  */
 #include <lib/types.h>
+#include <lib/mman.h>
 
-PUBLIC void MmuMemoryInfo();
-
-/* 导入内存管理相关头问题 */
-#include <book/vmspace.h>
+PUBLIC void InitMMU();
+PUBLIC void SysGetMemory(meminfo_t *mi);
+PUBLIC void PrintMemoryInfo();
 
 #endif   /*_BOOK_MMU_H*/

@@ -12,6 +12,8 @@
 #include <book/alarm.h>
 #include <book/fs.h>
 #include <book/kgc.h>
+#include <book/mmu.h>
+#include <book/power.h>
 #include <clock/clock.h>
 #include <char/console/console.h>
 #include <kgc/window/message.h>
@@ -70,6 +72,12 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysDup,                 /* 49 */
     SysDup2,                /* 50 */
     SysKGC_Message,         /* 51 */
+    SysTime,                /* 52 */
+    SysTaskScan,            /* 53 */
+    SysGetMemory,           /* 54 */
+    SysRedirect,            /* 55 */
+    SysReboot,              /* 56 */
+    SysGetVersion,          /* 57 */
 };
 
 /**

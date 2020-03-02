@@ -34,3 +34,18 @@ setpgid:
     pop ecx
     pop ebx
 	ret
+
+; int taskscan(taskscan_status_t *ts, int *idx);
+global taskscan
+taskscan:
+	push ebx
+    push ecx
+    
+	mov eax, SYS_TASKSCAN
+	mov ebx, [esp + 8 + 4]
+    mov ecx, [esp + 8 + 4 * 2]
+    int INT_VECTOR_SYS_CALL
+	
+    pop ecx
+    pop ebx
+	ret

@@ -35,15 +35,21 @@
 
 #define DATA_BLOCK 256
 
+#if 0
+    #define FILE_MODE (O_CREAT | O_RDWR | O_EXEC)
+#else
+    #define FILE_MODE (O_CREAT | O_RDWR)
+#endif
+
 /* 要写入文件系统的文件 */
-#define FILE_ID 5
+#define FILE_ID 7
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
 	#define FILE_SECTORS 100
 #elif FILE_ID == 2
 	#define FILE_NAME "root:/shell"
-	#define FILE_SECTORS 100
+	#define FILE_SECTORS 200
 #elif FILE_ID == 3
 	#define FILE_NAME "root:/test"
 	#define FILE_SECTORS 100
@@ -51,17 +57,17 @@
 	#define FILE_NAME "root:/test2"
 	#define FILE_SECTORS 50
 #elif FILE_ID == 5
-	#define FILE_NAME "root:/nes"
+	#define FILE_NAME "root:/infones"
 	#define FILE_SECTORS 640
 #elif FILE_ID == 6
-	#define FILE_NAME "root:/bee"
+	#define FILE_NAME "root:/mario.nes"
 	#define FILE_SECTORS 1536
 #elif FILE_ID == 7
-	#define FILE_NAME "root:/spa"
-	#define FILE_SECTORS 620
+	#define FILE_NAME "root:/shadow.nes"
+	#define FILE_SECTORS 100
 #elif FILE_ID == 8
-	#define FILE_NAME "root:/sp"
-	#define FILE_SECTORS 1
+	#define FILE_NAME "root:/cal"
+	#define FILE_SECTORS 200
 #endif
 
 #define FILE_SIZE (FILE_SECTORS * SECTOR_SIZE)
@@ -77,7 +83,7 @@ PRIVATE void WriteDataToFS()
 	}
 	
 	/* 把文件加载到文件系统中来 */
-	int fd = SysOpen(FILE_NAME, O_CREAT | O_RDWR | O_EXEC);
+	int fd = SysOpen(FILE_NAME, FILE_MODE);
     if (fd < 0) {
         printk("file open failed!\n");
 		return;
@@ -116,7 +122,6 @@ PRIVATE void WriteDataToFS()
         DeviceClose(DEV_HDB);       
     }
 
-	
 	if (SysWrite(fd, buf, FILE_SIZE) != FILE_SIZE) {
 		printk("write failed!\n");
 	}
@@ -165,9 +170,10 @@ PRIVATE void MakeDeviceFile()
         strcat(devpath, SYS_PATH_DEV);
         strcat(devpath, "/");
         strcat(devpath, device->name);
-
-        /* 需要打开设备，才可以操作 */
-        DeviceOpen(device->devno, 0);
+        
+        /* 块设备才需要检测磁盘大小 */
+        if (device->type == DEV_TYPE_BLOCK)
+            DeviceOpen(device->devno, 0); /* 需要打开设备，才可以操作 */
         
         switch (device->type)
         {
@@ -201,8 +207,9 @@ PRIVATE void MakeDeviceFile()
         if (SysMakeDev(devpath, devType, MAJOR(device->devno), MINOR(device->devno), devSectors)) {
             printk("make dev failed!\n");
         }
-        /* 使用完后关闭设备 */
-        DeviceClose(device->devno);
+        /* 块设备才需要检测磁盘大小 */
+        if (device->type == DEV_TYPE_BLOCK)
+            DeviceClose(device->devno); /* 使用完后关闭设备 */
     }
 
     /* 强制同步，使得内存中的内容可以进入磁盘 */
@@ -1181,6 +1188,11 @@ PUBLIC int SysReadDir(DIR *dir, dirent *buf)
 PUBLIC void SysRewindDir(DIR *dir)
 {
 	BOFS_RewindDir((struct BOFS_Dir *)dir);
+}
+
+PUBLIC void SysRedirect(unsigned int oldfd, unsigned int newfd)
+{
+	BOFS_Redirect(oldfd, newfd);
 }
 
 

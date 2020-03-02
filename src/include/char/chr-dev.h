@@ -15,13 +15,13 @@
 /**
  * 字符设备是每一个字符流设备的输入输出的抽象
  */
-struct CharDevice {
+typedef struct CharDevice {
     struct Device super;        /* 继承设备抽象 */
     struct List list;           /* 连接所有字符设备的链表 */
 
     unsigned int count;         /* 同一主设备号的次设备号的个数 */
     void *private;              /* 私有数据，一般指向驱动中的设备接口 */
-};
+} CharDevice_t;
 
 #define SIZEOF_CHAR_DEVICE sizeof(struct CharDevice)
 

@@ -19,10 +19,11 @@
 int printf(const char *fmt, ...)
 {
 	//int i;
-	char buf[256];
+	char buf[STR_DEFAULT_LEN];
 	va_list arg = (va_list)((char*)(&fmt) + 4); /*4是参数fmt所占堆栈中的大小*/
 	vsprintf(buf, fmt, arg);
 	
+    /* 写入到标准输出 */
     write(1, buf, strlen(buf));
 	return 0;
 }

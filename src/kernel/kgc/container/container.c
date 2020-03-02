@@ -160,12 +160,14 @@ void KGC_ContainerRefreshBufferPlus(int x0, int y0, int x1, int y1, int z0, int 
                  */
 
                 alpha = src_color.alpha;
-
+                /*
                 dst_color->red = src_color.red*alpha/0xff + dst_color->red*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->green = src_color.green*alpha/0xff + dst_color->green*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->blue = src_color.blue*alpha/0xff + dst_color->blue*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->alpha = src_color.alpha*alpha/0xff + dst_color->alpha*(1-alpha/0xFF * alpha/0xFF);
+                */
                 /* 写入缓冲区颜色x, y, dst_color */
+                
 			}
 		}
 	}

@@ -51,7 +51,7 @@ PUBLIC void KGC_MenuBarUpdateTime()
     /* 先将原来的位置清空 */
     KGC_ContainerDrawRectangle(kgcbar.container, kgcbar.time->label.x,
         kgcbar.time->label.y, kgcbar.time->label.width, 
-        kgcbar.time->label.height, KGC_BAR_COLOR);
+        kgcbar.time->label.height, KGC_MENU_BAR_COLOR);
 
     /* 解析时间 */
     char buf[6];

@@ -265,9 +265,7 @@ PUBLIC int DeviceOpen(int devno, unsigned int flags)
     else {
         printk("%d ref error!\n", AtomicGet(&device->references));
         return -1;  /* 引用计数有错误 */
-
     }
-        
     /* 是第一次引用才打开 */
     if (AtomicGet(&device->references) == 1) {
         if (device->opSets->open != NULL)

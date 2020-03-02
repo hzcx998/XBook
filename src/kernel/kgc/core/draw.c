@@ -21,7 +21,7 @@
 #include <kgc/video.h>
 
 #if KGC_DIRECT_DRAW == 1
-EXTERN int VesaWriteDirect(int x, int y, int width, int height, unsigned int color);
+EXTERN int VesaWriteDirect(int x, int y, unsigned int color);
 #endif /* KGC_DIRECT_DRAW */
 /**
  * KGC_DrawPixel - 绘制像素
@@ -35,7 +35,7 @@ PUBLIC void KGC_DrawPixel(int x, int y, uint32_t color)
     /* 绘制一个非缓冲区类型的图形 */
     KGC_CoreDraw(MERGE32(x, y), MERGE32(1, 1), NULL, color);
 #else
-    VesaWriteDirect(x, y, 1, 1, color);
+    VesaWriteDirect(x, y, color);
 #endif /* KGC_DIRECT_DRAW */
 }
 
@@ -113,7 +113,12 @@ PUBLIC void KGC_DrawRectangle(int x, int y, int width, int height, uint32_t colo
     /* 绘制一个非缓冲区类型的图形 */
     KGC_CoreDraw(MERGE32(x, y), MERGE32(width, height), NULL, color);
 #else
-    VesaWriteDirect(x, y, width, height, color);
+    int y0, x0;
+    for (y0 = 0; y0 < height; y0++) {
+        for (x0 = 0; x0 < width; x0++) {
+            VesaWriteDirect(x + x0, y + +y0, color);
+        }
+    }
 #endif /* KGC_DIRECT_DRAW */
 }
 
@@ -137,7 +142,7 @@ PUBLIC void KGC_DrawBitmap(int x, int y, int width, int height, void *bitmap)
     for (y0 = x; y0 < y + height; y0++) {
         for (x0 = x; x0 < x + width; x0++) {
             color = p[y0 * width + x0];
-            VesaWriteDirect(x, y, 1, 1, color);
+            VesaWriteDirect(x, y, color);
         }
     }
 #endif /* KGC_DIRECT_DRAW */

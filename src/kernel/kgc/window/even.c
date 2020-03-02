@@ -15,14 +15,18 @@
 #include <kgc/window/message.h>
 #include <kgc/window/even.h>
 
-
-
 /* 将输入转换成特殊的消息转发给当前窗口 */
 
 PUBLIC void KGC_WindowDoTimer(int ticks)
 {
-    
-
+    /*if (GET_CURRENT_WINDOW()) {           
+        KGC_MessageNode_t *node = KGC_CreateMessageNode();
+        if (node) {
+            node->message.type = KGC_MSG_TIMER;
+            node->message.timer.ticks = ticks;
+            KGC_AddMessageNode(node, GET_CURRENT_WINDOW());
+        }
+    }*/
 }
 
 PUBLIC void KGC_WindowMouseDown(int button, int mx, int my)

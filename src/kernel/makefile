@@ -7,3 +7,4 @@ obj-y	+= lib/
 obj-y	+= mm/
 obj-y	+= task/
 obj-y	+= time/
+obj-y	+= pw/

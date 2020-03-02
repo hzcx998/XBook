@@ -7,3 +7,4 @@ obj-y	+= interrupt.o
 obj-y	+= pic.o
 obj-y	+= tss.o
 obj-y	+= cmos.o
+obj-y	+= power.o

@@ -42,6 +42,16 @@
 #define M_IWRITE (1 << 1)    //文件可写入权限
 #define M_IEXEC  (1 << 0)     //文件可执行权限
 
+
+/* 获取文件的日期 */
+#define FILE_TIME_HOU(data) ((unsigned int)((data >> 11) & 0x1f))
+#define FILE_TIME_MIN(data) ((unsigned int)((data >> 5) & 0x3f))
+#define FILE_TIME_SEC(data) ((unsigned int)((data & 0x1f) *2))
+
+#define FILE_TIME_YEA(data) ((unsigned int)(((data >> 9) & 0x7f)+1980))
+#define FILE_TIME_MON(data) ((unsigned int)((data >> 5) & 0xf))
+#define FILE_TIME_DAY(data) ((unsigned int)(data & 0x1f))
+
 struct stat {
 	size_t st_size;         //以字节为单位的文件容量
 	mode_t st_mode;         //文件访问权限
@@ -71,6 +81,8 @@ int setmode(const char* pathname, int mode);
 int fcntl(int fd, int cmd, long arg);
 long tell(int fd);
 int isfoot(int fd);
+void redirect(unsigned int oldfd, unsigned int newfd);
+int fsync(int fd);
 
 #define MAX_STREAM_FILE_NR  32
 #define __CONFIG_STREAM_FILE_BUF

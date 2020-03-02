@@ -28,11 +28,12 @@ enum KGC_MessageTypes {
     KGC_MSG_DRAW_LINE               = 0x04, /* 绘制直线 */
     KGC_MSG_DRAW_CHAR               = 0x05, /* 绘制字符 */
     KGC_MSG_DRAW_STRING             = 0x06, /* 绘制字符串 */
-    KGC_MSG_DRAW_RECTANGLE_PLUS     = 0x07, /* 绘制矩形-增强 */
-    KGC_MSG_DRAW_BITMAP_PLUS        = 0x08, /* 绘制位图-增强 */
-    KGC_MSG_DRAW_CHAR_PLUS          = 0x09, /* 绘制字符-增强 */
-    KGC_MSG_DRAW_STRING_PLUS        = 0x0a, /* 绘制字符串-增强 */
-    KGC_MSG_DRAW_LINE_PLUS          = 0x0b, /* 绘制直线-增强 */
+    KGC_MSG_DRAW_PIXEL_PLUS         = 0x07, /* 绘制像素-增强 */
+    KGC_MSG_DRAW_RECTANGLE_PLUS     = 0x08, /* 绘制矩形-增强 */
+    KGC_MSG_DRAW_BITMAP_PLUS        = 0x09, /* 绘制位图-增强 */
+    KGC_MSG_DRAW_CHAR_PLUS          = 0x0a, /* 绘制字符-增强 */
+    KGC_MSG_DRAW_STRING_PLUS        = 0x0b, /* 绘制字符串-增强 */
+    KGC_MSG_DRAW_LINE_PLUS          = 0x0c, /* 绘制直线-增强 */
     KGC_MSG_DRAW_UPDATE             = 0x0f, /* 绘制刷新 */
     
     /* 输入 */
@@ -41,6 +42,7 @@ enum KGC_MessageTypes {
     KGC_MSG_MOUSE_MOTION            = 0x20, /* 鼠标移动消息 */
     KGC_MSG_MOUSE_BUTTON_DOWN       = 0x21, /* 鼠标按钮按下消息 */
     KGC_MSG_MOUSE_BUTTON_UP         = 0x22, /* 鼠标按钮弹起消息 */
+    KGC_MSG_TIMER                   = 0x23, /* 时钟产生 */
     
     /* 控制 */
     KGC_MSG_WINDOW_CREATE           = 0x30, /* 创建窗口 */
@@ -84,8 +86,6 @@ typedef struct KGC_MessageMouse
     int y;                  /* 鼠标位置y */
 } KGC_MessageMouse_t;
 
-#define KGC_MSG_WINDOW_SHOW  0x01        /* 立即显示窗口 */
-
 typedef struct KGC_MessageWindow
 {
     KGC_MsgType_t type;                   /* 消息类型 */
@@ -93,8 +93,14 @@ typedef struct KGC_MessageWindow
     char *title;            /* 窗口标题 */
     int width;              /* 窗口宽度 */
     int height;             /* 窗口高度 */
-    char flags;             /* 床就标志 */
 } KGC_MessageWindow_t;
+
+typedef struct KGC_MessageTimer
+{
+    KGC_MsgType_t type;                   /* 消息类型 */
+    /* 参数 */
+    unsigned long ticks;             /* 产生时的ticks */
+} KGC_MessageTimer_t;
 
 /* 消息结构 */
 typedef union {
@@ -103,6 +109,7 @@ typedef union {
     KGC_MessageKey_t key;                       /* 按键 */
     KGC_MessageMouse_t mouse;                   /* 鼠标 */
     KGC_MessageWindow_t window;                 /* 窗口 */
+    KGC_MessageTimer_t timer;
 } KGC_Message_t;
 
 int kgcmsg(int opereate, KGC_Message_t *msg);

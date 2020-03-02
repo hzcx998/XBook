@@ -23,6 +23,7 @@
    #include "../arch/x86/include/kernel/intel8253.h"
    #include "../arch/x86/include/kernel/intel8255.h"
    #include "../arch/x86/include/kernel/dma.h"
+   #include "../arch/x86/include/kernel/power.h"
    #include "../arch/x86/include/mm/page.h"
    #include "../arch/x86/include/mm/phymem.h"
    #include "../arch/x86/include/mm/ioremap.h"

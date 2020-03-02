@@ -16,6 +16,7 @@
 #include <kgc/window/message.h>
 #include <kgc/window/draw.h>
 #include <kgc/font/font.h>
+#include <lib/string.h>
 
 /**
  * KGC_MessageDoWindow - 窗口消息处理
@@ -105,6 +106,15 @@ PUBLIC int KGC_MessageDoDraw(KGC_MessageDraw_t *message)
             message->string, message->color);
         retval = 0;
         break;
+        
+    case KGC_MSG_DRAW_PIXEL_PLUS:
+        KGC_WindowDrawPixel(window, message->left, message->top, 
+            message->color);
+        KGC_WindowRefresh(window, message->left, message->top, 
+            message->left + 1, message->top + 1);
+            retval = 0;
+        break;
+        
     case KGC_MSG_DRAW_RECTANGLE_PLUS:
         KGC_WindowDrawRectangle(window, message->left, message->top, 
             message->width, message->height, message->color);

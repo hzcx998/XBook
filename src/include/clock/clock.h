@@ -38,20 +38,18 @@
 
 struct SystemDate
 {
-	int second;
-	int minute;
-	int hour;
-	int day;
-	int month;
-	int year;
-	int weekDay;
-	int yearDay;
-	int isDst;
+	int second;         /* [0-59] */
+	int minute;         /* [0-59] */
+	int hour;           /* [0-23] */
+	int day;            /* [1-31] */
+	int month;          /* [1-12] */
+	int year;           /* year */
+	int weekDay;        /* [0-6] */
+	int yearDay;        /**/
+	int isDst;          /* 夏令时[-1,0,1] */
 };
 
 EXTERN struct SystemDate systemDate;
-
-
 
 EXTERN volatile clock_t systicks;
 
@@ -61,6 +59,8 @@ PUBLIC void ClockChangeSystemDate();
 
 PUBLIC void PrintSystemTime();
 PUBLIC void GetLocalTime(struct SystemDate *time);
+
+PUBLIC unsigned long SysTime(struct tm *tm);
 
 PRIVATE INLINE unsigned int SystemDateToData()
 {

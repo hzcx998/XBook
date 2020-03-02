@@ -38,6 +38,9 @@ enum {
 #define COM_MAJOR           7
 #define VIDEO_MAJOR         8
 #define MOUSE_MAJOR         9
+#define GTTY_MAJOR          10
+
+#define NULL_MAJOR          0xfff   /* 最后一个设备号 */
 
 
 /* 字符设备数量 */
@@ -47,6 +50,7 @@ enum {
 #define COM_MINORS          4    /* 4个串口设备 */
 #define VIDEO_MINORS        1    /* 1个视频设备 */
 #define MOUSE_MINORS        1    /* 1个鼠标 */
+#define GTTY_MINORS         8    /* 8个图形tty */
 
 /* 设备分区数 */
 #define IDE_PARTS           8
@@ -57,6 +61,8 @@ enum {
 #define RAMDISK_MINOR(x)    (x * (RAMDISK_PARTS + 1)) 
 
 /* 设备号合成 */
+#define DEV_NULL            MKDEV(NULL_MAJOR, 0)       /* 控制台设备0 */
+
 #define DEV_CON0            MKDEV(CONSOLE_MAJOR, 0)       /* 控制台设备0 */
 #define DEV_CON1            MKDEV(CONSOLE_MAJOR, 1)       /* 控制台设备1 */
 #define DEV_CON2            MKDEV(CONSOLE_MAJOR, 2)       /* 控制台设备2 */
@@ -88,7 +94,18 @@ enum {
 
 #define DEV_MOUSE           MKDEV(MOUSE_MAJOR, 0)       /* 鼠标设备 */
 
+#define DEV_GTTY0           MKDEV(GTTY_MAJOR, 0)       /* 图形tty设备0 */
+#define DEV_GTTY1           MKDEV(GTTY_MAJOR, 1)       /* 图形tty设备1 */
+#define DEV_GTTY2           MKDEV(GTTY_MAJOR, 2)       /* 图形tty设备2 */
+#define DEV_GTTY3           MKDEV(GTTY_MAJOR, 3)       /* 图形tty设备3 */
+#define DEV_GTTY4           MKDEV(GTTY_MAJOR, 4)       /* 图形tty设备4 */
+#define DEV_GTTY5           MKDEV(GTTY_MAJOR, 5)       /* 图形tty设备5 */
+#define DEV_GTTY6           MKDEV(GTTY_MAJOR, 6)       /* 图形tty设备6 */
+#define DEV_GTTY7           MKDEV(GTTY_MAJOR, 7)       /* 图形tty设备7 */
+
 #define DEVICE_NAME_LEN 24
+
+#define DEVICE_OPEN_FLAG0  1
 
 /* 设备的抽象
 每个设备子系统都应该继承这个抽象，然后再添加设备自己有的属性

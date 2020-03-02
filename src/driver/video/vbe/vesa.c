@@ -19,38 +19,6 @@ VESA驱动程序数据传输协议
 
 #define DRV_NAME "video"
 
-#ifndef QWORD
-typedef unsigned long   QWORD;
-#endif
-
-#ifndef DWORD
-typedef unsigned int    DWORD;
-#endif
-
-#ifndef WORD
-typedef unsigned short  WORD;
-#endif
-
-#ifndef BYTE
-typedef unsigned char   BYTE;
-#endif
-
-#ifndef UINT
-typedef unsigned int    UINT;
-#endif
-
-#ifndef WCHAR
-typedef unsigned short  WCHAR;
-#endif
-
-#ifndef FSIZE_t
-typedef DWORD           FSIZE_t;
-#endif
-
-#ifndef LBA_t
-typedef DWORD           LBA_t;
-#endif
-
 //#define VESA_DEBUG
 //#define VESA_TEST
 
@@ -69,78 +37,77 @@ enum BitsPerPixel {
     BITS_PER_PIXEL_24   = 24,   /* 1像素24位 */
     BITS_PER_PIXEL_32   = 32,   /* 1像素32位 */
 };
-
-#define ARGB_TO_16(value) \
-    ((uint16_t)((((value >> 16 )& 0x1f) << 11)  | \
-    (((value >> 8) & 0x3f) << 5) | (value & 0x1f)))
+/* 生成5-6-5格式的像素 */
+#define ARGB_TO_16(r, g, b) ((((r >> 3) & 0x1f) << 11)   | \
+    (((g >> 2)& 0x3f) << 5)   | ((b >> 3) & 0x1f ))
 
 /* VBE信息块结构体 */
 struct VbeInfoBlock {
-    BYTE vbeSignature[4];       /* VEB Signature: 'VESA' */
-    WORD vbeVeision;            /* VEB Version:0300h */
-    DWORD oemStringPtr;         /* VbeFarPtr to OEM string */
-    BYTE capabilities[4];       /* Capabilities of graphics controller */
-    DWORD videoModePtr;         /* VbeFarPtr to VideoModeList */
-    WORD totalMemory;           /* Number of 64kb memory blocks added for VEB2.0+ */
-    WORD oemSoftwareRev;        /* VEB implementation Software revision */
-    DWORD oemVendorNamePtr;     /* VbeFarPtr to Vendor Name String */
-    DWORD oemProductNamePtr;    /* VbeFarPtr to Product Name String */
-    DWORD oemProductRevPtr;     /* VbeFarPtr to Product Revision String */
-    BYTE reserved[222];         /* Reserved for VBE implementation scratch area */
-    BYTE oemData[256];          /* Data Area for OEM String */
+    uint8_t vbeSignature[4];       /* VEB Signature: 'VESA' */
+    uint16_t vbeVeision;            /* VEB Version:0300h */
+    uint32_t oemStringPtr;         /* VbeFarPtr to OEM string */
+    uint8_t capabilities[4];       /* Capabilities of graphics controller */
+    uint32_t videoModePtr;         /* VbeFarPtr to VideoModeList */
+    uint16_t totalMemory;           /* Number of 64kb memory blocks added for VEB2.0+ */
+    uint16_t oemSoftwareRev;        /* VEB implementation Software revision */
+    uint32_t oemVendorNamePtr;     /* VbeFarPtr to Vendor Name String */
+    uint32_t oemProductNamePtr;    /* VbeFarPtr to Product Name String */
+    uint32_t oemProductRevPtr;     /* VbeFarPtr to Product Revision String */
+    uint8_t reserved[222];         /* Reserved for VBE implementation scratch area */
+    uint8_t oemData[256];          /* Data Area for OEM String */
 } PACKED;
 
 struct VbeModeInfoBlock {
     /* Mandatory information for all VBE revisions */
-    WORD modeAttributes;        /* mode attributes */
-    BYTE winAAttributes;        /* window A attributes */
-    BYTE winBAttributes;        /* window B attributes */
-    WORD winGranulaity;         /* window granulaity */
-    WORD winSize;               /* window size */
-    WORD winASegment;           /* window A start segment */
-    WORD winBSegment;           /* window B start segment */
-    DWORD winFuncPtr;           /* real mode pointer to window function */
-    WORD bytesPerScanLine;      /* bytes per scan line */
+    uint16_t modeAttributes;        /* mode attributes */
+    uint8_t winAAttributes;        /* window A attributes */
+    uint8_t winBAttributes;        /* window B attributes */
+    uint16_t winGranulaity;         /* window granulaity */
+    uint16_t winSize;               /* window size */
+    uint16_t winASegment;           /* window A start segment */
+    uint16_t winBSegment;           /* window B start segment */
+    uint32_t winFuncPtr;           /* real mode pointer to window function */
+    uint16_t bytesPerScanLine;      /* bytes per scan line */
     /* Mandatory information for VBE1.2 and above */
-    WORD xResolution;           /* horizontal resolution in pixels or characters */
-    WORD yResolution;           /* vertical resolution in pixels or characters */
-    BYTE xCharSize;             /* character cell width in pixels */
-    BYTE yCharSize;             /* character cell height in pixels */
-    BYTE numberOfPlanes;        /* number of banks */
-    BYTE bitsPerPixel;          /* bits per pixel */
-    BYTE numberOfBanks;         /* number of banks */
-    BYTE memoryModel;           /* memory model type */
-    BYTE bankSize;              /* bank size in KB */
-    BYTE numberOfImagePages;    /* number of images */
-    BYTE reserved0;             /* reserved for page function: 1 */
-    BYTE redMaskSize;           /* size of direct color red mask in bits */
-    BYTE redFieldPosition;      /* bit position of lsb of red mask */
-    BYTE greenMaskSize;         /* size of direct color green mask in bits */
-    BYTE greenFieldPosition;    /* bit position of lsb of green mask */
-    BYTE blueMaskSize;          /* size of direct color blue mask in bits */
-    BYTE blueFieldPosition;     /* bit position of lsb of blue mask */
-    BYTE rsvdMaskSize;          /* size of direct color reserved mask in bits */
-    BYTE rsvdFieldPosition;     /* bit position of lsb of reserved mask */
-    BYTE directColorModeInfo;   /* direct color mode attributes */
+    uint16_t xResolution;           /* horizontal resolution in pixels or characters */
+    uint16_t yResolution;           /* vertical resolution in pixels or characters */
+    uint8_t xCharSize;             /* character cell width in pixels */
+    uint8_t yCharSize;             /* character cell height in pixels */
+    uint8_t numberOfPlanes;        /* number of banks */
+    uint8_t bitsPerPixel;          /* bits per pixel */
+    uint8_t numberOfBanks;         /* number of banks */
+    uint8_t memoryModel;           /* memory model type */
+    uint8_t bankSize;              /* bank size in KB */
+    uint8_t numberOfImagePages;    /* number of images */
+    uint8_t reserved0;             /* reserved for page function: 1 */
+    uint8_t redMaskSize;           /* size of direct color red mask in bits */
+    uint8_t redFieldPosition;      /* bit position of lsb of red mask */
+    uint8_t greenMaskSize;         /* size of direct color green mask in bits */
+    uint8_t greenFieldPosition;    /* bit position of lsb of green mask */
+    uint8_t blueMaskSize;          /* size of direct color blue mask in bits */
+    uint8_t blueFieldPosition;     /* bit position of lsb of blue mask */
+    uint8_t rsvdMaskSize;          /* size of direct color reserved mask in bits */
+    uint8_t rsvdFieldPosition;     /* bit position of lsb of reserved mask */
+    uint8_t directColorModeInfo;   /* direct color mode attributes */
     
     /* Mandatory information for VBE2.0 and above */
-    DWORD phyBasePtr;           /* physical address for flat memory frame buffer */
-    DWORD reserved1;            /* reserved-always set to 0 */
-    WORD reserved2;             /* reserved-always set to 0 */
+    uint32_t phyBasePtr;           /* physical address for flat memory frame buffer */
+    uint32_t reserved1;            /* reserved-always set to 0 */
+    uint16_t reserved2;             /* reserved-always set to 0 */
     /* Mandatory information for VBE3.0 and above */
-    WORD lineBytesPerScanLine;  /* bytes per scan line for linear modes */
-    BYTE bnkNumberOfImagePages; /* number of images for banked modes */
-    BYTE linNumberOfImagePages; /* number of images for linear modes */
-    BYTE linRedMaskSize;        /* size of direct color red mask(linear modes) */
-    BYTE linRedFieldPosition;   /* bit position of lsb of red mask(linear modes) */
-    BYTE linGreenMaskSize;      /* size of direct color green mask(linear modes) */
-    BYTE linGreenFieldPosition; /* bit position of lsb of green mask(linear modes) */
-    BYTE linBlueMaskSize;       /* size of direct color blue mask(linear modes) */
-    BYTE linBlueFieldPosition;  /* bit position of lsb of blue mask(linear modes) */
-    BYTE linRsvdMaskSize;       /* size of direct color reserved mask(linear modes) */
-    BYTE linRsvdFieldPosition;  /* bit position of lsb of reserved mask(linear modes) */
-    DWORD maxPixelClock;        /* maximum pixel clock (in HZ) for graphics mode */
-    BYTE reserved3[189];        /* remainder of ModeInfoBlock */
+    uint16_t linebytesPerScanLine;  /* bytes per scan line for linear modes */
+    uint8_t bnkNumberOfImagePages; /* number of images for banked modes */
+    uint8_t linNumberOfImagePages; /* number of images for linear modes */
+    uint8_t linRedMaskSize;        /* size of direct color red mask(linear modes) */
+    uint8_t linRedFieldPosition;   /* bit position of lsb of red mask(linear modes) */
+    uint8_t linGreenMaskSize;      /* size of direct color green mask(linear modes) */
+    uint8_t linGreenFieldPosition; /* bit position of lsb of green mask(linear modes) */
+    uint8_t linBlueMaskSize;       /* size of direct color blue mask(linear modes) */
+    uint8_t linBlueFieldPosition;  /* bit position of lsb of blue mask(linear modes) */
+    uint8_t linRsvdMaskSize;       /* size of direct color reserved mask(linear modes) */
+    uint8_t linRsvdFieldPosition;  /* bit position of lsb of reserved mask(linear modes) */
+    uint32_t maxPixelClock;        /* maximum pixel clock (in HZ) for graphics mode */
+    uint8_t reserved3[189];        /* remainder of ModeInfoBlock */
 } PACKED;
 
 /*
@@ -237,15 +204,11 @@ PRIVATE void VesaWriteOnePixel16(struct VesaPrivate *self, int x, int y, uint32_
 {
     /* 根据像素大小选择对应得像素写入方法 */
     uint8_t *p;
-    uint32_t pixel;
     /* 获取像素位置 */
-    p = self->vram + ((y * self->xResolution + x) << 1); // 左位移1相当于乘以2
-
-    /* 像素转换 */
-    pixel = ARGB_TO_16(value);
+    p = self->vram + ((y * self->xResolution + x) * 2); // 左位移1相当于乘以2
 
     /* 写入像素数据 */
-    *(uint16_t *)p = LOW16(pixel);
+    *(uint16_t *)p = ARGB_TO_16((value >> 16) , (value >> 8), (value));
 }
 
 /**
@@ -317,23 +280,14 @@ PRIVATE int VesaWrite(struct Device *device, unsigned int offset, void *buffer, 
 /**
  * VesaWriteDirect - 直接使用绘制功能，不通过驱动层。
  */
-PUBLIC int VesaWriteDirect(int x, int y, int width, int height, unsigned int color)
+PUBLIC int VesaWriteDirect(int x, int y, unsigned int color)
 {
     struct VesaPrivate *self = &vesaPrivate;
-
-    if (self->vesaWriteOnePixel) {   
-        
-        int x0, y0;
-        int x1 = x + width;
-        int y1 = y + height;
-        for (y0 = y; y0 < y1; y0++) {    
-            for (x0 = x; x0 < x1; x0++) {
-                /* 在屏幕范围内才绘制 */
-                if (x0 >= 0 && y0 >= 0 && x0 < self->xResolution && y0 < self->yResolution) {
-                    /* 绘制像素 */
-                    self->vesaWriteOnePixel(self, x0, y0, color);
-                }
-            }
+    if (self->vesaWriteOnePixel) {
+        /* 在屏幕范围内才绘制 */
+        if (x >= 0 && y >= 0 && x < self->xResolution && y < self->yResolution) {
+            /* 绘制像素 */
+            self->vesaWriteOnePixel(self, x, y, color);
         }
     }
     
@@ -382,25 +336,18 @@ PRIVATE struct DeviceOperations vesaOpSets = {
 
 PRIVATE void VesaTest()
 {
-#ifndef VESA_TEST
-    //struct VesaPrivate *self = &vesaPrivate;
+#ifdef VESA_TEST
+    struct VesaPrivate *self = &vesaPrivate;
 
     /* 映射后就可以对该地址进行读写 */
-    /*uint8_t *p = self->vram;
-    int x, y;
+    int y, x;
     for (y = 0; y < self->yResolution; y++) {
         for (x = 0; x < self->xResolution; x++) {
-            p[(y * self->xResolution + x)*2] = x;
-            p[(y * self->xResolution + x)*2 + 1] = y;
-        }    
-    }*/
-    /*VesaWriteOnePixel(self, 0, 0, 0xffffffff);
-    VesaWriteOnePixel(self, 10, 20, 0xffffffff);
-    VesaWriteOnePixel(self, 100, 300, 0xffffffff);
-    */
+            VesaWriteDirect(x, y, 1, 1, 0xffaa55);
+        }
+    }
 #endif /* VESA_TEST */
 }
-
 
 /**
  * InitVesaDriver - 初始化图形驱动
@@ -495,7 +442,7 @@ PUBLIC int InitVesaDriver()
         printk("init vesa driver failed!\n ");
     }
     
-    VesaTest();
+    //VesaTest();
 
     //while (1);
     return 0;

@@ -28,7 +28,9 @@ int main(int argc, char *argv[])
             if (pid == -1) 
                 return -1;
             if (pid > 0) {  /* 本身 */
+            
 #endif  /* CONFIG_MORE_TTY */
+                
                 /* 打开标准输入，输出，错误 */
                 int stdinno = open("sys:/dev/tty0", O_RDONLY);
                 if (stdinno < 0)
@@ -41,7 +43,8 @@ int main(int argc, char *argv[])
                 int stderrno = open("sys:/dev/tty0", O_WRONLY);
                 if (stderrno < 0)
                     return -1;
-                
+                        
+
                 /* 关闭文件描述符 */
                 /*close(stdout);
                 close(stdin);*/
@@ -84,13 +87,14 @@ int main(int argc, char *argv[])
         }
 #endif  /* CONFIG_MORE_TTY */        
 	} else {
-        const char *args[2];
+        const char *args[3];
         /* shell需要打开的tty的名字 */
-        args[0] = "sys:/dev/tty0";
-        args[1] = NULL;
+        args[0] = "root:/shell";
+        args[1] = "sys:/dev/gtty0";
+        args[2] = NULL;
 
         /* 开启第一个shell */
-        if (execv("root:/shell", args)) {
+        if (execv(args[0], args)) {
             //printf("execute failed!\n");
             return -1;
         }

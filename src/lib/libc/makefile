@@ -9,3 +9,6 @@ obj-y	+= setjmp.o
 obj-y	+= longjmp.o
 obj-y	+= system.o
 obj-y	+= assert.o
+obj-y	+= asctime.o
+obj-y	+= errno.o
+obj-y	+= conio.o

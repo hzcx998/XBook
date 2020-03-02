@@ -21,13 +21,15 @@ BIN_OFF = 0
 BIN_CNTS = 640
 
 #img dir
-DEVELOPMENTS_DIR = ../../../developments/
+IMG_DIR = ../../../developments/image/
 
-FLAPPY_IMG = $(DEVELOPMENTS_DIR)image/d.img
+DISK_IMG = d.img
+DISK_VHD = d.vhd
+DISK_VMDK = d-flat.vmdk
 
-
-VBOX_IMG = $(DEVELOPMENTS_DIR)image/d.vhd
-
+HD_IMG = $(IMG_DIR)$(DISK_IMG)
+HD_VHD = $(IMG_DIR)$(DISK_VHD)
+HD_VMDK = $(IMG_DIR)$(DISK_VMDK)
 
 #flags
 ASM_FLAGS	= -I $(LIB_H_DIR) -f elf
@@ -52,14 +54,22 @@ link: $(BIN)
 $(BIN): $(OBJS) $(LD_OBJS)
 	$(LD) $(LDFLAGS) -o $(BIN) $(OBJS) $(LD_OBJS)
 
-disk:
-	$(DD) if=$(BIN) of=$(FLAPPY_IMG) bs=512 seek=$(BIN_OFF) count=$(BIN_CNTS) conv=notrunc
-	
+disk: img vhd vmdk
 
-vbox: compile link
-	$(DD) if=$(BIN) of=$(VBOX_IMG) bs=512 seek=$(BIN_OFF) count=$(BIN_CNTS) conv=notrunc
+img:
+	$(DD) if=$(BIN) of=$(HD_IMG) bs=512 seek=$(BIN_OFF) count=$(BIN_CNTS) conv=notrunc
 	
+vhd:
+	$(DD) if=$(BIN) of=$(HD_VHD) bs=512 seek=$(BIN_OFF) count=$(BIN_CNTS) conv=notrunc
+	
+vmdk:
+	$(DD) if=$(BIN) of=$(HD_VMDK) bs=512 seek=$(BIN_OFF) count=$(BIN_CNTS) conv=notrunc
+	
+qemu: compile link img
+	
+vbox: compile link vhd
 
+vmware: compile link vmdk
 	
 #Clean temporary files
 clean:

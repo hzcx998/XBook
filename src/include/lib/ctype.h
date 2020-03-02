@@ -19,6 +19,7 @@ double strtod(const char* s, char** endptr);
 double atof(char *str);
 int tolower(int c);
 int toupper(int c);
+int isdigitstr(const char *str);
 
 
 #endif  /* _LIB_CTYPE_H */

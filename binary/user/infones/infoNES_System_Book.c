@@ -4,7 +4,7 @@
 #include <conio.h>
 #include <stdarg.h>
 #include <vsprintf.h>
-#include <sys/kgc.h>
+#include <graph.h>
 
 #include <InfoNES.h>
 #include <InfoNES_System.h>
@@ -76,14 +76,24 @@ int main(int argc,char *argv[])
   dwKeySystem = 0;
   //printf("infoNes \n");
   /* If a rom name specified, start it */
-  if ( argc == 2 )
+  if ( argc >= 2 )
   {
     //printf("2arg %x\n", argv[ 1 ]);
     start_application( argv[ 1 ] );
+  } else {
+    printf("infoNES: too few arguments!\n");  
   }
   //printf("arg error!\n");
   //while(1);
 	return 0;	
+}
+
+
+void exit_application()
+{
+    GUI_CloseWindow();
+
+    exit(0);
 }
 
 /*===================================================================*/
@@ -94,15 +104,9 @@ int main(int argc,char *argv[])
 void start_application( char *filename )
 {
     /* 创建窗口 */
-    KGC_Message_t msg;
-    msg.type = KGC_MSG_WINDOW_CREATE;
-    msg.window.title = "infones";
-    msg.window.width = NES_DISP_WIDTH;
-    msg.window.height = NES_DISP_HEIGHT;
-    msg.window.flags = KGC_MSG_WINDOW_SHOW;
-    kgcmsg(KGC_MSG_SEND, &msg);
+    if (GUI_CreateWindow("infones", NES_DISP_WIDTH, NES_DISP_HEIGHT))
+        return;
 
-  //printf("load ");
   /* Set a ROM image name */
   strcpy( szRomName, filename );
 
@@ -114,12 +118,17 @@ void start_application( char *filename )
     /* Set graphic content */
     //printf("load2 ");
     /* Load SRAM */
-    LoadSRAM();
+    if (LoadSRAM()) {
+        exit_application();
+    }
     //printf("main ");
     InfoNES_Main();
-
+       
+  } else {
+      exit_application();
   }
 }
+
 
 /*===================================================================*/
 /*                                                                   */
@@ -432,14 +441,8 @@ void InfoNES_LoadFrame()
       //*(pBuf++) = (guchar)( ( wColor & 0x001f ) << 3 );
     }
   }
-    KGC_Message_t msg;
-    msg.type = KGC_MSG_DRAW_BITMAP_PLUS;
-    msg.draw.left = 0;
-    msg.draw.top = 0;
-    msg.draw.width = NES_DISP_WIDTH;
-    msg.draw.height = NES_DISP_HEIGHT;
-    msg.draw.bitmap = graphBuffer;
-    kgcmsg(KGC_MSG_SEND, &msg);
+    /* 绘制到窗口中 */
+    GUI_DrawBitmapPlus(0, 0, NES_DISP_WIDTH, NES_DISP_HEIGHT, (unsigned int *)graphBuffer);
     //graph(0, (NES_DISP_WIDTH << 16) | NES_DISP_HEIGHT, graphBuffer);
     //printf("sum:%d", sum);
 }
@@ -494,11 +497,10 @@ status = read(0, &key, 4);
 void PollEvent(void)
 {
     /* 轮训 */
-    KGC_Message_t msg;
-    if (!kgcmsg(KGC_MSG_RECV, &msg)) {
-        if (msg.type == KGC_MSG_KEY_DOWN) {
-            
-            switch (msg.key.code)
+    GUI_Even_t even;
+    if (!GUI_PollEven(&even)) {
+        if (even.type == GUI_EVEN_KEY_DOWN) {
+            switch (even.key.code)
 			{
 			case SDLK_RIGHT:
 			case SDLK_RIGHT2:
@@ -544,10 +546,16 @@ void PollEvent(void)
             
 				SaveSRAM();
 				break;
-			}
+			case 'Q':
+            case 'q':
+                exit_application();
+                break;
+            default:
+                break;
+            }
 
-        } else if (msg.type == KGC_MSG_KEY_UP) {
-            switch (msg.key.code)
+        } else if (even.type == GUI_EVEN_KEY_UP) {
+            switch (even.key.code)
 			{
 			case SDLK_RIGHT:
 			case SDLK_RIGHT2:
@@ -581,84 +589,13 @@ void PollEvent(void)
 			case SDLK_K2:
 				dwKeyPad1 &= ~(1 << 0);
 				break;			/* 'A' */
+            default:
+                break;
 			}					/* 按键松开 */
-		} else if (msg.type == KGC_MSG_QUIT) {
+		} else if (even.type == GUI_EVEN_QUIT) {
             /* 退出 */
-            msg.type = KGC_MSG_WINDOW_CLOSE;
-            kgcmsg(KGC_MSG_SEND, &msg);
-            
-            exit(0);
+            exit_application();
         }
-    }
-}
-
-
-// 按键处理
-void PollEvent2(void)
-{
-    /* 轮训 */
-    unsigned int key = 0;
-    int status = read(0, &key, 4);
-	if (status != -1) {
-        key &= 0xff;
-        /* 按键按下 */
-		if ((0 < key) || (key&0x8000)) {
-            if (key == SDLK_RIGHT || key == SDLK_RIGHT2) {
-                dwKeyPad1 |= (1 << 7);
-            } else {
-                dwKeyPad1 &= ~(1 << 7);
-            }
-            if (key == SDLK_LEFT || key == SDLK_LEFT2) {
-                dwKeyPad1 |= (1 << 6);
-            } else {
-                dwKeyPad1 &= ~(1 << 6);
-            }
-            
-            if (key == SDLK_DOWN || key == SDLK_DOWN2) {
-                dwKeyPad1 |= (1 << 5);
-            } else {
-                dwKeyPad1 &= ~(1 << 5);
-            } 
-            
-            if (key == SDLK_UP || key == SDLK_UP2) {
-                dwKeyPad1 |= (1 << 4);
-            } else {
-                dwKeyPad1 &= ~(1 << 4);
-            
-            } 
-            if (key == SDLK_RETURN || key == SDLK_RETURN2) { /* Start */
-                dwKeyPad1 |= (1 << 3);
-            } else {
-                dwKeyPad1 &= ~(1 << 3);
-            
-            }
-            if (key == SDLK_ESCAPE || key == SDLK_ESCAPE2) { /* Select */
-                dwKeyPad1 |= (1 << 2);
-            } else {
-                dwKeyPad1 &= ~(1 << 2);
-            
-            } 
-            if (key == SDLK_J || key == SDLK_J2) { /* 'B' */
-                dwKeyPad1 |= (1 << 1);
-            } else {
-                dwKeyPad1 &= ~(1 << 1);
-            
-            }    
-            if (key == SDLK_K || key == SDLK_K2) { /* 'A' */
-                dwKeyPad1 |= (1 << 0);
-            } else {
-                dwKeyPad1 &= ~(1 << 0);
-            }
-
-            if (key == SDLK_C || key == SDLK_C2) {
-                /* 切换剪裁 */
-				PPU_UpDown_Clip = (PPU_UpDown_Clip ? 0 : 1);
-            } else if (key == SDLK_R) {
-                SaveSRAM();
-            }
-		}
-	} else {
-
     }
 }
 

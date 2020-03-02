@@ -16,7 +16,6 @@
 #include <lib/string.h>
 #include <lib/math.h>
 
-
 /*
 申请一个内存节点数组，通过引用来表明是否被使用
 指向内存节点数组的指针
@@ -25,6 +24,10 @@ struct MemNode *memNodeTable;
 /* 节点数量 */
 unsigned int memNodeCount;
 unsigned int memNodeBase;
+
+/* 物理内存总大小 */
+PRIVATE unsigned int totalPhysicMemorySize;
+    
 
 /*
  * MapDirectMemory - 物理地址和虚拟地址一对一映射
@@ -181,17 +184,51 @@ PRIVATE void CutUesdMemory()
     AllocPages(usedPages);
 }
 
+/** 
+ * GetPhysicMemoryFreeSize - 获取物理内存空闲大小
+ * 
+ * 返回物理内存大小
+ */
+PUBLIC unsigned int GetPhysicMemoryFreeSize()
+{
+    struct MemNode *node = memNodeTable;
+    unsigned int freeNodes = 0;
+    while (node < memNodeTable + memNodeCount)
+    {
+        /* 没有被分配就是我们需要的 */
+        if (!node->reference) {
+            freeNodes++;
+        }
+        /* 指向下一个节点位置 */
+        if (node->count) 
+            node += node->count;
+        else 
+            node++;
+    }
+    /* 获取空闲节点数后，进行计算 */
+    return freeNodes * PAGE_SIZE;
+}
+
+/** 
+ * GetPhysicMemoryTotalSize - 获取物理内存总大小
+ * 
+ * 返回物理内存大小
+ */
+PUBLIC unsigned int GetPhysicMemoryTotalSize()
+{
+    return totalPhysicMemorySize;
+}
+
 /**
  * InitPhysicMemory - 初始化物理内存管理以及一些相关设定
  */
 PUBLIC int InitPhysicMemory()
 {
     //----获取内存大小----
-    unsigned int memSize;
     //打开设备
     HalOpen("ram");
     //从设备获取信息
-    HalIoctl("ram", RAM_HAL_IO_MEMSIZE, (unsigned int)&memSize);
+    HalIoctl("ram", RAM_HAL_IO_MEMSIZE, (unsigned int)&totalPhysicMemorySize);
 
     /* 根据内存大小划分区域
     如果内存大于1GB:
@@ -202,8 +239,8 @@ PUBLIC int InitPhysicMemory()
     unsigned int normalSize;
     unsigned int userSize;
     
-    normalSize = (memSize - (NORMAL_MEM_ADDR + HIGH_MEM_SIZE + NULL_MEM_SIZE)) / 2; 
-    userSize = memSize - normalSize;
+    normalSize = (totalPhysicMemorySize - (NORMAL_MEM_ADDR + HIGH_MEM_SIZE + NULL_MEM_SIZE)) / 2; 
+    userSize = totalPhysicMemorySize - normalSize;
     if (normalSize > 1*GB) {
         unsigned int moreSize = normalSize - 1*GB;
 
@@ -229,7 +266,7 @@ PUBLIC int InitPhysicMemory()
         Panic(PART_ERROR "boot mem alloc for mem node table failed!\n");
     }
     
-    //printk(PART_TIP "mem node table at %x size:%x %d MB\n", memNodeTable, memNodeTableSize, memNodeTableSize/MB);
+    //printk("mem node table at %x size:%x %d MB\n", (uint32_t )memNodeTable, memNodeTableSize, memNodeTableSize/MB);
     
     memset(memNodeTable, 0, memNodeTableSize);
 

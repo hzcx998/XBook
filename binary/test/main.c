@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <unistd.h>
 #include <signal.h>
 #include <file.h>
+#include <graph.h>
+#include <time.h>
+#include <taskscan.h>
 
 char test[4096];
 
@@ -275,7 +277,8 @@ void stream_file()
 
     fgets(buf, 20, fp);
     printf("buf:%s", buf);
-    
+    .
+
     fgets(buf, 20, fp);
     printf("buf:%s", buf);
     */
@@ -289,8 +292,84 @@ void stream_file()
     fclose(fp);
 }
 
+int ttyfd;
+
+void termHandler(int num)
+{
+    close(ttyfd);
+    exit(0);
+}
+
+void gtty_test()
+{
+    int fd = open("sys:/dev/gtty0", O_RDWR);
+    
+    write(fd, "hello\n", 5);
+    
+    ioctl(fd, 1, 0);
+
+    write(fd, "world", 5);
+    
+    //close(fd);
+    /* 捕捉信号，用于在窗口关闭时退出程序 */
+    signal(SIGTERM, termHandler);
+    
+    while (1) {        
+        int key = 0;
+        if (!read(0, &key, 4)) {
+            char s[2];
+            s[0] = key;
+            s[1] = 0;
+            write(fd, s, 1);
+        }
+    }
+}
+
+void time_test()
+{
+    printf("in time test");
+    struct tm tm;
+    time(&tm);
+
+    printf("year:%4d moth:%4d day:%4d hour:%4d minute:%4d second:%4d\n", 
+        tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    char *str = asctime(&tm);
+    printf("time:%s\n", str);
+}
+
+static const char *task_status[] = {
+    "READY",
+    "RUNNING",
+    "BLOCKED",
+    "WAITING",
+    "STOPED",
+    "ZOMBIE",
+    "DIED"
+};
+
+void taskscan_test()
+{
+    printf("in taskscan test\n");
+    
+    taskscan_status_t ts;
+    int num = 0;
+    printf("   PID   PPID     STAT    PRO    TICKS NAME\n");
+    while (!taskscan(&ts, &num)) {
+        printf("%6d %6d %8s %6d %8d %s\n", 
+            ts.ts_pid, ts.ts_ppid, task_status[ts.ts_state], ts.ts_priority,
+            ts.ts_ticks, ts.ts_name);
+    }
+}
+
 int main(int argc, char *argv[])
 {
+    taskscan_test();
+
+    return 0;
+
+    gtty_test();
+
+    return 0;
 	printf("Welcome to test. my pid %d\n", getpid());
 
 	int i = 0;

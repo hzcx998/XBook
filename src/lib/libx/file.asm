@@ -212,3 +212,17 @@ dup2:
     pop ecx 
     pop ebx 
 	ret
+global redirect
+; void redirect(unsigned int oldfd, unsigned int newfd);
+redirect:
+    push ebx 
+    push ecx 
+
+	mov eax, SYS_REDIRECT
+	mov ebx, [esp + 8 + 4]
+	mov ecx, [esp + 8 + 8]
+	int INT_VECTOR_SYS_CALL
+
+    pop ecx 
+    pop ebx 
+	ret

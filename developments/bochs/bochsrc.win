@@ -25,7 +25,7 @@ boot: a
 log: ../developments/bochs/bochsout.txt
 
 # enable the mouse
-mouse: enabled=0
+mouse: enabled=0, toggle=ctrl+f10
 
 # enable key mapping, using US layout as default.
 #
@@ -34,7 +34,11 @@ mouse: enabled=0
 # in the DLX Linux example I'm enabling keyboard_mapping so that paste 
 # will work.  Cut&Paste is currently implemented on win32 and X windows only.
 
-keyboard_mapping: enabled=1, map=D:/Softwares/Bochs-2.5/keymaps/x11-pc-us.map
+keyboard: type=mf, serial_delay=250
+keyboard: keymap=D:/DevApp/Bochs-2.6.11/keymaps/x11-pc-us.map
+keyboard: user_shortcut=ctrl-alt
+
+#keyboard: enabled=1, map=D:/Softwares/Bochs-2.5/keymaps/x11-pc-us.map
 #keyboard_mapping: enabled=1, map=$BXSHARE/keymaps/x11-pc-fr.map
 #keyboard_mapping: enabled=1, map=$BXSHARE/keymaps/x11-pc-de.map
 #keyboard_mapping: enabled=1, map=$BXSHARE/keymaps/x11-pc-es.map

@@ -654,6 +654,56 @@ void ThreadB(void *arg)
     }
 }
 
+/**
+ * SysTaskScan - 任务扫描
+ * 
+ */
+PUBLIC int SysTaskScan(taskscan_status_t *ts, unsigned int *idx)
+{
+    if (ts == NULL)
+        return -1;
+
+    /* 如果是0，就从第一个 */
+    int n = 0;
+    Task_t *task;
+    ListForEachOwner (task, &taskGlobalList, globalList) {
+        /* 到达了我们需求的数 */
+        if (n == *idx) {
+            /* 复制数据信息 */
+            ts->ts_pid = task->pid;
+            ts->ts_ppid = task->parentPid;
+            ts->ts_gpid = task->groupPid;
+            ts->ts_state = task->status;
+            ts->ts_priority = task->priority;
+            ts->ts_ticks = task->ticks;
+            ts->ts_runticks = task->elapsedTicks;
+            memset(ts->ts_name, 0, 32);
+            strcpy(ts->ts_name, task->name);
+            *idx = *idx + 1;
+            return 0;
+        }
+        n++;
+    }
+    /* 已经到达末尾了 */
+    return -1;
+}
+
+/**
+ * SysGetVersion - 获取系统版本
+ * @buf: 缓冲区
+ * @buflen: 缓冲区长度
+ */
+PUBLIC void SysGetVersion(char *buf, int buflen)
+{
+    if (strlen(OS_NAME) + strlen(OS_VERSION) >= buflen) {
+        memcpy(buf, "buf too short! :( ", buflen);    
+    } else {
+        strcpy(buf, OS_NAME);
+        strcat(buf, OS_VERSION);
+    }
+}
+
+
 PUBLIC void DumpTask(struct Task *task)
 {
     printk(PART_TIP "----Task----\n");
@@ -673,10 +723,6 @@ PRIVATE char *initArgv[3];
 PUBLIC void InitUserProcess()
 {
     /* 暂时的提示语言 */
-    printk("Book Say > Welcom to BookOS! Please input 'help' to get more help!\n");
-    printk("Book Say > You can press Alt + F1~F3 to select a different console.\n");
-#ifdef CONFIG_BLOCK_DEVICE
-
 #if CONFIG_APP_DIRECT == 0
 	/* 加载init进程 */
     initArgv[0] =  "root:/init";
@@ -684,13 +730,11 @@ PUBLIC void InitUserProcess()
     
 #else
     /* 直接加载应用程序 */
-    initArgv[0] =  "root:/nes";
-    initArgv[1] =  "bee";
-    initArgv[2] =  0;
+    initArgv[0] =  "root:/init";
+    initArgv[1] =  0;
 #endif /* CONFIG_APP_DIRECT */
 
     InitFirstProcess(initArgv, "init");
-#endif
 
 }
 

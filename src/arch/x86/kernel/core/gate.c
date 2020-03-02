@@ -91,7 +91,6 @@ EXTERN void InterruptEntry0x2f();
 
 EXTERN void SyscallHandler();
 
-
 PRIVATE void InitInterruptDescriptor()
 {
 	idt = (struct GateDescriptor *) IDT_VADDR;

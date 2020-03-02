@@ -205,3 +205,18 @@ int toupper(int c)
 		return c + ('A' - 'a');
 	return c;
 }
+
+/* 判断字符是不是纯数字 */
+int isdigitstr(const char *str)
+{
+    const char *p = str;
+               
+    while (*p) {
+        /* 如果有一个字符不是数字，就返回0 */
+        if (!isdigit(*p)) { 
+            return 0;
+        }
+        p++;
+    }
+    return 1;
+}

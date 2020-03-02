@@ -13,12 +13,11 @@
 #include <char/char.h>
 #include <lib/string.h>
 #include <book/kgc.h>
-//#include <char/virtual/tty.h>
-//#include <char/uart/serial.h>
 
 /* ----驱动程序初始化文件导入---- */
 EXTERN int InitSerialDriver();
 EXTERN int InitConsoleDriver();
+EXTERN int InitNullDeviceDriver();
 /* ----驱动程序初始化文件导入完毕---- */
 
 #define _DEBUG_TEST
@@ -27,6 +26,10 @@ EXTERN struct List allCharDeviceList;
 
 PRIVATE void InitCharDrivers()
 {
+    if (InitNullDeviceDriver()) {
+        printk("init null device driver failed!\n");
+    }
+
 #ifdef CONFIG_DRV_CONSOLE
     if (InitConsoleDriver()) {
         printk("init console driver failed!\n");

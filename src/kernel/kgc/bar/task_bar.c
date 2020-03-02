@@ -88,8 +88,10 @@ PUBLIC KGC_WindowController_t *KGC_CreateWindowController()
 
     KGC_ButtonSetSize(&controller->button, KGC_TASK_BAR_SIZE, KGC_TASK_BAR_SIZE);
     KGC_ButtonSetName(&controller->button, "window controller");
-    //KGC_ButtonSetText(&controller->button, " ");
     
+    /* 设置按钮默认状态颜色 */
+    controller->button.defaultColor = KGC_TASK_BAR_COLOR;
+
     KGC_ButtonSetImage(&controller->button, 26, 32, wcRawData, KGCC_BLACK, KGCC_WHITE);
     KGC_ButtonSetImageAlign(&controller->button, KGC_WIDGET_ALIGN_CENTER);
 
@@ -171,11 +173,12 @@ PUBLIC void KGC_WindowControllerActive(KGC_WindowController_t *controller)
     ListForEachOwner (tmp, &windowControllerListHead, list) {
         if (tmp == controller) {
             tmp->button.defaultColor = KGCC_ARGB(255, 128, 128, 128);
+
             tmp->button.label.backColor = tmp->button.defaultColor;
             tmp->button.label.widget.drawCounter = 0;
             KGC_ButtonShow(&tmp->button.label.widget);
         } else {
-            tmp->button.defaultColor = KGC_BUTTON_DEFAULT_COLOR;
+            tmp->button.defaultColor = KGC_TASK_BAR_COLOR;
             tmp->button.label.backColor = tmp->button.defaultColor;
             tmp->button.label.widget.drawCounter = 0;
             KGC_ButtonShow(&tmp->button.label.widget);
@@ -203,7 +206,7 @@ PUBLIC void KGC_TaskBarSortController()
     /* 先清空显示。链表长度+1，才是原来的数量，才能保证全部都刷新到 */
     KGC_ContainerDrawRectanglePlus(kgcbar.container, 0, KGC_MENU_BAR_HEIGHT,
         (ListLength(&windowControllerListHead) + 1) * (KGC_TASK_BAR_SIZE + 2),
-        KGC_TASK_BAR_HEIGHT, KGC_BAR_COLOR);
+        KGC_TASK_BAR_HEIGHT, KGC_TASK_BAR_COLOR);
 
     /* 从前往后，进行排序 */
     KGC_WindowController_t *controller;
@@ -287,7 +290,7 @@ PUBLIC void KGC_WindowControllerDel(KGC_WindowController_t *controller)
     KGC_Label_t *label = &controller->button.label;
     /* 清除控制器显示 */
     KGC_ContainerDrawRectanglePlus(kgcbar.container, label->x, label->y,
-        label->width, label->height, KGC_BAR_COLOR);
+        label->width, label->height, KGC_TASK_BAR_COLOR);
     /* 删除按钮 */
     KGC_ButtonDel(&controller->button);
     /* 脱离控制器链表 */

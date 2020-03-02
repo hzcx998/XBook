@@ -64,7 +64,12 @@ enum {
     SYS_DUP,                /* 49 */
     SYS_DUP2,               /* 50 */
     SYS_KGCMSG,             /* 51 */
-    
+    SYS_TIME,               /* 52 */
+    SYS_TASKSCAN,           /* 53 */
+    SYS_GETMEM,             /* 54 */
+    SYS_REDIRECT,           /* 55 */
+    SYS_REBOOT,             /* 56 */
+    SYS_GETVER,             /* 57 */
     MAX_SYSCALL_NR,
 };
 

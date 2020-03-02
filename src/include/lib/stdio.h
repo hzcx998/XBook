@@ -15,6 +15,7 @@
 #include "dir.h"
 
 #include "libio.h"
+#include "conio.h"
 
 #define EOF     -1
 

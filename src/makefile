@@ -17,6 +17,7 @@ NASM 		= nasm
 CC			= gcc
 LD 			= ld
 DD 			= dd
+OBJDUMP		= objdump
 # virtual machine
 QEMU 		= qemu-system-i386
 BOCHS 		= bochs
@@ -118,6 +119,7 @@ ARFLAGS := -r
 
 #kernel file	
 KERNEL_ELF =  kernel.elf
+KERNEL_ELF_DISASM =  kernel.elf.disasm
 
 #libary file
 LIBC_A = libc.a
@@ -143,6 +145,7 @@ endif
 
 $(KERNEL_ELF): $(OBJS)
 	$(LD) $(LDFLAGS)  -e _start -Ttext 0x80100000 -o $(KERNEL_ELF) $(OBJS)
+	$(OBJDUMP) -M intel -D $(KERNEL_ELF) > $(KERNEL_ELF_DISASM)
 
 $(LIBC_A): $(OBJS_LIB) 
 	$(AR) $(ARFLAGS) $(LIBC_A) $(OBJS_LIB)
@@ -184,7 +187,7 @@ endif
 # 	a.使用蜂鸣器：-soundhw pcspk
 #	b.使用声霸卡：-soundhw sb16
 # 控制台串口调试： -serial stdio 
-QEMU_ARGUMENT = -m 512M \
+QEMU_ARGUMENT = -m 256M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
 		-serial stdio \

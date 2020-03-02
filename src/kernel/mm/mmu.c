@@ -9,40 +9,47 @@
 #include <book/mmu.h>
 #include <book/arch.h>
 #include <book/debug.h>
+#include <book/memcache.h>
+#include <book/vmarea.h>
+#include <book/lowmem.h>
 #include <lib/string.h>
 #include <lib/math.h>
+
+PUBLIC void SysGetMemory(meminfo_t *mi)
+{
+    if (mi == NULL)
+        return;
+        
+    /* 获取内存信息 */
+    mi->mi_total   = GetPhysicMemoryTotalSize();
+    mi->mi_free    = GetPhysicMemoryFreeSize();
+    mi->mi_used    = mi->mi_total - mi->mi_free;
+    if (mi->mi_used < 0)
+        mi->mi_used = 0;
+}
+
+PUBLIC void PrintMemoryInfo()
+{
+    meminfo_t mi;
+    SysGetMemory(&mi);
+    printk("Total: %d-%dMB, Free: %d-%dMB, Used: %d-%dMB\n",
+        mi.mi_total, mi.mi_total / MB, mi.mi_free, mi.mi_free / MB, mi.mi_used, mi.mi_used / MB);
+}
 
 /**
  * MmuMemoryInfo - 获取内存信息
  */
-PUBLIC void MmuMemoryInfo()
+PUBLIC void InitMMU()
 {
-	PART_START("Memory Information");
-	// 获取页的使用情况
-	/*unsigned int totalPages = ZoneGetAllTotalPages();
-	unsigned int unsingPages = ZoneGetAllUsingPages();
-	unsigned int freePages = totalPages - unsingPages;
+    
+	/* 初始化内存缓存 */
+	InitMemCaches();
+    
+	/* 初始化内存区域 */
+	InitVMArea();
 
-	// 从ram获取内存信息
-	unsigned int totalMemory;
-	HalIoctl("ram", RAM_HAL_IO_MEMSIZE, (unsigned int)&totalMemory);
-
-	// 空闲页大小 - 空间初始化占用的大小 = 剩余大小
-	unsigned int freeMemory = freePages * PAGE_SIZE - ZoneGetInitMemorySize();
-
-	// 使用中的大小 = 总大小 - 空闲大小
-	unsigned int unsingMemory = totalMemory - freeMemory;
-	
-	printk("\n");
-	// 显示内存使用情况
-	printk(PART_TIP "Total memory %d MB, pages total memory %d MB.\n", 
-		totalMemory / MB, (totalPages * PAGE_SIZE) / MB);
-
-	printk(PART_TIP "Unsing memory %d MB, free memory %d MB.\n", 
-		unsingMemory / MB, freeMemory / MB);
-	
-	printk(PART_TIP "Total pages %d, using pages %d free pages %d.\n", 
-		totalPages, unsingPages, freePages);
-*/
-	PART_END();
+    /* 初始化内存片段 */
+    InitMemFragment();
+    
+    PrintMemoryInfo();
 }

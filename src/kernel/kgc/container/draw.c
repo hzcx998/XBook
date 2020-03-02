@@ -13,26 +13,6 @@
 #include <kgc/container/draw.h>
 #include <lib/string.h>
 
-PUBLIC void KGC_ContainerReadPixel(KGC_Container_t *container, int x, int y, uint32_t *color)
-{
-	if (x < 0 || x < 0 || x >= container->width || \
-		y >= container->height) {
-		return;
-	}
-    /* 从缓冲区读取颜色 */
-	*color = *(uint32_t *)(container->buffer + (y * container->width + x));
-}
-
-PUBLIC void KGC_ContainerWritePixel(KGC_Container_t *container, int x, int y, uint32_t color)
-{
-	if (x < 0 || x < 0 || x >= container->width || \
-		y >= container->height) {
-		return;
-	}
-    /* 写入颜色到缓冲区 */
-	*(uint32_t *)(container->buffer + (y * container->width + x)) = color;
-}
-
 void KGC_ContainerDrawRectangle(KGC_Container_t *container, int x, int y, int width, int height, uint32_t color)
 {
 	int i, j;

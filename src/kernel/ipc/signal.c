@@ -337,6 +337,7 @@ PUBLIC int DoSignal(struct TrapFrame *frame)
             printk("task %d received signal %d from task %d.\n",
                 cur->pid, sig, cur->signals.sender[sig - 1]);
             #endif
+            
             /* 已经获取这个信号了，删除它 */
             sigdelset(&cur->signalPending, sig);
 
@@ -437,12 +438,13 @@ PUBLIC int DoSendSignal(pid_t pid, int signal, pid_t sender)
     printk("task %d sent signal %d to task %d.\n",
                sender, signal, pid);
     #endif
+    
     /* 对参数进行检测 */
     if (IS_BAD_SIGNAL(signal)) {
         return -1;
     }
-
     Task_t *task = FindTaskByPid(pid);
+    
     /* 没找到要发送的进程，返回失败 */
     if (task == NULL) {
         return -1;
@@ -561,9 +563,9 @@ PUBLIC int ForceSignal(int signo, pid_t pid)
 PRIVATE int SendBranch(pid_t pid, int signal, pid_t sender)
 {
     if (pid > 0) {  /* 发送给单个进程 */
-        return DoSendSignal(pid, signal, CurrentTask()->pid);
+        return DoSendSignal(pid, signal, sender);
     } else if (pid == 0) { /* 发送给当前进程的进程组 */
-        return DoSendSignalGroup(CurrentTask()->groupPid, signal, CurrentTask()->pid);
+        return DoSendSignalGroup(CurrentTask()->groupPid, signal, sender);
     } else if (pid == -1) { /* 发送给有权利发送的所有进程 */
         int retval = 0, count = 0, err;
         struct Task *task;
@@ -580,7 +582,7 @@ PRIVATE int SendBranch(pid_t pid, int signal, pid_t sender)
         return retval;
     } else {    /* pid < 0，发送给-pid组标识的进程 */
         //printk("pid is %d\n", pid);
-        return DoSendSignalGroup(-pid, signal, CurrentTask()->pid);
+        return DoSendSignalGroup(-pid, signal, sender);
     }
 }
 

@@ -13,8 +13,6 @@
 
 #define TIMER_FREQ     1193180 	//时钟的频率
 
-#define CONFIG_TIMEZONE_AUTO 1 	/* 自动转换时区 */
-
 /*
 PUBLIC void InitPitClockDriver();
 */

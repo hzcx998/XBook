@@ -98,6 +98,7 @@ PRIVATE void CancelEverything(struct Task *task)
 
     /* 关闭窗口 */
     if (task->window) {
+        //printk("close window\n");
         KGC_WindowClose(task->window);
     }
 }
@@ -113,7 +114,7 @@ PUBLIC void ThreadExit(struct Task *thread)
     
     /* 过继给init进程（pid为0） */
     AdopeChildren(thread);
-
+    
     CancelEverything(thread);
     
     /* 操作链表时关闭中断，结束后恢复之前状态 */
@@ -160,10 +161,8 @@ PUBLIC void SysExit(int status)
     
     /* 2.释放自己占用的内存资源 */
     MemoryManagerRelease(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
-    
     /* 释放文件资源 */
     BOFS_ReleaseTaskFiles(current);
-
     /* 3.如果有父进程，就通知父进程我已经远去，来帮我收尸吧
     在完成父进程唤醒之前不能调度 */
     

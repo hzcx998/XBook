@@ -1,5 +1,14 @@
 # Book OS
 
+## 2020.3.2
+* add gtty driver
+* bosh run base on gtty
+* update time management
+* add a calender application with terminal
+* add ls, ps, mv, cp, mm, echo buildin command
+* make pipe and redirect in bosh
+* add null device driver
+
 ## 2020.2.24
 * make a simple GUI based on KGC  
 

@@ -126,28 +126,6 @@ PUBLIC void InitPitClockDriver()
     */
 	systicks = 0;
 
-	//用一个循环让秒相等
-	do{
-		systemDate.year = CMOS_GetYear();
-		systemDate.month = CMOS_GetMonHex();
-		systemDate.day = CMOS_GetDayOfMonth();
-		
-		systemDate.hour = CMOS_GetHourHex();
-		systemDate.minute =  CMOS_GetMinHex8();
-		systemDate.second = CMOS_GetSecHex();
-		systemDate.weekDay = CMOS_GetDayOfWeek();
-		
-		/* 转换成本地时间 */
-		/* 自动转换时区 */
-#if CONFIG_TIMEZONE_AUTO == 1
-        /*if(systemDate.hour >= 16){
-			systemDate.hour -= 16;
-		}else{
-			systemDate.hour += 8;
-		}*/
-#endif /* CONFIG_TIMEZONE_AUTO */
-	}while(systemDate.second != CMOS_GetSecHex());
-
 	/* 初始化定时器 */
 	InitTimer();
 

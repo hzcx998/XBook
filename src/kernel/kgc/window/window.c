@@ -44,10 +44,7 @@ PUBLIC KGC_Window_t *KGC_WindowCreate(
     if ((strlen(title) >= KGC_WINDOW_TITLE_NAME_LEN - 1) ||
         !width || !height)
         return NULL;
-
-    /* 如果已经有窗口，就不能创建 */
-    if (CurrentTask()->window)
-        return NULL;
+    
     /* 创建窗口对象 */
     KGC_Window_t *window = (KGC_Window_t *) kmalloc(sizeof(KGC_Window_t), GFP_KERNEL);
     if (window == NULL)
@@ -165,9 +162,11 @@ PUBLIC int KGC_WindowDestroy(KGC_Window_t *window)
     /* 释放消息队列 */
     KGC_FreeMessageList(window);
     
-    /* 任务窗口为空 */
-    Task_t *task = (Task_t *)window->task;
-    task->window = NULL;
+    if (window->task) {
+        /* 任务窗口为空 */
+        Task_t *task = (Task_t *)window->task;
+        task->window = NULL;    
+    }
     
     /* 释放窗口对象 */
     kfree(window);
@@ -186,6 +185,10 @@ PUBLIC int KGC_WindowClose(KGC_Window_t *window)
     if (!window)
         return -1;
     
+    /* 如果是窗口的创建者，才能够关闭窗口 */
+    if (window->task != CurrentTask())
+        return -1;
+
     /* 当前窗口置为隐藏 */
     if (GET_CURRENT_WINDOW())
         KGC_ContainerZ(GET_CURRENT_WINDOW()->container, -1);
@@ -222,7 +225,6 @@ PRIVATE void ThreadWindow(void *arg)
     msg.window.title = "hello";
     msg.window.width = 400;
     msg.window.height = 300;
-    msg.window.flags = KGC_MSG_WINDOW_SHOW;
     
     if (KGC_SendMessage(&msg)) {
         printk("create window failed!\n");
@@ -322,6 +324,10 @@ PRIVATE void ThreadWindow(void *arg)
     ThreadExit(CurrentTask());
 }
 #endif
+
+EXTERN int InitGttyDriver();
+
+
 PUBLIC int KGC_InitWindowContainer()
 {
     /* 设置当前窗口为空 */
@@ -365,5 +371,8 @@ PUBLIC int KGC_InitWindowContainer()
     /* 打开一个测试窗口任务 */
     //ThreadStart("window", 2, ThreadWindow, NULL);
     
+    InitGttyDriver();
+
+
     return 0;
 }
