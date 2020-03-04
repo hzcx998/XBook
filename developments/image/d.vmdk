@@ -1,0 +1,20 @@
+# Disk DescriptorFile
+version=1
+encoding="GBK"
+CID=fffffffe
+parentCID=ffffffff
+createType="monolithicFlat"
+
+# Extent description
+RW 20480 FLAT "d-flat.vmdk" 0
+
+# The Disk Data Base 
+#DDB
+
+ddb.adapterType = "ide"
+ddb.geometry.cylinders = "20"
+ddb.geometry.heads = "16"
+ddb.geometry.sectors = "63"
+ddb.longContentID = "68216026ded141bb95676af2fffffffe"
+ddb.uuid = "60 00 C2 94 1b 88 66 0d-fc 05 17 98 8d 93 6b 08"
+ddb.virtualHWVersion = "16"

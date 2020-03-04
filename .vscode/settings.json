@@ -121,7 +121,8 @@
         "x86.h": "c",
         "power.h": "c",
         "taskscan.h": "c",
-        "ioctl.h": "c"
+        "ioctl.h": "c",
+        "cstdlib": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
