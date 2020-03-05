@@ -21,6 +21,13 @@
 int min(int a, int b);
 int max(int a, int b);
 int abs(int n);
-int pow(int x, int y);
-
+double pow(double x, double y);
+int ipow (double x,int y);
+double exp (double x);
+double ln (double x);
+double sin (double x);
+double cos(double x);
+double tan(double x);
+double fabs (double x);
+double sqrt (double x);
 #endif /* _LIB_MATH_H */

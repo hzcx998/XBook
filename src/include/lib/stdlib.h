@@ -43,7 +43,7 @@ int mkfifo(const char *path, mode_t mode);
 void graph(int offset, int size, void *buffer);
 
 int system(const char *command);
-
+void qsort( void  * base, size_t n_elements, size_t el_size, int  (* compare ) (void const *, void const *) );
 int reboot();
 
 void getver(char *buf, int buflen);

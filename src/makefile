@@ -124,7 +124,7 @@ KERNEL_ELF_DISASM =  kernel.elf.disasm
 #libary file
 LIBC_A = libc.a
 
-PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean
+PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean dis
 PHONY	+= $(SRCDIRS)
 
 export NASM NASM_FLAGS CC LD CFLAGS LDFLAGS TOPDIR
@@ -145,6 +145,8 @@ endif
 
 $(KERNEL_ELF): $(OBJS)
 	$(LD) $(LDFLAGS)  -e _start -Ttext 0x80100000 -o $(KERNEL_ELF) $(OBJS)
+
+dis: $(KERNEL_ELF)
 	$(OBJDUMP) -M intel -D $(KERNEL_ELF) > $(KERNEL_ELF_DISASM)
 
 $(LIBC_A): $(OBJS_LIB) 
@@ -208,7 +210,7 @@ lib: $(LIBC_A)
 
 # clean temporary files
 clean: $(SRCDIRS)
-	$(RM) $(KERNEL_ELF)
+	$(RM) $(KERNEL_ELF) $(KERNEL_ELF_DISASM)
 	
 # remove libary file
 rmlib:
