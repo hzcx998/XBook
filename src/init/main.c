@@ -53,11 +53,11 @@ PUBLIC int main()
 	/* 初始化多任务后，初始化工作队列 */
 	InitWorkQueue();
 	
-	/* 打开中断标志 */
-	EnableInterrupt();
-	
 	/* 初始化时钟系统 */
 	InitClockSystem();
+	
+    /* 打开中断标志 */
+	EnableInterrupt();
 	
 	/* 初始化字符设备 */	
 	InitCharDevice();
@@ -71,6 +71,8 @@ PUBLIC int main()
     /* 初始化输入系统 */
     InitInputSystem();
 
+    //while (1);
+
     /* 初始化音频系统 */
     InitSoundSystem();
     
@@ -79,20 +81,11 @@ PUBLIC int main()
     /* 初始化文件系统 */
     InitFileSystem();
 
-    //SysReboot(REBOOT_KBD);
-
     /* 执行最后的初始化设置，进入群雄逐鹿的场面 */
 	InitUserProcess();
-	/* main thread 就是idle线程 */
-	while (1) {
-		
-		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
-		知道再次被阻塞 */
-		//TaskBlock(TASK_BLOCKED);
-		/* 打开中断 */
-		EnableInterrupt();
-		/* 执行cpu停机 */
-		CpuHlt();
-	};
+	
+    /* 系统暂停运行 */
+    SystemPause();
+
 	return 0;
 }

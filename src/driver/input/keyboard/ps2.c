@@ -15,6 +15,8 @@
 #include <lib/string.h>
 #include <char/chr-dev.h>
 #include <char/console/console.h>
+#include <input/input.h>
+
 #include <input/keyboard/ps2.h>
 #include <char/virtual/tty.h>
 
@@ -374,9 +376,7 @@ struct KeyboardPrivate {
 	int	numLock;	/* Num Lock	 */
 	int	scrollLock;	/* Scroll Lock	 */
 	int	column;		/* 数据位于哪一列 */
-	
-    struct IoQueue ioqueue; /* io队列 */
-	struct CharDevice *chrdev;	/* 字符设备 */
+	InputDevice_t iptdev;   /* 输入设备 */
 };
 
 /* 键盘的私有数据 */
@@ -418,10 +418,8 @@ PRIVATE void SetLeds()
 PRIVATE unsigned char GetByteFromBuf()       
 {
     unsigned char scanCode;
-
     /* 从队列中获取一个数据 */
-    scanCode = IoQueueGet(&keyboardPrivate.ioqueue);
-    
+    scanCode = InputDeviceGetIoData(&keyboardPrivate.iptdev);
     return scanCode;
 }
 
@@ -657,29 +655,7 @@ PRIVATE void KeyboardHandler(unsigned int irq, unsigned int data)
 	unsigned char scanCode = In8(KBC_READ_DATA);
 
     /* 把数据放到io队列 */
-    IoQueuePut(&keyboardPrivate.ioqueue, scanCode);
-}
-
-
-/**
- * KeyboardRead - 从键盘读取
- * @device: 设备
- * @unused: 未用
- * @buffer: 存放数据的缓冲区
- * @len: 数据长度
- * 
- * 从键盘读取输入, 根据len读取不同的长度
- */
-PRIVATE int KeyboardRead(struct Device *device, unsigned int unused, void *buffer, unsigned int len)
-{
-    if (len == 1) {
-        *(char *)buffer = (char )KeyboardDoRead();
-    } else if (len == 2) {
-        *(short *)buffer = (short )KeyboardDoRead();
-    } else if (len == 4) {
-        *(unsigned int *)buffer = (unsigned int )KeyboardDoRead();
-    }
-    return 0;
+    InputDevicePutIoData(&keyboardPrivate.iptdev, scanCode);
 }
 
 /**
@@ -717,7 +693,6 @@ PRIVATE int KeyboardIoctl(struct Device *device, int cmd, int arg)
 PRIVATE struct DeviceOperations keyboardOpSets = {
 	.ioctl = KeyboardIoctl, 
     .getc = KeyboardGetc,
-    .read = KeyboardRead,
 };
 
 /**
@@ -725,21 +700,14 @@ PRIVATE struct DeviceOperations keyboardOpSets = {
  */
 PUBLIC int InitPs2KeyboardDriver()
 {
-	/* 分配一个字符设备 */
-	keyboardPrivate.chrdev = AllocCharDevice(DEV_KEYBOARD);
-	if (keyboardPrivate.chrdev == NULL) {
-		printk(PART_ERROR "alloc char device for keyboard failed!\n");
-		return -1;
-	}
-
-	/* 初始化字符设备信息 */
-	CharDeviceInit(keyboardPrivate.chrdev, 1, &keyboardPrivate);
-	CharDeviceSetup(keyboardPrivate.chrdev, &keyboardOpSets);
-
-	CharDeviceSetName(keyboardPrivate.chrdev, DRV_NAME);
-	
-	/* 把字符设备添加到系统 */
-	AddCharDevice(keyboardPrivate.chrdev);
+    /* 注册输入设备 */
+    if (RegisterInputDevice(&keyboardPrivate.iptdev,
+        DEV_KEYBOARD, DRV_NAME, 1, &keyboardPrivate, &keyboardOpSets,
+        INPUT_DEVICE_IOQUEUE, IQ_FACTOR_32, IQ_BUF_LEN_64) == -1) {
+        return -1;
+    }
+    
+    keyboardPrivate.iptdev.irq = IRQ1_KEYBOARD;
 	
 	/* 初始化私有数据 */
 	keyboardPrivate.codeWithE0 = 0;
@@ -751,16 +719,9 @@ PUBLIC int InitPs2KeyboardDriver()
 	keyboardPrivate.capsLock   = 0;
 	keyboardPrivate.numLock    = 1;
 	keyboardPrivate.scrollLock = 0;
-
-	unsigned char *buf = kmalloc(IQ_BUF_LEN_32, GFP_KERNEL);
-    if (buf == NULL)
-        return -1;
-    /* 初始化io队列 */
-    IoQueueInit(&keyboardPrivate.ioqueue, buf, IQ_BUF_LEN_32, IQ_FACTOR_32);
-
     
-	/* 注册时钟中断并打开中断，因为设定硬件过程中可能产生中断，所以要提前打开 */	
-	RegisterIRQ(IRQ1_KEYBOARD, KeyboardHandler, IRQF_DISABLED, "IRQ1", DRV_NAME, (uint32_t)&keyboardPrivate);
+    /* 注册时钟中断并打开中断，因为设定硬件过程中可能产生中断，所以要提前打开 */	
+	RegisterIRQ(keyboardPrivate.iptdev.irq, KeyboardHandler, IRQF_DISABLED, "IRQ1", DRV_NAME, (uint32_t)&keyboardPrivate);
     
     /* 初始化键盘控制器 */
 
@@ -783,7 +744,6 @@ PUBLIC int InitPs2KeyboardDriver()
 PUBLIC void ExitPs2KeyboardDriver()
 {
 	/* 关闭设备后注销中断 */
-	UnregisterIRQ(IRQ1, 0);
-	DelCharDevice(keyboardPrivate.chrdev);
-	FreeCharDevice(keyboardPrivate.chrdev);
+	UnregisterIRQ(keyboardPrivate.iptdev.irq, (uint32_t)&keyboardPrivate);
+    UnregisterInputDevice(&keyboardPrivate.iptdev);
 }

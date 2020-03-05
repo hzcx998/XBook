@@ -11,7 +11,8 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <book/task.h>
-#include <kgc/video.h>
+#include <video/video.h>
+#include <char/chr-dev.h>
 #include <kgc/input/mouse.h>
 #include <kgc/window/message.h>
 #include <kgc/window/window.h>
@@ -19,9 +20,6 @@
 #include <lib/string.h>
 #include <lib/vsprintf.h>
 #include <lib/ioctl.h>
-
-/* 图形tty的数量 */
-#define GTTY_NR 8
 
 #define DRV_NAME "gtty"
 
@@ -69,7 +67,7 @@ typedef struct {
 } Gtty_t;
 
 /* gtty 表 */
-Gtty_t gttyTabel[GTTY_NR];
+Gtty_t gttyTabel[GTTY_MINORS];
 
 PRIVATE void CursorDraw(Gtty_t *gtty);
 PRIVATE int CanScrollUp(Gtty_t *gtty);
@@ -469,11 +467,12 @@ int GttyClose(struct Device *device)
     Gtty_t *gtty = (Gtty_t *)chrdev->private;
 
     int retval = -1;
-    
     gtty->holdPid = 0;
-    kfree(gtty->charBuffer);
+    if (gtty->charBuffer)
+        kfree(gtty->charBuffer);
 
     if (gtty->window) {
+        
         retval = KGC_WindowClose(gtty->window);
         gtty->window = NULL;
     }
@@ -498,7 +497,6 @@ PRIVATE int GttyGetc(struct Device *device)
     if (gtty->holdPid == CurrentTask()->pid) {
         KGC_Message_t msg;
         if (!KGC_RecvMessage(&msg)) {
-            
             /* 有消息产生 */
             switch (msg.type) {
             /* 处理按键按下事件 */
@@ -597,7 +595,7 @@ PRIVATE int GttyGetc(struct Device *device)
             }
         }
     } else {
-        printk("task %d not holder %d, kill it!\n", CurrentTask()->pid, gtty->holdPid);
+        printk("getc: task %d not gtty %d holder %d, kill it!\n", CurrentTask()->pid, gtty->deviceID, gtty->holdPid);
         /* 不是前台任务进行读取，就会产生SIGTTIN */
         SysKill(CurrentTask()->pid, SIGTTIN);
         
@@ -622,6 +620,10 @@ PRIVATE int GttyPutc(struct Device *device, unsigned int ch)
         //printk("%c", ch);
         GttyOutChar(gtty, ch);
     } else {
+        /* 其它进程可以向此tty输出信息。 */
+        //GttyOutChar(gtty, ch);
+        //printk("putc: task %d not gtty %d holder %d, kill it!\n", CurrentTask()->pid, gtty->deviceID, gtty->holdPid);
+        
         printk("task %d not holder %d, kill it!\n", CurrentTask()->pid, gtty->holdPid);
         /* 不是前台任务进行写入，就会产生SIGTTOU */
         SysKill(CurrentTask()->pid, SIGTTOU);
@@ -651,6 +653,7 @@ PRIVATE int GttyIoctl(struct Device *device, int cmd, int arg)
         break;
     case GTTY_IOCTL_HOLD:
         gtty->holdPid = arg;
+        //printk("pid %d set gtty %d holder!\n", arg, gtty->deviceID);
         break;
     default:
 		/* 失败 */
@@ -699,7 +702,7 @@ PRIVATE int GttyInitOne(Gtty_t *gtty)
 PUBLIC int InitGttyDriver()
 {
     int i;
-    for (i = 0; i < GTTY_NR; i++) {
+    for (i = 0; i < GTTY_MINORS; i++) {
         GttyInitOne(&gttyTabel[i]);
     }
     return 0;

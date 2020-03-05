@@ -88,14 +88,11 @@ PRIVATE INLINE void __SemaphoreUp(struct Semaphore *sema)
 	
 	/* 让等待者的链表从信号量的链表中脱去 */
 	ListDel(&waiter->waitList);
-
+    
 	/* 设置任务为就绪状态 */
 	waiter->task->status = TASK_READY;
 
-	/* 先检测不在就绪队列中 */
-	ASSERT(!ListFind(&waiter->task->list, &taskReadyList));
-	/* 添加到就绪队列 */
-	ListAdd(&waiter->task->list, &taskReadyList);
+    TaskPriorityQueueAddHead(waiter->task);
 }
 
 /**

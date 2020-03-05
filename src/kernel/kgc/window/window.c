@@ -11,8 +11,8 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <book/task.h>
+#include <video/video.h>
 #include <lib/string.h>
-#include <kgc/video.h>
 #include <kgc/draw.h>
 #include <kgc/input/mouse.h>
 #include <kgc/window/message.h>
@@ -370,9 +370,5 @@ PUBLIC int KGC_InitWindowContainer()
     */
     /* 打开一个测试窗口任务 */
     //ThreadStart("window", 2, ThreadWindow, NULL);
-    
-    InitGttyDriver();
-
-
     return 0;
 }

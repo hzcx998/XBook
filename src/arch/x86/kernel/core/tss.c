@@ -38,6 +38,6 @@ PUBLIC Tss_t *GetTss()
 PUBLIC void UpdateTssInfo(struct Task *task)
 {
 	// 更新tss.esp0的值为任务的内核栈顶
-	tss.esp0 = (unsigned int)((uint32_t)task + PAGE_SIZE);
+	tss.esp0 = (unsigned int)((uint32_t)task + TASK_KSTACK_SIZE);
 	// printk("task %s update tss esp0\n", task->name);
 }

@@ -11,7 +11,7 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <book/task.h>
-#include <kgc/video.h>
+#include <video/video.h>
 #include <kgc/input/mouse.h>
 #include <kgc/window/message.h>
 #include <kgc/window/window.h>

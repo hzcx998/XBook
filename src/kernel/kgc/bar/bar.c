@@ -10,8 +10,8 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/kgc.h>
+#include <video/video.h>
 #include <kgc/bar/bar.h>
-#include <kgc/video.h>
 #include <kgc/container/container.h>
 #include <kgc/container/draw.h>
 #include <kgc/controls/widget.h>

@@ -9,7 +9,7 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/kgc.h>
-#include <kgc/video.h>
+#include <video/video.h>
 #include <kgc/container/draw.h>
 #include <kgc/window/window.h>
 #include <kgc/window/draw.h>

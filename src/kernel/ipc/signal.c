@@ -179,7 +179,7 @@ PRIVATE int DeliverSignal(int signo, pid_t sender, struct Task *task)
         task->signalLeft = 1;       /* 有信号剩余 */
         
         /* 如果是阻塞中，就唤醒它 */
-        if (task->status == TASK_BLOCKED) {
+        if (task->status == TASK_BLOCKED || task->status == TASK_WAITING) {
             #ifdef _DEBUG_SIGNAL
             printk("[DeliverSignal] task %s is blocked, wake up it.", task->name);
             #endif
@@ -189,8 +189,8 @@ PRIVATE int DeliverSignal(int signo, pid_t sender, struct Task *task)
                 CancelTimer(task->sleepTimer);
                 task->sleepTimer = NULL;
             }
-            
-            TaskWakeUp(task);
+            TaskUnblock(task);
+            //TaskWakeUp(task);
             /* 如果在投递过程中，任务处于休眠中，那么就要用休眠计时器去唤醒它 */
         }
     } else {
@@ -475,7 +475,7 @@ ToOut:
     SpinUnlockIrqSave(&task->signalMaskLock, flags);
 
     /* 发送后，如果进程处于阻塞，并且还有信号需要处理，那么就唤醒进程 */
-    if ((task->status == TASK_BLOCKED) && (task->signalPending != 1)) {
+    if ((task->status == TASK_BLOCKED || task->status == TASK_WAITING) && (task->signalPending != 1)) {
         //printk("wakeup a blocked task %s after send a signal.\n", task->name);
         
         /* 如果对于的信号没有被屏蔽才能唤醒 */

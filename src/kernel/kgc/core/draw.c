@@ -13,16 +13,11 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/bitops.h>
-#include <lib/string.h>
-
-/* 图形系统 */
 #include <book/kgc.h>
+#include <lib/string.h>
+#include <video/video.h>
 #include <kgc/draw.h>
-#include <kgc/video.h>
 
-#if KGC_DIRECT_DRAW == 1
-EXTERN int VesaWriteDirect(int x, int y, unsigned int color);
-#endif /* KGC_DIRECT_DRAW */
 /**
  * KGC_DrawPixel - 绘制像素
  * @x: 横坐标
@@ -31,12 +26,11 @@ EXTERN int VesaWriteDirect(int x, int y, unsigned int color);
  */
 PUBLIC void KGC_DrawPixel(int x, int y, uint32_t color)
 {
-#if KGC_DIRECT_DRAW == 0
-    /* 绘制一个非缓冲区类型的图形 */
-    KGC_CoreDraw(MERGE32(x, y), MERGE32(1, 1), NULL, color);
-#else
-    VesaWriteDirect(x, y, color);
-#endif /* KGC_DIRECT_DRAW */
+    VideoPoint_t point;
+    point.x = x;
+    point.y = y;
+    point.color = color;
+    VideoWritePixel(&point);
 }
 
 /**
@@ -49,6 +43,9 @@ PUBLIC void KGC_DrawPixel(int x, int y, uint32_t color)
  */
 PUBLIC void KGC_DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
 {
+    VideoPoint_t point;
+    point.color = color;
+
     int i, x, y, len, dx, dy;
 	dx = x1 - x0;
 	dy = y1 - y0;
@@ -92,7 +89,9 @@ PUBLIC void KGC_DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
 		}	
 	}
 	for(i = 0; i < len; i++){
-		KGC_DrawPixel((x >> 10), (y >> 10), color);
+        point.x = (x >> 10);
+        point.y = (y >> 10);
+		VideoWritePixel(&point);
 		x += dx;
 		y += dy;
 	}
@@ -109,17 +108,13 @@ PUBLIC void KGC_DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
  */
 PUBLIC void KGC_DrawRectangle(int x, int y, int width, int height, uint32_t color)
 {
-#if KGC_DIRECT_DRAW == 0
-    /* 绘制一个非缓冲区类型的图形 */
-    KGC_CoreDraw(MERGE32(x, y), MERGE32(width, height), NULL, color);
-#else
-    int y0, x0;
-    for (y0 = 0; y0 < height; y0++) {
-        for (x0 = 0; x0 < width; x0++) {
-            VesaWriteDirect(x + x0, y + +y0, color);
-        }
-    }
-#endif /* KGC_DIRECT_DRAW */
+    VideoRect_t rect;
+    rect.point.x = x;
+    rect.point.y = y;
+    rect.point.color = color;
+    rect.width = width;
+    rect.height = height;
+    VideoFillRect(&rect);
 }
 
 /**
@@ -132,52 +127,13 @@ PUBLIC void KGC_DrawRectangle(int x, int y, int width, int height, uint32_t colo
  */
 PUBLIC void KGC_DrawBitmap(int x, int y, int width, int height, void *bitmap)
 {
-#if KGC_DIRECT_DRAW == 0
-    /* 绘制一个缓冲区类型的图形 */
-    KGC_CoreDraw(MERGE32(x, y), MERGE32(width, height), bitmap, 0);
-#else
-    int x0, y0;
-    uint32_t color;
-    uint32_t *p = (uint32_t *)bitmap;
-    for (y0 = x; y0 < y + height; y0++) {
-        for (x0 = x; x0 < x + width; x0++) {
-            color = p[y0 * width + x0];
-            VesaWriteDirect(x, y, color);
-        }
-    }
-#endif /* KGC_DIRECT_DRAW */
-}
-
-/**
- * KGC_DrawCircle - 绘制圆形
- * @center_x: 中心横坐标
- * @center_y: 中心纵坐标
- * @radius: 半径
- * @color: 眼色
- */
-PUBLIC void KGC_DrawCircle(uint32_t center_x,uint32_t center_y, uint32_t radius,uint32_t color)  
-{
-    int x, y, p;  
-    x = 0, y = radius, p = 1-radius;  
-
-    while (x < y)
-    {
-        KGC_DrawPixel(center_x + x, center_y + y, color);  
-        KGC_DrawPixel(center_x - x, center_y + y, color);  
-        KGC_DrawPixel(center_x - x, center_y - y, color);  
-        KGC_DrawPixel(center_x + x, center_y - y, color);  
-        KGC_DrawPixel(center_x + y, center_y + x, color);  
-        KGC_DrawPixel(center_x - y, center_y + x, color);  
-        KGC_DrawPixel(center_x - y, center_y - x, color);  
-        KGC_DrawPixel(center_x + y, center_y - x, color);  
-        x++;
-        if (p < 0) p += 2*x + 1;  
-        else  
-        {  
-            y--;  
-            p += 2*x - 2*y + 1;  
-        }  
-    }  
+    VideoBitmap_t vb;
+    vb.x = x;
+    vb.y = y;
+    vb.width = width;
+    vb.height = height;
+    vb.bitmap = bitmap;
+    VideoBitmapBlit(&vb);
 }
 
 /**
@@ -190,7 +146,7 @@ PUBLIC void KGC_DrawCircle(uint32_t center_x,uint32_t center_y, uint32_t radius,
  * 
  * 清空显存的某个区域
  */
-PUBLIC void KGC_CleanVideo(int x, int y, int width, int height, uint32_t color)
+PUBLIC void KGC_CleanVideo(uint32_t color)
 {
-    KGC_DrawRectangle(x, y, width, height, color);
+    VideoBlank(color);
 }

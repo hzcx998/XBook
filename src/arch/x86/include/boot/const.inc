@@ -31,8 +31,6 @@ KERNEL_SEG EQU 0x1000
 ;0x1000*16 = 0x10000
 KERNEL_PHY_ADDR EQU KERNEL_SEG*16
 
-
-
 ;we will read kernel from kerne.elf to 1M after we jmp to protect mode,
 ;so this is our kernel finally addr
 KERNEL_START_ADDR EQU 0x80100000

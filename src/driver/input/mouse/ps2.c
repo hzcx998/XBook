@@ -13,13 +13,10 @@
 #include <lib/stddef.h>
 
 #include <char/chr-dev.h>
-#include <kgc/input.h>
+#include <input/input.h>
 
 #define DRV_NAME "mouse"
-#define DRV_VERSION "0.1"
-
-/* 不配置队列处理输出，貌似更加快 */
-#define CONFIG_NO_QUEUE
+#define DRV_VERSION "0.2"
 
 /* 键盘控制器端口 */
 enum KeyboardControllerPorts {
@@ -119,7 +116,6 @@ enum MouseCmds {
 /* 等待键盘控制器可读取，当输出缓冲区为空后才可以读取 */
 #define WAIT_KBC_READ()    while (In8(KBC_STATUS) & KBC_STATUS_OUT_BUF_FULL)
 
-
 /* 鼠标数据包 */
 struct MouseData {
 	/* 第一字节数据内容
@@ -137,7 +133,8 @@ struct MouseData {
 	unsigned char byte4;
 };
 
-#define MOUSE_IO_BUF_LEN  128
+/* 16个鼠标缓冲区 */
+#define MOUSE_BUFFER_LEN  16
 
 /*
 键盘的私有数据
@@ -146,14 +143,8 @@ struct MousePrivate {
 	struct MouseData mouseData;		                        /* 鼠标的数据包 */
 	char phase;		                                        /* 解析步骤 */
     uint8_t rowData;                                        /* 原始数据 */
-    int packets;                                            /* 完整包的数量 */
-    KGC_InputMousePacket_t mousePackets[MAX_MOUSE_PACKET_NR];   /* 存放的完整数据包 */
-	struct CharDevice *chrdev;	                            /* 字符设备 */
-#ifndef CONFIG_NO_QUEUE    
-    struct IoQueue ioqueue;                                 /* io队列 */
-    uint8_t iobuf[MOUSE_IO_BUF_LEN];                        /* io缓冲区 */
-#endif  /* CONFIG_NO_QUEUE */
-
+    
+	InputDevice_t iptdev;   /* 输入设备 */
 };
 
 /* 键盘的私有数据 */
@@ -171,22 +162,6 @@ PRIVATE void WAIT_KBC_ACK()
 }
 
 /**
- * GetByteFromBuf - 从键盘缓冲区中读取下一个字节
- */
-PRIVATE unsigned char GetRowData()       
-{
-    unsigned char rowData;
-#ifdef CONFIG_NO_QUEUE
-	rowData = mousePrivate.rowData;
-	mousePrivate.rowData = 0;
-#else
-    rowData = IoQueueGet(&mousePrivate.ioqueue);
-#endif  /* CONFIG_NO_QUEUE */
-
-	return rowData;
-}
-
-/**
  * MouseDoRead - 解析鼠标数据
  * 
  * 返回-1，表明解析出错。
@@ -195,7 +170,7 @@ PRIVATE unsigned char GetRowData()
 */
 PRIVATE int MouseDoRead()
 {
-    unsigned char rowData = GetRowData();
+    unsigned char rowData = mousePrivate.rowData;
 	
     if (mousePrivate.phase == 0) {
         /* 打开中断后产生的第一个数据是ACK码，然后才开始数据传输 */
@@ -219,56 +194,29 @@ PRIVATE int MouseDoRead()
 		mousePrivate.phase = 1;
 
 		//printk("(B:%x, X:%d, Y:%d)\n", mousePrivate.mouseData.byte0, (char)mousePrivate.mouseData.byte1, (char)mousePrivate.mouseData.byte2);
-		
-        if (mousePrivate.packets < MAX_MOUSE_PACKET_NR) {
-            
-            KGC_InputMousePacket_t *packet = &mousePrivate.mousePackets[mousePrivate.packets];
-            //memset(packet, 0, sizeof(KGC_InputMousePacket_t));
-            /* 只获取低3位，也就是按键按下的位 */
-            packet->button = mousePrivate.mouseData.byte0 & 0x07;
-            packet->xIncrease = mousePrivate.mouseData.byte1;
-            packet->yIncrease = mousePrivate.mouseData.byte2;
-
-            /* 如果x有符号，那么就添加上符号 */
-            if ((mousePrivate.mouseData.byte0 & 0x10) != 0) {
-                
-                packet->xIncrease |= 0xff00;
-                //buf->xIncrease = - buf->xIncrease;
-
-            }
-            
-            /* 如果y有符号，那么就添加上符号 */
-            if ((mousePrivate.mouseData.byte0 & 0x20) != 0) {
-                packet->yIncrease |= 0xff00;
-                //buf->yIncrease = -buf->xIncrease;
-            }
-
-            /* y增长是反向的，所以要取反 */
-            //mousePrivate.yIncrease = -mousePrivate.yIncrease;
-            packet->yIncrease = -packet->yIncrease;
-
-            //printk("[x:%d, y:%d](%x)\n", buf->xIncrease, buf->yIncrease, buf->button);
-
-            /* 有一个完整的包 */
-            ++mousePrivate.packets;
-        }
-
+        /* 开始数据包的填写 */
+        InputBuffer_t buffer;
+        buffer.type = INPUT_BUFFER_MOUSE;
+        /* 只获取低3位，也就是按键按下的位 */
+        buffer.mouse.button = mousePrivate.mouseData.byte0 & 0x07;
+        buffer.mouse.xIncrease = mousePrivate.mouseData.byte1;
+        buffer.mouse.yIncrease = mousePrivate.mouseData.byte2;
+        /* 如果x有符号，那么就添加上符号 */
+        if ((mousePrivate.mouseData.byte0 & 0x10) != 0)
+            buffer.mouse.xIncrease |= 0xff00;
+        /* 如果y有符号，那么就添加上符号 */
+        if ((mousePrivate.mouseData.byte0 & 0x20) != 0)
+            buffer.mouse.yIncrease |= 0xff00;
+        /* y增长是反向的，所以要取反 */
+        buffer.mouse.yIncrease = -buffer.mouse.yIncrease;
+        buffer.mouse.zIncrease = mousePrivate.mouseData.byte3;
+        //printk("[x:%d, y:%d](%x)\n", buf->xIncrease, buf->yIncrease, buf->button);
+        InputDevicePutBuffer(&mousePrivate.iptdev, &buffer);
 		return 1;
 	}
 	return -1; 
 }
 
-#ifndef CONFIG_NO_QUEUE 
-/**
- * TaskMouse - 鼠标任务
- */
-PRIVATE void TaskMouse(void *arg)
-{
-    while (1) {
-        MouseDoRead();
-    }
-}
-#endif /* CONFIG_NO_QUEUE */
 /**
  * MouseHnadler - 鼠标中断处理函数
  * @irq: 中断号
@@ -278,16 +226,9 @@ PRIVATE void MouseHnadler(unsigned int irq, unsigned int data)
 {
     struct MousePrivate *this = (struct MousePrivate *)data;
     u8 rowData = In8(KBC_READ_DATA);
-#ifdef CONFIG_NO_QUEUE
     this->rowData = rowData;
-    //printk("data:%x\n", rowData);
     /* 直接处理数据 */
     MouseDoRead();
-#else
-    /* 把数据放到io队列 */
-    IoQueuePut(&mousePrivate.ioqueue, rowData);
-#endif
-    
 }
 
 /**
@@ -304,32 +245,8 @@ PRIVATE int MouseRead(struct Device *device, unsigned int unused, void *buffer, 
     /* 获取控制台 */
     struct CharDevice *chrdev = (struct CharDevice *)device;
     struct MousePrivate *this = (struct MousePrivate *)chrdev->private;
-    int retval = -1;
-    unsigned long eflags = InterruptSave();
 
-    if (this->packets > 0) {
-        /* 处理数据 */
-        KGC_InputMousePacket_t *p = (KGC_InputMousePacket_t *)buffer;
-        
-        /* 传出包的数量 */
-        *(uint32 *)len = this->packets;
-        KGC_InputMousePacket_t *packet = (KGC_InputMousePacket_t *)&mousePrivate.mousePackets[0];
-
-        /* 循环传递 */   
-        while (this->packets) {
-            
-            *p = *packet;
-
-            p++;
-            packet++;
-            --this->packets;
-        }
-        //memset();
-        retval = 0;
-    }
-    
-    InterruptRestore(eflags);
-    return retval;
+    return InputDeviceGetBuffer(&this->iptdev, buffer, (uint32_t *)len);
 }
 
 /**
@@ -366,35 +283,20 @@ PRIVATE struct DeviceOperations mouseOpSets = {
  */
 PUBLIC int InitPs2MouseDriver()
 {
-    /* 分配一个字符设备 */
-	mousePrivate.chrdev = AllocCharDevice(DEV_MOUSE);
-	if (mousePrivate.chrdev == NULL) {
-		printk(PART_ERROR "alloc char device for keyboard failed!\n");
-		return -1;
-	}
-
-	/* 初始化字符设备信息 */
-	CharDeviceInit(mousePrivate.chrdev, 1, &mousePrivate);
-	CharDeviceSetup(mousePrivate.chrdev, &mouseOpSets);
-
-	CharDeviceSetName(mousePrivate.chrdev, DRV_NAME);
+    /* 注册输入设备 */
+    if (RegisterInputDevice(&mousePrivate.iptdev,
+        DEV_MOUSE, DRV_NAME, 1, &mousePrivate, &mouseOpSets,
+        INPUT_DEVICE_BUFFER, sizeof(InputBuffer_t), MOUSE_BUFFER_LEN) == -1) {
+        return -1;
+    }
+    mousePrivate.iptdev.irq = IRQ12_MOUSE;
 	
-	/* 把字符设备添加到系统 */
-	AddCharDevice(mousePrivate.chrdev);
-
 	/* 初始化私有数据 */
 	memset(&mousePrivate.mouseData, 0, sizeof(struct MouseData));
-    
+
 	mousePrivate.rowData = 0;
     mousePrivate.phase = 0;
-    mousePrivate.packets = 0;
-
-#ifndef CONFIG_NO_QUEUE 
-    /* 初始化io队列 */
-    IoQueueInit(&mousePrivate.ioqueue, &mousePrivate.iobuf[0], MOUSE_IO_BUF_LEN, IQ_FACTOR_8);
-    ThreadStart("mouse", 1, TaskMouse, NULL);
-#endif  /* CONFIG_NO_QUEUE */
-
+    
     /* 注册时钟中断并打开中断，因为设定硬件过程中可能产生中断，所以要提前打开 */	
 	RegisterIRQ(IRQ12_MOUSE, &MouseHnadler, 0, "Mouseirq", "Mouse", (uint32_t)&mousePrivate);
 
@@ -423,5 +325,17 @@ PUBLIC int InitPs2MouseDriver()
 	Out8(KBC_WRITE_DATA, KBC_CONFIG);
 	WAIT_KBC_ACK();
 
+    printk("init mouse done!\n");
     return 0;
+}
+
+
+/**
+ * ExitPs2MouseDriver - 退出鼠标驱动
+ */
+PUBLIC void ExitPs2MouseDriver()
+{
+	/* 关闭设备后注销中断 */
+	UnregisterIRQ(mousePrivate.iptdev.irq, (uint32_t)&mousePrivate);
+    UnregisterInputDevice(&mousePrivate.iptdev);
 }

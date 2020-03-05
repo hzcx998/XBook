@@ -19,13 +19,13 @@ EXTERN void InterruptExit();
 PRIVATE int CopyStructAndKstack(struct Task *childTask, struct Task *parentTask)
 {
     /* 复制task所在的页，里面有结构体，0级栈，还有返回地址等 */
-    memcpy(childTask, parentTask, PAGE_SIZE);
+    memcpy(childTask, parentTask, TASK_KSTACK_SIZE);
 
     /* 单独修改内容 */
     childTask->pid = ForkPid();
     childTask->elapsedTicks = 0;
     childTask->status = TASK_READY;
-    childTask->ticks = childTask->priority;
+    childTask->ticks = childTask->timeslice;
     childTask->parentPid = parentTask->pid;
     /* 重新设置链表，在这里不使用ListDel，那样会删除父进程在队列中的情况
     所以这里就直接把队列指针设为NULL，后面会添加到链表中*/
@@ -148,7 +148,7 @@ PRIVATE int BuildChildStack(struct Task *childTask)
 
     /* 获取中断栈框 */
     struct TrapFrame *frame = (struct TrapFrame *)(
-            (uint32_t)childTask + PAGE_SIZE - sizeof(struct TrapFrame));
+            (uint32_t)childTask + TASK_KSTACK_SIZE - sizeof(struct TrapFrame));
     /*
 	printk("edi: %x esi: %x ebp: %x esp: %x\n", 
 			frame->edi, frame->esi, frame->ebp, frame->esp);
@@ -275,7 +275,7 @@ PUBLIC pid_t SysFork()
     /* 把当前任务当做父进程 */
     struct Task *parentTask = CurrentTask();
     /* 为子进程分配空间 */
-    struct Task *childTask = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    struct Task *childTask = kmalloc(TASK_KSTACK_SIZE, GFP_KERNEL);
     if (childTask == NULL) {
         printk(PART_ERROR "SysFork: kmalloc for child task failed!\n");
         return -1;
@@ -290,28 +290,15 @@ PUBLIC pid_t SysFork()
         kfree(childTask);
         return -1;
     }
-    /*
-    if (AddTaskToFS(childTask->name, childTask->pid)) {
-        kfree(childTask->pgdir);
-        kfree(childTask);
-        return -1;
-    }*/
-
-    //Spin("test");
+    
     /* 把子进程添加到就绪队列和全局链表 */
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&childTask->list, &taskReadyList));
-    // 添加到就绪队列
-    ListAddTail(&childTask->list, &taskReadyList);
-
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&childTask->globalList, &taskGlobalList));
-    // 添加到全局队列
-    ListAddTail(&childTask->globalList, &taskGlobalList);
-
+    TaskGloablListAdd(childTask);
+    
     /* 恢复之前的状态 */
     InterruptRestore(flags);
 
+    TaskPriorityQueueAddHead(childTask); /* 放到队首 */
+    
     /*
     printk(PART_TIP "task %s pid %d fork task %s pid %d\n", 
         parentTask->name, parentTask->pid, childTask->name, childTask->pid

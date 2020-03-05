@@ -9,9 +9,6 @@
 #include <book/debug.h>
 #include <book/hal.h> 
 
-/* tss对象 */
-Tss_t tss;
-
 /*
  * CpuInit - 初始化cpu并读取信息
  */

@@ -266,6 +266,8 @@ PUBLIC int DeviceOpen(int devno, unsigned int flags)
         printk("%d ref error!\n", AtomicGet(&device->references));
         return -1;  /* 引用计数有错误 */
     }
+
+    //printk(">>> open dev %x, ref %d\n", device->devno, AtomicGet(&device->references));
     /* 是第一次引用才打开 */
     if (AtomicGet(&device->references) == 1) {
         if (device->opSets->open != NULL)
@@ -292,6 +294,8 @@ PUBLIC int DeviceClose(int devno)
     if (device == NULL)
         return -1;
 
+    //printk(">>> close dev %x\n", device->devno);
+    
     /* 如果传入的ID和注册的不一致就直接返回(用于检测没有注册但是使用) */
     if (devno != device->devno)
         return -1;
@@ -301,7 +305,7 @@ PUBLIC int DeviceClose(int devno)
     else 
         return -1;  /* 引用计数有错误 */
 
-    //printk("dev %x, ref %d\n", device->devno, AtomicGet(&device->references));
+    //printk(">>> close ref %d\n", AtomicGet(&device->references));
     
     /* 是最后一次引用才关闭 */
     if (AtomicGet(&device->references) == 0) {

@@ -725,6 +725,7 @@ PUBLIC int BOFS_Open(const char *pathname, unsigned int flags, struct BOFS_Super
                 BOFS_FifoOpen(fd, flags);
                 //printk("open fifo\n");
             }
+            //printk("<<< open fd %d\n", fd);
         }
 		if(fd != -1){
 			/*open sucess! we can't close record parent dir, we will use it in fd_parent*/
@@ -798,16 +799,23 @@ PUBLIC int BOFS_Fsync(int fd)
  */
 PUBLIC int BOFS_Close(int fd)
 {
-    //printk("pid %d close start: \n", CurrentTask()->pid);
+    //printk("$ pid %d close %d\n", CurrentTask()->pid, fd);
 	int ret = -1;   // defaut -1,error
 	if (fd >= 0 && fd < MAX_OPEN_FILES_IN_PROC) {
-        unsigned int globalFD = FdLocal2Global(fd);
+        int globalFD = FdLocal2Global(fd);
         if (globalFD >= 0) { 
             struct BOFS_FileDescriptor *fdec = &BOFS_GlobalFdTable[globalFD];
-            /* 如果已经关闭了，就不能再关闭 */
-            if (AtomicGet(&fdec->reference) <= 0) {
+            //printk("# global %d local %d ref %x\n", globalFD, fd ,AtomicGet(&fdec->reference));
+            
+            /* 对应的全局文件描述引用减1 */
+            AtomicDec(&fdec->reference);
+
+            /* 如果引用不为0，就只关闭局部，而不关闭全局 */
+            if (AtomicGet(&fdec->reference) > 0) {
+                CurrentTask()->fdTable[fd] = -1; 
                 return -1;
             }
+
             /* 管道文件比较特殊，没有目录项，所以要提前判断 */
             if (IS_PIPE_FILE(fdec)) {
                 //printk("close pipe file ref %d!\n", AtomicGet(&fdec->reference));
@@ -822,23 +830,14 @@ PUBLIC int BOFS_Close(int fd)
                     if (BOFS_FifoClose((struct BOFS_Pipe *)fdec->inode->blocks[0]) == -1) {
                         printk("close fifo file failed!\n");    
                     }
-                }
-                /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
-                BlockSync();
+                } else {    /* 普通文件 */
+                    /* 文件关闭之前做一次强制同步，保证写入磁盘的数据能够在磁盘上 */
+                    BlockSync();
 
-                /* 对于普通文件，需要通过引用来关闭之 */
-                AtomicDec(&fdec->reference);
-                
-                if (AtomicGet(&fdec->reference) <= 0) {
-                    /* 关闭全局文件描述符表中的文件 */
-                    //printk("close file!\n");
                     ret = BOFS_CloseFile(fdec);
-                    /* 释放全局描述符 */
-                    BOFS_FreeFdGlobal(globalFD);
-                    //printk("close ref zero\n");
-                } else {
-                    ret = 0;
                 }
+                /* 释放全局描述符 */
+                BOFS_FreeFdGlobal(globalFD);
             }
             //printk("close fd:%d success!\n", fd);
             /* 释放局部文件描述符，置-1表示未使用 */
@@ -1389,7 +1388,7 @@ PRIVATE int BOFS_IsPathExist(const char* pathname, struct BOFS_SuperBlock *sb)
 		BOFS_CloseDirEntry(record.childDir);
 		ret = 0;
 	}else{
-		printk("%s not exist!\n", pathname);
+		//printk("%s not exist!\n", pathname);
 	}
 	BOFS_CloseDirEntry(record.parentDir);
 	return ret;
@@ -1610,36 +1609,11 @@ PUBLIC void BOFS_UpdateInodeOpenCounts(struct Task *task)
     while (localFd < MAX_OPEN_FILES_IN_PROC) {
         globalFd = task->fdTable[localFd];
         ASSERT(globalFd < BOFS_MAX_FD_NR);
-        
         /* 是已经使用中的文件 */
         if (globalFd != -1) {
             file = BOFS_GetFileByFD(globalFd);
             /* 增加引用，子进程继承父进程的文件时需要 */
-
             AtomicInc(&file->reference);
-            //printk("ref %d\n", AtomicGet(&file->reference));
-            
-            /* 管道文件没有目录项 */
-            if (IS_PIPE_FILE(file)) {
-                printk("pipe update ref %d.\n", AtomicGet(&file->reference));
-            } else {
-                /* 设备文件需要打开设备 */
-                if (file->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
-                file->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
-                    /* 打开设备 */
-                    //printk("fork device %x->", file->inode->blocks[0]);
-                    if (DeviceOpen(file->inode->blocks[0], file->flags)) {
-                        printk("device open failed!\n");
-                    }
-                    //printk("fork open device\n");
-                } else if (file->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
-                    //printk("fork fifo\n");
-                    if (BOFS_FifoUpdate((struct BOFS_Pipe *)file->inode->blocks[0], task) == -1) {
-                        printk("fifo update failed!\n");
-                    }
-                }
-            }
-            
         }
         localFd++;
     }
@@ -1653,47 +1627,10 @@ PUBLIC void BOFS_ReleaseTaskFiles(struct Task *task)
     while (localFd < MAX_OPEN_FILES_IN_PROC) {
         globalFd = task->fdTable[localFd];
         ASSERT(globalFd < BOFS_MAX_FD_NR);
-        /* 是已经使用中的文件 */
-        if (globalFd != -1) {
-            struct BOFS_FileDescriptor *file = BOFS_GetFileByFD(globalFd);
-            if (file == NULL) {
-                printk("null file!\n");
-                return;
-            }
-            /* 退出时释放文件的引用 */
-            AtomicDec(&file->reference);
-            if (AtomicGet(&file->reference) < 0) {  /* 小于0就不操作 */
-                continue;
-            } else if (AtomicGet(&file->reference) == 0) {
-                //printk("task %s %d close fd\n", task->name, task->pid);
-                /* 真正关闭 */
-                BOFS_Close(localFd);
-            } else {
-                /* pipe管道没有节点 */
-                if (IS_PIPE_FILE(file)) {
-                    printk("pipe ref close %d.\n", AtomicGet(&file->reference));
-                } else {
-                    /* 设备文件需要关闭设备 */
-                    if (file->dirEntry->type == BOFS_FILE_TYPE_BLOCK || 
-                    file->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
-                        /* 关闭设备 */
-                        //printk("exit device %x->", file->inode->blocks[0]);
-                        if (DeviceClose(file->inode->blocks[0])) {
-                            printk("close close failed!\n");
-                        }
-                        //printk("exit close device\n");
-                    } else if (file->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
-                        //printk("close fifo\n");
-                        //printk("release ref %d\n", AtomicGet(&file->reference));
-
-                        if (BOFS_FifoClose((struct BOFS_Pipe *)file->inode->blocks[0]) == -1) {
-                            printk("close fifo file failed!\n");    
-                        }
-                    }
-                }
-            }
+        /* 关闭局部描述符对应的全局文件 */
+        if (globalFd >= 0) {
+            BOFS_Close(localFd);
         }
-        
         localFd++;
     }
 }

@@ -55,22 +55,6 @@ PRIVATE void AdopeChildren(struct Task *cur)
     cur->parentPid = 0;
     /* 过继给init之后还要提醒一下init才可以 */
     NotifyParent(cur->parentPid);
-    return;
-
-    struct Task *child;
-    //printk(PART_TIP "adope children now!\n");
-    
-    /* 在全局任务链表中查找父进程是自己的子进程 */
-    ListForEachOwner(child, &taskGlobalList, globalList) {
-        /* 如果进程的父pid和当前进程的pid一样，
-        就说明这个进程就是当前进程的子进程 */
-        if (child->parentPid == cur->parentPid && child == cur) {
-            //printk(PART_TIP "find a child name %s, pid %d\n", child->name, child->pid);
-    
-            /* 把父进程的pid设置成0，而0是init进程的pid */
-            child->parentPid = 0;
-        }
-    }
 }
 
 
@@ -121,7 +105,7 @@ PUBLIC void ThreadExit(struct Task *thread)
     unsigned long flags = InterruptSave();
 
     /* 如果在就绪队列中，就从就绪队列中删除 */
-    if (ListFind(&thread->list, &taskReadyList)) {
+    if (IsTaskInPriorityQueue(thread)) {
         ListDelInit(&thread->list);
     }
     
@@ -198,7 +182,13 @@ PUBLIC pid_t SysWait(int *status)
 
 /* 在标签附件好像不能声明一个变量 */
 ToRepeat:
-
+    /* 如果说收到了KILL信号，就不再等待 */
+    //printk("sig %x ", current->signalPending);
+    if (current->signalPending & (1 << SIGKILL)) { /* 如果接受到一个kill信号，就不再等待 */
+        //printk("recv a sig kill when wait!\n");
+        goto EndWait;
+    }
+        
     /* 保存之前状态并关闭中断 */
     flags = InterruptSave();
 
@@ -243,7 +233,7 @@ ToRepeat:
         
         /* 休眠，等待子进程将自己唤醒 */
         TaskBlock(TASK_WAITING);
-
+        //printk("wakeup waiting task\n");
         /* 被唤醒后会在这里执行，就重复检测 */
         goto ToRepeat;
     }

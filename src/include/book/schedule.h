@@ -11,11 +11,7 @@
 #include <lib/types.h>
 #include <lib/const.h>
 #include <lib/stddef.h>
-#include <book/list.h>
-#include <book/arch.h>
-
 
 PUBLIC void Schedule();
-
 
 #endif   /*_BOOK_SCHEDULE_H*/

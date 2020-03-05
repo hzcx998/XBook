@@ -109,7 +109,7 @@ PUBLIC struct WorkQueue *CreateWorkQueue(const char *name)
     //
     // printk("ALLOC");
     /* 需要创建一个线程来处理 */
-    cpuWorkQueue->thread = ThreadStart((char *)name, TASK_WORKER_PRIO, WorkerThread, cpuWorkQueue);   
+    cpuWorkQueue->thread = ThreadStart((char *)name, TASK_PRIORITY_BEST, WorkerThread, cpuWorkQueue);   
     
     /* 初始化等待队列 */
     WaitQueueInit(&cpuWorkQueue->moreWork, NULL);
@@ -248,7 +248,6 @@ PUBLIC void PrintWorkQueue()
     ListForEachOwner(workQueue, &workQueueList, list) {
         printk("name %s thread %s\n", workQueue->name, workQueue->cpuWorkQueue.thread->name);
     }
-
 }
 
 /**

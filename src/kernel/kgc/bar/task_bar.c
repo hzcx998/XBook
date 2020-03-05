@@ -11,7 +11,6 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 
-#include <kgc/video.h>
 #include <kgc/window/window.h>
 #include <kgc/bar/taskbar.h>
 #include <kgc/bar/bar.h>

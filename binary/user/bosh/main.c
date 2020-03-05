@@ -40,9 +40,17 @@ void signal_handler(int signo)
     close(bosh_stdin);
     close(bosh_stdout);
     close(bosh_stderr);
+    close(bosh_stdin_backup);
+    close(bosh_stdout_backup);
+    close(bosh_stderr_backup);
+    
     exit(0);
 }
 
+/**
+ * shell参数：[-i] tty设备
+ *   -i: 初始标志，第一个打开的tty设备需要添加，从shell中打开的shell不需要
+ */
 int main(int argc, char *argv0[])
 {
     /* 根据传入的参数来初始化shell */
@@ -50,27 +58,62 @@ int main(int argc, char *argv0[])
         printf("argc must >= 2, now exit!\n");  
         return -1;
     }
-    /* 需要关闭旧gtty */
-    if (argc == 3) {
+    char init_flag = 0;
+    int first_arg = 1;
+    char *p = argv0[first_arg];
+    if (*p == '-') {
+        if (*(p + 1) == 'i') {  /* 有初始标志 */
+            init_flag = 1;
+            /* 如果没有tty参数，就退出 */
+            if (argc < 3) {
+                printf("bosh: no tty argument!\n");
+                return -1;    
+            }
+            first_arg++;
+        } else {
+            printf("bosh: unknown option!\n");
+            return -1;
+        }
+    }
+
+    /* 如果没有初始化标志，那么就需要关闭前6个fd, 来保证正常运行。 */
+    if (!init_flag) {
         close(0);
         close(1);
         close(2);
+        close(3);
+        close(4);
+        close(5);
     }
+
     /* 保存对应的tty路径 */
     memset(tty_path, 0, MAX_PATH_LEN);
-    strcpy(tty_path, argv0[1]);
+    strcpy(tty_path, argv0[first_arg]);
     
     /* 打开标准输入输出设备，tty */
-    bosh_stdin = open(argv0[1], O_RDONLY);
+    bosh_stdin = open(argv0[first_arg], O_RDONLY);
     if (bosh_stdin < 0)
         return -1;
 
-    bosh_stdout = open(argv0[1], O_WRONLY);
+    bosh_stdout = open(argv0[first_arg], O_WRONLY);
     if (bosh_stdout < 0)
         return -1;
 
-    bosh_stderr = open(argv0[1], O_WRONLY);
+    bosh_stderr = open(argv0[first_arg], O_WRONLY);
     if (bosh_stderr < 0)
+        return -1;
+    
+    /* 打开标准输入和输出作为备份 */
+    bosh_stdin_backup = open(argv0[first_arg], O_RDONLY);
+    if (bosh_stdin_backup < 0)
+        return -1;
+
+    bosh_stdout_backup = open(argv0[first_arg], O_WRONLY);
+    if (bosh_stdout_backup < 0)
+        return -1;
+
+    bosh_stderr_backup = open(argv0[first_arg], O_WRONLY);
+    if (bosh_stderr_backup < 0)
         return -1;
     
     // 把当前进程设置为tty持有者
@@ -93,18 +136,6 @@ int main(int argc, char *argv0[])
     signal(SIGQUIT, SIG_IGN);
     signal(SIGTSTP, SIG_IGN);
     signal(SIGCONT, SIG_IGN);
-    
-    /* 复制标准输入和输出作为备份 */
-    bosh_stdin_backup = dup(STDIN_FILENO);
-    //printf("stdin: %d\n", bosh_stdin_backup);
-    
-    /* 备份标准输出 */
-    bosh_stdout_backup = dup(STDOUT_FILENO);
-    //printf("stdout: %d\n", bosh_stdout_backup);
-    
-    /* 备份标准错误 */
-    bosh_stderr_backup = dup(STDERR_FILENO);
-    //printf("stderr: %d\n", bosh_stderr_backup);
     
     /* 备份标准输入 */
 	while(1){ 

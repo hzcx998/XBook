@@ -33,26 +33,17 @@ EXTERN struct List allDiskList;
 EXTERN struct List allBlockDeviceList;
 
 /**
- * ThreadDiskFlush - 磁盘刷新线程
- * @arg: 参数
+ * BlockDiskSync - 把磁盘数据同步到磁盘上
  * 
- * 每隔1s进行一次磁盘同步
+ * 这个函数每秒被调用一次，在clock.c中的WorkForPerSecond工作中进行。
  */
-void ThreadDiskFlush(void *arg)
+PUBLIC void BlockDiskSync()
 {
-    int count;
-    while (1) {
-        /* 每隔1s同步一次 */
-        TaskSleep(1*HZ);
-        //printk("dflush\n");
-        /* 执行块同步操作 */
-        count = Bsync();
-        if (count) {
-            /* 显示同步信息，有助于调试 */
-            //printk(">>>sync disk for %d count.\n", count);
-        }
-        count = 0;
-        
+    /* 执行块同步操作 */
+    int count = Bsync();
+    if (count) {
+        /* 显示同步信息，有助于调试 */
+        //printk(">>>sync disk for %d count.\n", count);
     }
 }
 
@@ -232,7 +223,7 @@ PUBLIC void InitBlockDevice()
     #endif
     
     /* 创建一个线程来同步磁盘 */
-    ThreadStart("dflush", 3, ThreadDiskFlush, "NULL");
+    //ThreadStart("dflush", TASK_PRIORITY_BEST, ThreadDiskFlush, "NULL");
     
     BlockDeviceTest();
     

@@ -11,7 +11,7 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <kgc/color.h>
-#include <kgc/video.h>
+#include <video/video.h>
 #include <kgc/draw.h>
 #include <kgc/container/draw.h>
 #include <kgc/input/mouse.h>
@@ -19,6 +19,7 @@
 #include <kgc/window/even.h>
 #include <kgc/bar/bar.h>
 #include <kgc/desktop/desktop.h>
+#include <video/video.h>
 
 //#define DEBUG_MOUSE
 

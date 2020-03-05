@@ -49,11 +49,11 @@ typedef struct Spinlock {
 
 /* 初始化未上锁的自旋锁 */
 #define SPIN_LOCK_INIT_UNLOCKED(lockname) \
-        { .lock = ATOMIC_INIT(0) }
+    Spinlock_t lockname = { .lock = ATOMIC_INIT(0) }
 
 /* 初始化上锁的自旋锁 */
 #define SPIN_LOCK_INIT_LOCKED(lockname) \
-        { .lock = ATOMIC_INIT(1) }
+    Spinlock_t lockname = { .lock = ATOMIC_INIT(1) }
 
 /* 初始化自旋锁，默认是未上锁的自旋锁 */
 #define SPIN_LOCK_INIT(lockname) \

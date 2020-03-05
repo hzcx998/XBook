@@ -11,7 +11,6 @@
 #include <book/kgc.h>
 #include <book/memcache.h>
 #include <lib/string.h>
-#include <kgc/video.h>
 #include <kgc/draw.h>
 #include <kgc/container/container.h>
 #include <kgc/container/draw.h>
@@ -19,6 +18,7 @@
 #include <kgc/window/window.h>
 #include <kgc/bar/bar.h>
 #include <kgc/desktop/desktop.h>
+#include <video/video.h>
 
 /* 容器管理器 */
 PRIVATE KGC_ContainerManager_t *containerManager; 

@@ -9,7 +9,7 @@
 #include <book/arch.h>
 #include <book/debug.h>
 #include <book/kgc.h>
-#include <kgc/video.h>
+#include <video/video.h>
 #include <kgc/color.h>
 #include <kgc/desktop/desktop.h>
 #include <kgc/container/draw.h>
@@ -17,6 +17,7 @@
 #include <kgc/controls/label.h>
 #include <kgc/bar/bar.h>
 #include <lib/string.h>
+#include <video/video.h>
 
 #define KGC_DESKTOP_COLOR KGCC_ARGB(255, 60, 60, 60)
 

@@ -21,7 +21,6 @@
 #include <kgc/draw.h>
 #include <kgc/even.h>
 #include <kgc/button.h>
-#include <kgc/video.h>
 
 #include <kgc/input/mouse.h>
 #include <kgc/input/key.h>

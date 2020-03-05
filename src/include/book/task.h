@@ -46,9 +46,14 @@ struct ThreadStack {
     void *arg;  // 线程携带的参数
 };
 
-#define MAX_TASK_NAMELEN 32
+enum TaskPriority {
+    TASK_PRIORITY_BEST = 0,     /* 最佳优先级 */
+    TASK_PRIORITY_RT,           /* 实时优先级 */
+    TASK_PRIORITY_USER,         /* 用户优先级 */
+    TASK_PRIORITY_IDLE,         /* IDLE优先级 */
+};
 
-#define TASK_DEFAULT_PRIO 5
+#define MAX_TASK_NAMELEN 32
 
 #define TASK_STACK_MAGIC 0X19980325
 
@@ -56,11 +61,17 @@ struct ThreadStack {
 #define MAX_OPEN_FILES_IN_PROC 32
 
 /* 工作者线程特权级 */
-#define TASK_WORKER_PRIO 3
+#define TASK_WORKER_PRIO 1
 
 #define MAX_STACK_ARGC 16
 
 #define TASK_PWD_DEFAULT    "root:/"
+
+/* 特权级队列数量 */
+#define MAX_PRIORITY_NR  10
+
+/* 内核栈大小为8kb */
+#define TASK_KSTACK_SIZE    8192
 
 typedef struct Task {
     uint8_t *kstack;                // 内核栈
@@ -69,8 +80,10 @@ typedef struct Task {
     pid_t groupPid;                 // 组id
     enum TaskStatus status;
     pde_t *pgdir;                   // 页目录表指针
-    uint32_t priority;  
-    uint32_t ticks;  
+    uint32_t priority;              /* 任务所在的优先级队列 */
+    uint32_t ticks;                 /*  */
+    uint32_t timeslice;             /* 时间片，可以动态调整 */
+
     uint32_t elapsedTicks;
     int exitStatus;                 // 退出时的状态
     char name[MAX_TASK_NAMELEN];
@@ -107,7 +120,6 @@ typedef struct Task {
 #define SET_TASK_STATUS(task, stat) \
         (task)->status = stat
 
-EXTERN struct List taskReadyList;
 EXTERN struct List taskGlobalList;
 
 PUBLIC void InitTasks();
@@ -128,6 +140,14 @@ PUBLIC struct Task *InitFirstProcess(char **argv, char *name);
 PUBLIC struct Task *FindTaskByPid(pid_t pid);
 PUBLIC void InitSignalInTask(struct Task *task);
 
+PUBLIC void TaskPriorityQueueAddTail(struct Task *task);
+PUBLIC void TaskPriorityQueueAddHead(struct Task *task);
+PUBLIC void TaskGloablListAdd(struct Task *task);
+
+PUBLIC int IsTaskInPriorityQueue(struct Task *task);
+PUBLIC int IsAllPriorityQueueEmpty();
+
+PUBLIC void SystemPause();
 
 PUBLIC pid_t ForkPid();
 

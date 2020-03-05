@@ -18,6 +18,12 @@
 #include <char/console/console.h>
 #include <kgc/window/message.h>
 
+/* 空系统调用，用来占位 */
+PRIVATE SysNull()
+{
+
+}
+
 /* 系统调用表 */ 
 syscall_t syscallTable[MAX_SYSCALL_NR] = {
     PrintTask,              /* 0 */
@@ -66,7 +72,7 @@ syscall_t syscallTable[MAX_SYSCALL_NR] = {
     SysSignalSuspend,       /* 43 */
     SysGetPgid,             /* 44 */
     SysSetPgid,             /* 45 */
-    SysGraphWrite,          /* 46 */
+    SysNull,                /* 46 */
     SysTell,                /* 47 */
     SysIsFoot,              /* 48 */
     SysDup,                 /* 49 */

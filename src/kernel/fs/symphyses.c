@@ -35,14 +35,14 @@
 
 #define DATA_BLOCK 256
 
-#if 0
+#if 1
     #define FILE_MODE (O_CREAT | O_RDWR | O_EXEC)
 #else
     #define FILE_MODE (O_CREAT | O_RDWR)
 #endif
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 7
+#define FILE_ID 2
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
@@ -383,20 +383,33 @@ PRIVATE void ConfigFiles()
     /* 初始化表 */
     
     /* 创建配置目录 */
-    //SysMakeDir("root:/config");
 
-    /* 初始化配置 */
-    /*int fd = SysOpen("root:/config/init.cfg", O_CREAT | O_RDWR);
-    if (fd < 0) {
-        printk("open root:/config/init.cfg failed!\n");
+    if (SysAccess("root:/etc", F_OK)) {
+        printk("dir etc not exist!\n");
+
+        SysMakeDir("root:/etc");
+    } else {
+        printk("dir etc exist!\n");
     }
-    
-    char cfg[32];
-    memset(cfg, 0, 32);
-    strcpy(cfg, "init");
-    SysWrite();
-    */
 
+    /* 不存在才进行创建 */
+    if (SysAccess("root:/etc/init.cfg", F_OK)) {
+        /* 初始化配置 */
+        int fd = SysOpen("root:/etc/init.cfg", O_CREAT | O_RDWR);
+        if (fd < 0) {
+            printk("open root:/etc/init.cfg failed!\n");
+        }
+        
+        char cfg[48];
+        memset(cfg, 0, 48);
+        char *cfgstr = "shell=root:/shell\nsharg=-i\ntty=sys:/dev/gtty0\n";
+        strcpy(cfg, cfgstr);
+        SysWrite(fd, cfg, strlen(cfgstr));
+        printk("config file:%s\n", cfgstr);
+        close(fd);
+    } else {
+        printk("config file exist!\n");
+    }
 }
 
 

@@ -37,7 +37,7 @@ _start:
 	mov fs, ax 
 	mov gs, ax 
 	mov ss, ax 
-	mov esp, KERNEL_STACK_TOP - 4
+	mov esp, KERNEL_STACK_TOP
 
 	;初始化平台架构
 	call InitArch					;into arch

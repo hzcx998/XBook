@@ -198,7 +198,7 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
         return -1; 
     }
     space->end = USER_STACK_TOP;
-    space->start = USER_STACK_TOP - PAGE_SIZE;
+    space->start = USER_STACK_TOP - PAGE_SIZE;  /* 初始用户栈大小为1个页 */
     space->pageProt = PROT_READ | PROT_WRITE;
     space->flags = VMS_STACK;
     space->next = NULL;
@@ -222,7 +222,7 @@ PRIVATE int InitUserStack(struct Task *task, struct TrapFrame *frame,
         // 需要释放物理页
         goto ToFreePage;
     }
-
+    
     //paddr = VirtualToPhysic(space->start);
     //printk(PART_TIP "stack to paddr %x\n", paddr);
 
@@ -431,6 +431,17 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     //printk(PART_TIP "execv: path %s\n", path);
     int ret = 0;
 
+    /* 当argv不为NULL才解析
+    先存放到一个缓冲中
+     */
+    /*int argc = 0;
+    if (argv != NULL) {           
+        while (argv[argc]) {
+            printk("argv %s\n", argv[argc]);    
+            argc++;
+        }
+    }*/
+    
     /* 1.读取文件 */
 
     /* 检测是否可执行 */
@@ -497,18 +508,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     后面可能释放内存资源，导致参数消失，
     所以要在释放资源之前解析参数
     */
-
-    /* 当argv不为NULL才解析
-    先存放到一个缓冲中
-     */
-    
-    /*if (argv != NULL) {        
-       
-        while (argv[argc]) {
-            argc++;
-        }
-        printk("argc %d \n", argc);
-    }*/
+        
     /* 分配空间来保存参数 */
     char *argBuf = (char *)kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (argBuf == NULL) {
@@ -548,7 +548,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     
     /* 构建新的中断栈 */
     struct TrapFrame *frame = (struct TrapFrame *)\
-        ((unsigned int)current + PAGE_SIZE - sizeof(struct TrapFrame));
+        ((unsigned int)current + TASK_KSTACK_SIZE - sizeof(struct TrapFrame));
     
     if(InitUserStack(current, frame, (char **)argBuf, argc)){
         ret = -1;
@@ -636,11 +636,11 @@ ToEnd:
     kfree(argBuf);
 
     /* 不修改标准输入，输出，错误 */
-    unsigned char idx = 3;
+    /*unsigned char idx = 3;
     while (idx < MAX_OPEN_FILES_IN_PROC) {
-        current->fdTable[idx] = -1;      /* 设置为-1表示未使用 */
+        current->fdTable[idx] = -1;
         idx++;
-    }
+    }*/
 
     InterruptRestore(flags);
 

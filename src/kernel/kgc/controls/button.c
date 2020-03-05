@@ -10,7 +10,7 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <book/memcache.h>
-#include <kgc/video.h>
+#include <video/video.h>
 #include <kgc/color.h>
 #include <kgc/controls/button.h>
 #include <lib/string.h>

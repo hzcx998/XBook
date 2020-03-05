@@ -622,6 +622,6 @@ PUBLIC int InitTTYDriver()
 	}
     
     /* 启动tty任务 */
-    ThreadStart("tty", 3, TaskTTY, "NULL");
+    //ThreadStart("tty", TASK_DEFAULT_PRIO, TaskTTY, "NULL");
     return 0;
 }

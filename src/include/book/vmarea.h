@@ -18,6 +18,7 @@ PUBLIC unsigned int AllocVaddress(unsigned int size);
 PUBLIC unsigned int FreeVaddress(unsigned int vaddr, size_t size);
 
 PUBLIC void *IoRemap(unsigned long phyAddr, size_t size);
+PUBLIC int IoUnmap(void *addr);
 
 
 PUBLIC INIT void InitVMArea();

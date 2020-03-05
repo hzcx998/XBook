@@ -17,7 +17,7 @@ typedef struct taskscan_status {
     pid_t ts_ppid;         /* 父进程id */
     pid_t ts_gpid;         /* 组id */
     unsigned char ts_state;         /* 状态 */
-    uint32_t ts_priority;  /* 特权级 */
+    uint32_t ts_priority;  /* 优先级 */
     uint32_t ts_ticks;     /* 剩余ticks数 */
     uint32_t ts_runticks;  /* 运行的ticks数 */
     char ts_name[32];      /* 任务名字 */

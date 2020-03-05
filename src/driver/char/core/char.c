@@ -18,6 +18,8 @@
 EXTERN int InitSerialDriver();
 EXTERN int InitConsoleDriver();
 EXTERN int InitNullDeviceDriver();
+EXTERN int InitGttyDriver();
+
 /* ----驱动程序初始化文件导入完毕---- */
 
 #define _DEBUG_TEST
@@ -41,7 +43,9 @@ PRIVATE void InitCharDrivers()
         printk("init serial driver failed!\n");
     }
 #endif  /* CONFIG_DRV_SERIAL */
-
+    if (InitGttyDriver()) {
+        printk("init serial driver failed!\n");
+    }
 }
 
 /**

@@ -2,9 +2,10 @@
 ram memory size:1fff0000 bytes 511 MB
 vendor:GenuineIntel brand:Intel(R) Core(TM) i5-8300H CPU @ 2.30GHz 
 Total: 536805376-511MB, Free: 533131264-508MB, Used: 3674112-3MB
-Time:21:25:29 Date:2020/3/2
-weekday:1-Monday yearday:63
+Time:10:12:51 Date:2020/3/5
+weekday:4-Thursday yearday:66
 Ide disks are 2
+init mouse done!
 video: 800*600*16, phy:e0000000 vir:f8101000
 device:rda
 device:hda
@@ -15,3 +16,104 @@ drive: sys
 drive: root
 ready load file to fs.
 load file sucess!
+dir etc exist!
+config file exist!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+/cal not exist!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!
+second!

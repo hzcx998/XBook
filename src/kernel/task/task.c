@@ -26,17 +26,17 @@ EXTERN void UpdateTssInfo(struct Task *task);
 
 PRIVATE pid_t nextPid;
 
-PUBLIC Task_t *mainThread;
-
-// PUBLIC Task_t *currentTask;
-
 /* 初始化链表头 */
 
 // 就绪队列链表
-PUBLIC LIST_HEAD(taskReadyList);
 // 全局队列链表，用来查找所有存在的任务
 PUBLIC LIST_HEAD(taskGlobalList);
 
+/* 优先级队列链表 */
+PROTECT struct List taskPriorityQueue[MAX_PRIORITY_NR];
+
+/* idle任务 */
+PUBLIC Task_t *taskIdle;
 /**
  * KernelThread - 执行内核线程
  * @function: 要执行的线程
@@ -158,15 +158,18 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     // 复制名字
     strcpy(thread->name, name);
 
-    // mainThread 最开始就是运行的
-    if (thread == mainThread)
-        thread->status = TASK_RUNNING;
-    else
-        thread->status = TASK_READY;
+    thread->status = TASK_READY;
         
-    // 设置优先级
+    // 修复优先级
+    if (priority < 0)
+        priority = 0;
+    if (priority > MAX_PRIORITY_NR - 1)
+        priority = MAX_PRIORITY_NR - 1;
+
     thread->priority = priority;
-    thread->ticks = priority;
+    thread->timeslice = 3;  /* 时间片大小默认值 */
+    thread->ticks = thread->timeslice;
+    
     thread->elapsedTicks = 0;
     
     /* 线程没有页目录表和虚拟内存管理 */
@@ -183,7 +186,7 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
     strcpy(thread->cwd, TASK_PWD_DEFAULT);
     
     // 设置中断栈为当前线程的顶端
-    thread->kstack = (uint8_t *)(((uint32_t )thread) + PAGE_SIZE);
+    thread->kstack = (uint8_t *)(((uint32_t )thread) + TASK_KSTACK_SIZE);
 
     thread->stackMagic = TASK_STACK_MAGIC;
 
@@ -207,7 +210,6 @@ PRIVATE void TaskInit(struct Task *thread, char *name, int priority)
 
     /* 窗口为空 */
     thread->window = NULL;
-    
 }
 
 /**
@@ -241,8 +243,8 @@ PUBLIC void AllocTaskMemory(struct Task *task)
     if (!task->mm)
         Panic(PART_ERROR "kmalloc for task mm failed!\n"); 
     InitMemoryManager(task->mm);
-
 }
+
 /**
  * TaskMemoryInit - 初始化任务的内存管理
  * @task: 任务
@@ -251,6 +253,76 @@ PUBLIC void FreeTaskMemory(struct Task *task)
 {
     if (task->mm)
         kfree(task->mm);
+}
+
+
+/**
+ * TaskPriorityQueueAddTail - 把任务添加到特权级队列末尾
+ * @task: 任务
+ * 
+ */
+PUBLIC void TaskPriorityQueueAddTail(struct Task *task)
+{
+    /* 添加到相应的优先级队列 */
+    ASSERT(!ListFind(&task->list, &taskPriorityQueue[task->priority]));
+    // 添加到就绪队列
+    ListAddTail(&task->list, &taskPriorityQueue[task->priority]);
+}
+
+/**
+ * TaskPriorityQueueAddHead - 把任务添加到特权级队列头部
+ * @task: 任务
+ * 
+ */
+PUBLIC void TaskPriorityQueueAddHead(struct Task *task)
+{
+    /* 添加到相应的优先级队列 */
+    ASSERT(!ListFind(&task->list, &taskPriorityQueue[task->priority]));
+    // 添加到就绪队列
+    ListAdd(&task->list, &taskPriorityQueue[task->priority]);
+}
+
+/**
+ * TaskGloablListAdd - 把任务添加到全局队列
+ * @task: 任务
+ */
+PUBLIC void TaskGloablListAdd(struct Task *task)
+{
+    // 保证不存在于链表中
+    ASSERT(!ListFind(&task->globalList, &taskGlobalList));
+    // 添加到全局队列
+    ListAddTail(&task->globalList, &taskGlobalList);
+    
+}
+
+/**
+ * IsTaskInPriorityQueue - 把任务添加到全局队列
+ * @task: 任务
+ */
+PUBLIC int IsTaskInPriorityQueue(struct Task *task)
+{
+    int i;
+    for (i = 0; i < MAX_PRIORITY_NR; i++) {
+        if (ListFind(&task->list, &taskPriorityQueue[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+/**
+ * IsAllPriorityQueueEmpty - 判断优先级队列是否为空
+ */
+PUBLIC int IsAllPriorityQueueEmpty()
+{
+    int i;
+    for (i = 0; i < MAX_PRIORITY_NR; i++) {
+        if (!ListEmpty(&taskPriorityQueue[i])) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 /**
@@ -263,7 +335,7 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
 {
     
     // 创建一个新的线程结构体
-    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
+    struct Task *thread = (struct Task *) kmalloc(TASK_KSTACK_SIZE, GFP_KERNEL);
     
     if (!thread)
         return NULL;
@@ -272,7 +344,7 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     TaskInit(thread, name, priority);
     
     // TaskMemoryInit(thread);
-   
+
     //printk("alloc a thread at %x\n", thread);
     // 创建一个线程
     MakeTaskStack(thread, func, arg);
@@ -280,15 +352,8 @@ PUBLIC struct Task *ThreadStart(char *name, int priority, ThreadFunc func, void 
     /* 操作链表时关闭中断，结束后恢复之前状态 */
     unsigned long flags = InterruptSave();
 
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&thread->list, &taskReadyList));
-    // 添加到就绪队列
-    ListAddTail(&thread->list, &taskReadyList);
-
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&thread->globalList, &taskGlobalList));
-    // 添加到全局队列
-    ListAddTail(&thread->globalList, &taskGlobalList);
+    TaskGloablListAdd(thread);
+    TaskPriorityQueueAddTail(thread);
     
     InterruptRestore(flags);
     return thread;
@@ -310,7 +375,12 @@ PUBLIC Task_t *CurrentTask()
     取esp整数部分并且减去一个PAGE即pcb起始地址
     内核栈，我们约定2个页的大小
     */
-    return (Task_t *)(esp & (~(4095UL)));
+    /* 4k对齐，直接 esp & ~(4096UL-1)
+        8k对齐却不能直接这么做，需要减4k后，再这么做。
+        由于，任务的地址都是位于高端地址，所以减4k不会为负。
+     */
+
+    return (Task_t *)((esp - PAGE_SIZE) & ~(PAGE_SIZE-1));
 }
 
 /**
@@ -322,16 +392,15 @@ PUBLIC Task_t *CurrentTask()
 PRIVATE void MakeMainThread()
 {
     // 当前运行的就是主线程
-    mainThread = CurrentTask();
-    // 为线程设置信息
-    TaskInit(mainThread, "main", 1);
+    taskIdle = CurrentTask();
+    
+    /* 最开始设置为最佳优先级，这样才可以往后面运行。直到运行到最后，就变成IDLE优先级 */
+    TaskInit(taskIdle, "idle", TASK_PRIORITY_BEST);
 
-    // TaskMemoryInit(mainThread);
+    /* 设置为运行中 */
+    taskIdle->status = TASK_RUNNING;
 
-    // 保证不存在链表中
-     ASSERT(!ListFind(&mainThread->globalList, &taskGlobalList));
-    // 添加到全局的队列，因为在运行，所以没有就绪
-     ListAddTail(&mainThread->globalList, &taskGlobalList);
+    TaskGloablListAdd(taskIdle);
 }
 
 /**
@@ -388,20 +457,22 @@ PUBLIC void TaskUnblock(struct Task *task)
     // 没有就绪才能够唤醒，并且就绪
     if (task->status != TASK_READY) {
         // 保证没有在就绪队列中
-        ASSERT(!ListFind(&task->list, &taskReadyList));
-        
+        ASSERT(!IsTaskInPriorityQueue(task));
         // 已经就绪是不能再次就绪的
-        if (ListFind(&task->list, &taskReadyList)) {
+        if (IsTaskInPriorityQueue(task)) {
             Panic("TaskUnblock: task has already in ready list!\n");
         }
-        // 把任务放在最前面，让它快速得到调度
-        ListAdd(&task->list, &taskReadyList);
         // 处于就绪状态
         task->status = TASK_READY;
+        // 把任务放在最前面，让它快速得到调度
+        TaskPriorityQueueAddHead(task);
+
+            
     }
+    InterruptRestore(eflags);
+    
     // 恢复之前的状态
     //InterruptRestore(flags);
-    InterruptRestore(eflags);
 }
 
 /**
@@ -453,7 +524,10 @@ PUBLIC void TaskActivate(struct Task *task)
 {
     /* 任务不能为空 */
     ASSERT(task != NULL);
-
+    
+    /* 设置为运行状态 */
+    task->status = TASK_RUNNING;
+    
     /* 激活任务的页目录表 */
     PageDirActive(task);
 
@@ -472,11 +546,11 @@ PUBLIC void TaskActivate(struct Task *task)
 PUBLIC struct Task *InitFirstProcess(char **argv, char *name)
 {
     // 创建一个新的线程结构体
-    struct Task *thread = (struct Task *) kmalloc(PAGE_SIZE, GFP_KERNEL);
+    struct Task *thread = (struct Task *) kmalloc(TASK_KSTACK_SIZE, GFP_KERNEL);
     if (!thread)
         return NULL;
     // 初始化线程
-    TaskInit(thread, name, TASK_DEFAULT_PRIO);
+    TaskInit(thread, name, TASK_PRIORITY_USER);
     /* 由于是第一个进程，所以我们不占用其pid，归还分配的pid，
     并且把它设置成0，也就是说，他是init进程 */
     FreePid();
@@ -496,15 +570,9 @@ PUBLIC struct Task *InitFirstProcess(char **argv, char *name)
     /* 操作链表时关闭中断，结束后恢复之前状态 */
     unsigned long flags = InterruptSave();
 
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&thread->list, &taskReadyList));
-    // 添加到就绪队列
-    ListAddTail(&thread->list, &taskReadyList);
-
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&thread->globalList, &taskGlobalList));
-    // 添加到全局队列
-    ListAddTail(&thread->globalList, &taskGlobalList);
+    /* 添加到队尾 */
+    TaskGloablListAdd(thread);
+    TaskPriorityQueueAddTail(thread);
     
     InterruptRestore(flags);
     return thread;
@@ -520,11 +588,10 @@ PUBLIC void TaskYield()
     struct Task *current = CurrentTask();
     /* 保存状态并关闭中断 */
     unsigned long flags = InterruptSave();
-    // 保证不存在于链表中
-    ASSERT(!ListFind(&current->list, &taskReadyList));
-    // 添加到就绪队列
-    ListAddTail(&current->list, &taskReadyList);
-
+    
+    /* 添加回特权级队列 */
+    TaskPriorityQueueAddTail(current);
+    
     /* 设置状态为就绪 */
     current->status = TASK_READY;
 
@@ -727,7 +794,6 @@ PUBLIC void InitUserProcess()
 	/* 加载init进程 */
     initArgv[0] =  "root:/init";
     initArgv[1] =  0;
-    
 #else
     /* 直接加载应用程序 */
     initArgv[0] =  "root:/init";
@@ -739,10 +805,43 @@ PUBLIC void InitUserProcess()
 }
 
 /**
+ * SystemPause - 系统暂停运行。
+ * 
+ * 在初始化的最后调用，当前任务演变成idle任务，等待随时调动
+ */
+PUBLIC void SystemPause()
+{
+    /* 设置特权级为最低，变成阻塞，当没有其它任务运行时，就会唤醒它 */
+    taskIdle->status = TASK_BLOCKED;
+    taskIdle->priority = TASK_PRIORITY_IDLE;
+    /* 然后设置成最低特权级 */
+    TaskPriorityQueueAddHead(taskIdle);
+    /* 调度到其它任务，直到又重新被调度 */
+    Schedule();
+
+    /* idle线程 */
+	while (1) {
+		/* 进程默认处于阻塞状态，如果被唤醒就会执行后面的操作，
+		知道再次被阻塞 */
+		
+        /* 打开中断 */
+		EnableInterrupt();
+		/* 执行cpu停机 */
+		CpuHlt();
+
+	};
+}
+/**
  * InitTasks - 初始化多任务环境
  */
 PUBLIC void InitTasks()
 {
+
+    /* 初始化特权队列 */
+    int i;
+    for (i = 0; i < MAX_PRIORITY_NR; i++) {
+        INIT_LIST_HEAD(&taskPriorityQueue[i]);
+    }
 
     /* 跳过init进程的pid = 0，后面执行init的时候会把它的pid设置为0*/
     nextPid = 1;
@@ -767,4 +866,5 @@ PUBLIC void InitTasks()
 	// 在初始化多任务之后才初始化任务的虚拟空间
 	InitVMSpace();
 
+    //while (1);
 }

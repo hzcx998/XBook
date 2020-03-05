@@ -319,7 +319,7 @@ PUBLIC unsigned int BOFS_PipeWrite(int fd, void *buffer, size_t count)
 
 PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file)
 {
-    //printk("pipe ref %d\n", AtomicGet(&file->reference));
+    printk("### pipe ref %d\n", AtomicGet(&file->reference));
     
     /* 主动close的时候会减少一个，自动close的时候会再进入之前做一个减少，导致可能为负 */
     AtomicDec(&file->reference);
@@ -329,12 +329,12 @@ PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file)
         struct BOFS_Pipe *pipe = file->pipe;
         
         if (file->pos == 0) {
-            //printk("will free read pipe file\n");
+            printk("### will free read pipe file\n");
             /* 是读文件，把管道读引用设置为0 */
             AtomicSet(&pipe->readReference, 0);
         } else if (file->pos == 1) {
             
-            //printk("will free write pipe file\n");
+            printk("### will free write pipe file\n");
             /* 是写文件，把管道写引用设置为0 */
             AtomicSet(&pipe->writeReference, 0);
         }
@@ -345,7 +345,7 @@ PUBLIC void BOFS_PipeClose(struct BOFS_FileDescriptor *file)
         if (AtomicGet(&pipe->readReference) == 0 && 
             AtomicGet(&pipe->writeReference) == 0) {
             
-            //printk("will free pipe\n");
+            printk("### will free pipe\n");
             /* 释放缓冲区 */
             kfree(pipe->ioqueue.buf);
             /* 释放管道 */

@@ -18,6 +18,7 @@
 
 #define BLOCK_SIZE (SECTOR_SIZE * BLOCK_SECTORS)
 
+PUBLIC void BlockDiskSync();
 PUBLIC void InitBlockDevice();
 
 #endif   /* _DRIVER_BLOCK_H */
