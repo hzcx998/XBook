@@ -41,8 +41,12 @@ int abs(int n)
 {
 	return n<0?-n:n;
 }
+double pow(double x, double y)
+{
+	return exp(y*ln(x));
+}
 /*
- * pow - 求指数
+ * pow1 - 求指数
  * @x: 底数
  * @y: 指数
  * 
@@ -50,10 +54,6 @@ int abs(int n)
  * So I don't known how does it work, but it runs very well!
  * 2019.4.13 ^.^ return x^y
  */
-double pow(double x, double y)
-{
-	return exp(y*ln(x));
-}
 int ipow (double x,int y) {
 	int r = 1;
 	while(y > 1){
