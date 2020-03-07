@@ -103,8 +103,11 @@ void exit_application()
 /*===================================================================*/
 void start_application( char *filename )
 {
+    char title[32] = {0};
+    sprintf(title, "infones - %s", filename);
     /* 创建窗口 */
-    if (GUI_CreateWindow("infones", NES_DISP_WIDTH, NES_DISP_HEIGHT))
+    if (GUI_CreateWindow("infones", title, 0, 100, 100, 
+        NES_DISP_WIDTH, NES_DISP_HEIGHT, NULL))
         return;
 
   /* Set a ROM image name */

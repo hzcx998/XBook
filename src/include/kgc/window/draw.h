@@ -56,4 +56,11 @@ PUBLIC void KGC_WindowDrawString(
     char *str,
     uint32_t color);
 
+PUBLIC void KGC_WindowPaintMoving(
+    KGC_Container_t *container,
+    KGC_Window_t *window,
+    int draw);
+
+PUBLIC void KGC_WindowPaintActive(KGC_Window_t *window, int active);
+
 #endif   /* _KGC_WINDOW_DRAW_H */

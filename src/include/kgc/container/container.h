@@ -32,6 +32,8 @@
 /* 一个像素使用的字节数 */
 #define KGC_CONTAINER_BPP       4
 
+/* 带透明色计算的刷新方法 */
+#define KGC_CONTAINER_REFRESH_ALPHA 0
 
 /* 容器 */
 typedef struct KGC_Container {
@@ -42,6 +44,7 @@ typedef struct KGC_Container {
     char bytesPerPixel;         /* 每像素的字节数 */
     uint32_t *buffer;           /* 缓冲区 */
     uint32_t flags;             /* 标志 */
+    void *private;              /* 容器私有数据 */
     /* 控件链表 */
     struct List widgetListHead; /* 控件链表头 */
     char name[KGC_CONTAINER_NAME_LEN]; /* 缓冲区名 */    
@@ -49,6 +52,7 @@ typedef struct KGC_Container {
 
 typedef struct KGC_ContainerManager {
     uint8_t *map;               /* 容器id的地图 */
+    uint32_t *buffer;           /* 缓冲区 */
     int width, height;          /* 最大的容器 */
     int top;                    /* 最顶层的容器 */
     struct KGC_Container containerTable[KGC_MAX_CONTAINER_NR];  /* 容器表 */
@@ -66,11 +70,13 @@ PUBLIC void KGC_ContainerZ(KGC_Container_t *container, int z);
 PUBLIC void KGC_ContainerAboveTopZ(KGC_Container_t *container);
 PUBLIC void KGC_ContainerBelowTopZ(KGC_Container_t *container);
 PUBLIC void KGC_ContainerAtTopZ(KGC_Container_t *container);
+PUBLIC KGC_Container_t *KGC_ContainerFindByZ(int z);
+PUBLIC KGC_Container_t *KGC_ContainerFindByOffsetZ(int zoff);
 
 PUBLIC int KGC_ContainerInit(KGC_Container_t *container,
     char *name,
     int x, int y,
-    int width, int height);
-
+    int width, int height,
+    void *private);
 
 #endif   /* _KGC_CONTAINER_H */

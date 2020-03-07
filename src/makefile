@@ -12,7 +12,6 @@ PHONY		:=
 all:
 
 # tools
-AR 			= ar
 NASM 		= nasm
 CC			= gcc
 LD 			= ld
@@ -115,14 +114,10 @@ endif
 
 CFLAGS	:=  -fno-builtin -nostdinc -Wall -Wunused -fno-PIE -m32 -fno-stack-protector $(OPTFLAGS) $(INCLUDE_PATH) -c
 NASM_FLAGS	:= $(INCLUDE_PATH)
-ARFLAGS := -r
 
 #kernel file	
 KERNEL_ELF =  kernel.elf
 KERNEL_ELF_DISASM =  kernel.elf.disasm
-
-#libary file
-LIBC_A = libc.a
 
 PHONY	+= all run compile link disk bochs bochsdbg qemu qemudbg clean dis
 PHONY	+= $(SRCDIRS)
@@ -192,8 +187,8 @@ endif
 QEMU_ARGUMENT = -m 256M \
 		-name "XBook Development Platform for x86" \
 		-fda $(FLAPPY_IMG) -hda $(HDA_IMG) -hdb $(HDB_IMG) -boot a \
-		-serial stdio \
-		-soundhw pcspk,sb16
+		-serial stdio
+		
 qemu: disk
 	$(QEMU) $(QEMU_ARGUMENT)
 
@@ -205,15 +200,8 @@ qemudbg: disk
 vbox: disk
 	$(VBOX_MANAGE) startvm $(VBOX_NAME) --type gui 
 
-# api libary 
-lib: $(LIBC_A)
-
 # clean temporary files
 clean: $(SRCDIRS)
 	$(RM) $(KERNEL_ELF) $(KERNEL_ELF_DISASM)
-	
-# remove libary file
-rmlib:
-	$(RM) $(LIBC_A)
 
 .PHONY: $(PHONY)

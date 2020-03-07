@@ -19,5 +19,6 @@ PUBLIC void KGC_SwitchNextWindow(KGC_Window_t *window);
 PUBLIC void KGC_SwitchNextWindowAuto();
 PUBLIC void KGC_SwitchPrevWindow(KGC_Window_t *window);
 PUBLIC void KGC_SwitchPrevWindowAuto();
+PUBLIC int KGC_SwitchTopWindow();
 
 #endif   /* _KGC_WINDOW_SWITCH_H */

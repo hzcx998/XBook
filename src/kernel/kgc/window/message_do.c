@@ -31,7 +31,9 @@ PUBLIC int KGC_MessageDoWindow(KGC_MessageWindow_t *message)
     switch (message->type)
     {
     case KGC_MSG_WINDOW_CREATE:
-        window = KGC_WindowCreate(message->title ,message->width, message->height);
+        window = KGC_WindowCreate(message->name, message->title ,
+            message->style, message->x, message->y ,message->width, 
+            message->height, message->param);
         if (!window)
             break;
         

@@ -398,7 +398,8 @@ int GttyOpen(struct Device *device, unsigned int flags)
     Gtty_t *gtty = (Gtty_t *)chrdev->private;
 
     /* 打开一个窗口 */
-    gtty->window = KGC_WindowCreate(device->name, WIN_WIDTH, WIN_HEIGHT);
+    gtty->window = KGC_WindowCreate(device->name, device->name, 0, 0, 0, 
+        WIN_WIDTH, WIN_HEIGHT, NULL);
     if (gtty->window == NULL) {
         printk("open gtty device failed!\n");
         return -1;

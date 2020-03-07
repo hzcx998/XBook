@@ -17,9 +17,7 @@
 #define KGC_MENU_BAR_HEIGHT  24
 struct KGC_MenuBar {
     KGC_Container_t *container;
-    int count;
-    kgcc_t color;
-    int fps;
+
 };
 EXTERN struct KGC_MenuBar menuBar;
 
@@ -30,9 +28,8 @@ PUBLIC void KGC_MenuBarMouseMotion(int mx, int my);
 PUBLIC int KGC_MenuBarKeyDown(KGC_KeyboardEven_t *even);
 PUBLIC int KGC_MenuBarKeyUp(KGC_KeyboardEven_t *even);
 
-PUBLIC void KGC_MenuBarUpdateTime();
-
 PUBLIC int KGC_MenuBarPoll();
+PUBLIC void KGC_MenuBarUpdateTime();
 
 PUBLIC int KGC_InitMenuBar();
 

@@ -122,7 +122,9 @@
         "power.h": "c",
         "taskscan.h": "c",
         "ioctl.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "switch.h": "c",
+        "label.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

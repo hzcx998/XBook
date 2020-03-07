@@ -408,7 +408,7 @@ PUBLIC int IoUnmap(void *addr)
 	InterruptRestore(flags);
 	return -1;
 }
-
+#if 0
 PRIVATE void VMAreaTest()
 {
 	char *a = vmalloc(PAGE_SIZE);
@@ -488,7 +488,7 @@ PRIVATE void VMAreaTest()
 	*/
 	//Spin("1");
 }
-
+#endif 
 /**
  * InitVMArea - 初始化虚拟区域
  */

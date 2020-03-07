@@ -11,6 +11,7 @@
 #include <book/debug.h>
 #include <book/kgc.h>
 #include <kgc/window/window.h>
+#include <kgc/window/draw.h>
 #include <kgc/bar/bar.h>
 #include <kgc/container/container.h>
 
@@ -27,17 +28,20 @@ PUBLIC void KGC_SwitchWindow(KGC_Window_t *window)
     if (!window)
         return;
     
-    /* 当前窗口置为隐藏 */
+    /* 当前窗口状态设为非激活状态 */
     if (GET_CURRENT_WINDOW())
-        KGC_ContainerZ(GET_CURRENT_WINDOW()->container, -1);
-    
+        KGC_WindowPaintActive(GET_CURRENT_WINDOW(), 0);
+
+    /* 切换到的窗口设为激活状态 */
+    KGC_WindowPaintActive(window, 1);
+
     /* 切换后地窗口放到顶部下面 */
     KGC_ContainerBelowTopZ(window->container);
     /* 设置当前窗口 */
     SET_CURRENT_WINDOW(window);
-
     /* 激活控制窗口 */
     KGC_WindowControllerActive(KGC_WindowControllerGet(window));
+
 }
 
 /**
@@ -46,7 +50,6 @@ PUBLIC void KGC_SwitchWindow(KGC_Window_t *window)
  */
 PUBLIC void KGC_SwitchFirstWindow()
 {
-    
     /* 获取首窗口 */
     KGC_Window_t *window = ListFirstOwnerOrNull(&windowListHead, struct KGC_Window, list);
     /* 切换窗口，如果是NULL也没问题 */
@@ -59,7 +62,6 @@ PUBLIC void KGC_SwitchFirstWindow()
  */
 PUBLIC void KGC_SwitchLastWindow()
 {
-    
     /* 获取首窗口 */
     KGC_Window_t *window = ListLastOwnerOrNull(&windowListHead, struct KGC_Window, list);
     /* 如果相同就不切换 */
@@ -130,16 +132,12 @@ PUBLIC void KGC_SwitchNextWindowAuto()
 {
     /* 如果当前窗口是空，说明有可能是才执行完关闭窗口，被置空 */
     if (currentWindow == NULL) {
-        printk("current window is null\n");
-        
         /* 如果还有窗口，那么就可以进行切换 */
         if (ListLength(&windowListHead) > 0)
             KGC_SwitchFirstWindow();
-
         return;
-    } 
-        
-    /* 获取下个窗口 */
+    }
+
     KGC_Window_t *win;
     struct List *list, *tmp = currentWindow->list.next;
     do {
@@ -154,11 +152,45 @@ PUBLIC void KGC_SwitchNextWindowAuto()
     KGC_View_t *v = win->view;
     printk("view %x %d:%d, %d:%d\n", v, v->x, v->y, v->width, v->height);
     */
-    /* 如果相同就不切换 */
-    if (win == currentWindow)
+    if (win == currentWindow) { /* 说明没有其它窗口 */
         return;
+    }
     /* 切换窗口，如果是NULL也没问题 */
     KGC_SwitchWindow(win);
+}
+
+
+/**
+ * KGC_SwitchTopWindow - 切换最顶层窗口
+ * 
+ */
+PUBLIC int KGC_SwitchTopWindow()
+{
+    /* 找到最顶层窗口,-1是鼠标层 */
+    KGC_Container_t *container = KGC_ContainerFindByOffsetZ(-2);
+    if (container == NULL) 
+        return -1;
+    
+    if (!container->private) {
+        /* 屏幕上已经没有窗口 */
+        return -1;
+    }
+
+    KGC_Window_t *win;
+    ListForEachOwner (win, &windowListHead, list) {
+        /* 如果容器一样，说明找到 */
+        if (win->container == container) {
+    
+            /* 如果相同就不切换 */
+            if (win == currentWindow)
+                return 0;
+            /* 切换窗口，如果是NULL也没问题 */
+            KGC_SwitchWindow(win);
+
+            break;
+        }
+    }
+    return 0;
 }
 
 /**

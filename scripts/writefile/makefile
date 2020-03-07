@@ -4,10 +4,10 @@
 
 DD = dd
 
-FILE = ./shadow.nes
+FILE = ./test.txt
 
 FILE_OFF = 0
-FILE_CNTS = 100
+FILE_CNTS = 1
 
 #img dir
 IMG_DIR = ../../developments/image/

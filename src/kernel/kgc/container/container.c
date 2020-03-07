@@ -38,6 +38,13 @@ PUBLIC KGC_ContainerManager_t *KGC_ContainerManagerrInit(int width, int height)
 		Panic("alloc memory for container manager map failed!\n");
 	}
 
+    /* map只需要1字节就够了 */
+	manager->buffer = (uint32_t *) KGC_AllocBuffer(width * height * 4);
+	if(manager->buffer == NULL){
+		kfree(manager);
+		Panic("alloc memory for container manager buffer failed!\n");
+	}
+
 	manager->width = width;
 	manager->height = height;
 	manager->top = -1;		/* 没有容器 */
@@ -88,7 +95,8 @@ PUBLIC void KGC_ContainerFree(KGC_Container_t *container)
 PUBLIC int KGC_ContainerInit(KGC_Container_t *container,
     char *name,
     int x, int y,
-    int width, int height)
+    int width, int height,
+    void *private)
 {
 	container->buffer = (uint32_t *) kmalloc(width * height * KGC_CONTAINER_BPP, GFP_KERNEL);
 	if (container->buffer == NULL) {
@@ -98,6 +106,7 @@ PUBLIC int KGC_ContainerInit(KGC_Container_t *container,
 	container->y = y;
 	container->width = width;
 	container->height = height;
+    container->private = private;
 	container->bytesPerPixel = KGC_CONTAINER_BPP;
 	container->z = -1;			/* 容器为隐藏状态 */
 	
@@ -107,12 +116,13 @@ PUBLIC int KGC_ContainerInit(KGC_Container_t *container,
     return 0;
 }
 
+#if KGC_CONTAINER_REFRESH_ALPHA == 1
 /**
- * KGC_ContainerRefreshBufferPlus - 有透明计算的刷新
+ * KGC_ContainerRefreshBuffer - 有透明计算的刷新
  * 
- * 
+ * 实践过程发现，速度极慢。
  */
-void KGC_ContainerRefreshBufferPlus(int x0, int y0, int x1, int y1, int z0, int z1)
+void KGC_ContainerRefreshBuffer(int x0, int y0, int x1, int y1, int z0, int z1)
 {
 	int h, bx, by, x, y, bx0, by0, bx1, by1;	//x,y是容器在屏幕中的位置
 
@@ -158,23 +168,24 @@ void KGC_ContainerRefreshBufferPlus(int x0, int y0, int x1, int y1, int z0, int 
                 /* 获取缓冲区屏幕上的颜色
                 x, y, dst_color
                  */
+                dst_color = (KGC_ARGB_t *)(containerManager->buffer + (y * videoInfo.xResolution ) + x);
 
                 alpha = src_color.alpha;
-                /*
+                
                 dst_color->red = src_color.red*alpha/0xff + dst_color->red*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->green = src_color.green*alpha/0xff + dst_color->green*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->blue = src_color.blue*alpha/0xff + dst_color->blue*(1-alpha/0xFF * alpha/0xFF);
                 dst_color->alpha = src_color.alpha*alpha/0xff + dst_color->alpha*(1-alpha/0xFF * alpha/0xFF);
-                */
                 /* 写入缓冲区颜色x, y, dst_color */
-                
+                //*(uint32_t *)(containerManager->buffer + (y * videoInfo.xResolution ) + x) = *(uint32_t *)dst_color;
 			}
 		}
 	}
     /* 刷入到显存 */
 	// x0，y0，x1，y1
+    KGC_DrawBitmap(0, 0, videoInfo.xResolution, videoInfo.yResolution, containerManager->buffer);
 }
-
+#else
 /*
 不带透明度的窗口管理系统
 KGC_ContainerRefreshMap
@@ -238,9 +249,12 @@ static void KGC_ContainerRefreshBuffer(int x0, int y0, int x1, int y1, int z0, i
 		}
 	}
 }
-
+#endif
 static void KGC_ContainerRefreshMap(int x0, int y0, int x1, int y1, int z0)
 {
+#if KGC_CONTAINER_REFRESH_ALPHA  == 1
+    return;
+#endif
     // x,y 是图层在屏幕中的位置
 	int z, bx, by, x, y, bx0, by0, bx1, by1;
 	uint8_t *map = containerManager->map;
@@ -394,6 +408,36 @@ PUBLIC void KGC_ContainerBelowTopZ(KGC_Container_t *container)
 PUBLIC void KGC_ContainerAtTopZ(KGC_Container_t *container)
 {
     KGC_ContainerZ(container, containerManager->top);
+}
+
+/**
+ * KGC_ContainerFindByOffsetZ - 通过Z轴偏移找到容器
+ * @zoff: z轴偏移
+ * 
+ * 参数是个容器偏移值，zoff > 0时，从0 + zoff层开始查找。zoff < 0时，
+ * 从top + zoff + 1，也就是top - abs(zoff) + 1开始查找，+1是为了能找到最高层top
+ */
+PUBLIC KGC_Container_t *KGC_ContainerFindByOffsetZ(int zoff)
+{
+    int z;
+    if (zoff >= 0)
+        z = zoff;
+    else
+        z = containerManager->top + zoff + 1;
+    return KGC_ContainerFindByZ(z);
+}
+
+
+/**
+ * KGC_ContainerFindByZ - 通过Z轴找到容器
+ * @z: z轴
+ * 
+ */
+PUBLIC KGC_Container_t *KGC_ContainerFindByZ(int z)
+{
+    if (z < 0 || z > containerManager->top)
+        return NULL;
+    return containerManager->containerPtr[z];
 }
 
 PUBLIC void KGC_ContainerSlide(KGC_Container_t *container, int x, int y)

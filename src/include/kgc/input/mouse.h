@@ -36,11 +36,9 @@ struct KGC_Mouse {
 
 EXTERN struct KGC_Mouse mouse;
 
-PUBLIC void KGC_MouseMove(int xinc, int yinc);
 PUBLIC void KGC_MouseMotion(KGC_MouseMotionEven_t *motion);
 PUBLIC void KGC_MouseDown(KGC_MouseButtonEven_t *button);
 PUBLIC void KGC_MouseUp(KGC_MouseButtonEven_t *button);
-PUBLIC void KGC_RefreshMouse();
 PUBLIC int KGC_InitMouseContainer();
 
 #endif   /* _KGC_INPUT_MOUSE_H */

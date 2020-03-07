@@ -19,9 +19,9 @@
 #include <kgc/window/message.h>
 
 /* 空系统调用，用来占位 */
-PRIVATE SysNull()
+PRIVATE void SysNull()
 {
-
+    
 }
 
 /* 系统调用表 */ 

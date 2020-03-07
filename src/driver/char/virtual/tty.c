@@ -320,7 +320,7 @@ PRIVATE void TTY_PutKey(TTY_t *tty, u32 key)
     IoQueuePut(&tty->ioqueue, key);
     tty->key = key; /* 获取最新的key */
 }
-
+#if 0
 /**
  * TTY_DoRead - tty执行读取操作
  * @tty: tty终端
@@ -359,7 +359,7 @@ PRIVATE void TTY_DoWrite(TTY_t *tty)
         //key = 0;
     }
 }
-
+#endif
 /**
  * TTY_Read - tty终端读取接口
  * @tty: 哪个tty
@@ -583,7 +583,7 @@ PRIVATE int TTY_InitOne(TTY_t *tty)
     }
     return 0;
 }
-
+#if 0
 /**
  * TaskTTY - tty任务
  * @arg: 参数
@@ -610,7 +610,7 @@ PRIVATE void TaskTTY(void *arg)
 		}
 	}
 }
-
+#endif
 PUBLIC int InitTTYDriver()
 {
     /* 记得在开启tty任务之前初始化键盘 */

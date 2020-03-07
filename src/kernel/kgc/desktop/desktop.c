@@ -14,7 +14,7 @@
 #include <kgc/desktop/desktop.h>
 #include <kgc/container/draw.h>
 #include <kgc/window/window.h>
-#include <kgc/controls/label.h>
+#include <kgc/widget/label.h>
 #include <kgc/bar/bar.h>
 #include <lib/string.h>
 #include <video/video.h>
@@ -87,7 +87,7 @@ PUBLIC int KGC_InitDesktopContainer()
     if (kgcDesktop.container == NULL)
         Panic("alloc memory for container failed!\n");
     KGC_ContainerInit(kgcDesktop.container, "desktop", 0, 0,
-        videoInfo.xResolution, videoInfo.yResolution);    
+        videoInfo.xResolution, videoInfo.yResolution, NULL);    
     KGC_ContainerDrawRectangle(kgcDesktop.container, 0, 0, 
         videoInfo.xResolution, videoInfo.yResolution, KGC_DESKTOP_COLOR);
     KGC_ContainerZ(kgcDesktop.container, 0);

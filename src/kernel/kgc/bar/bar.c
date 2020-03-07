@@ -14,7 +14,7 @@
 #include <kgc/bar/bar.h>
 #include <kgc/container/container.h>
 #include <kgc/container/draw.h>
-#include <kgc/controls/widget.h>
+#include <kgc/widget/widget.h>
 #include <kgc/window/window.h>
 #include <kgc/window/switch.h>
 
@@ -198,29 +198,18 @@ void KGC_DrawBar(KGC_Container_t *container)
 
 }
 
-PUBLIC int KGC_BarPollEven()
-{
-    
-    return 0;
-}
-
 PUBLIC int KGC_InitBarContainer()
 {
     /* 菜单栏 */
     kgcbar.container = KGC_ContainerAlloc();
     if (kgcbar.container == NULL)
         return -1;
-    KGC_ContainerInit(kgcbar.container, "bar", 0, 0, videoInfo.xResolution, KGC_BAR_HEIGHT);
+    KGC_ContainerInit(kgcbar.container, "bar", 0, 0, videoInfo.xResolution, KGC_BAR_HEIGHT, NULL);
 
     KGC_DrawBar(kgcbar.container);
 
     KGC_ContainerAtTopZ(kgcbar.container);
 
-    KGC_ContainerDrawString(kgcbar.container, 0, 0, 
-        "book", KGCC_WHITE);
-    KGC_ContainerRefresh(kgcbar.container, 0, 0, 
-        4*8, 16);
-    
     KGC_InitMenuBar();
     KGC_InitTaskBar();
     return 0;

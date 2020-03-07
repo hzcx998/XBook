@@ -12,6 +12,7 @@
 #include <book/kgc.h>
 
 #include <kgc/window/window.h>
+#include <kgc/window/switch.h>
 #include <kgc/bar/taskbar.h>
 #include <kgc/bar/bar.h>
 #include <kgc/input/mouse.h>
@@ -20,7 +21,7 @@
 
 LIST_HEAD(windowControllerListHead);
 
-/* 最大化数据 */
+/* 应用图标数据 */
 PRIVATE uint8_t wcRawData[26 * 32] = {
 
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,
@@ -59,18 +60,19 @@ PRIVATE uint8_t wcRawData[26 * 32] = {
 
 PUBLIC void KGC_TaskBarHandler(KGC_Button_t *button)
 {
-    //printk("switch window\n");
     KGC_WindowController_t *controller = (KGC_WindowController_t *)button;
     /* 如果是窗口，就切换窗口 */
-    if (controller->type == KGC_WINCTRL_WINDOW) {
-        if (controller->window)
+    if (controller->window) {
+        if (controller->window != GET_CURRENT_WINDOW()) {
+            /* 如果是隐藏状态，就先显示出来，再切换 */
+            KGC_ContainerAtTopZ(controller->window->container);
+
+            /* 如果不是当前窗口，直接切换当前窗口 */
             KGC_SwitchWindow(controller->window);
-    } else if (controller->type == KGC_WINCTRL_CONTAINER) {
-        /* 如果是容器，就激活对应的容器，并把窗口置空 */
-        KGC_WindowControllerActive(kgcbar.idle);
-        /* 当前窗口置空 */
-        currentWindow = NULL;
+        }
+            
     }
+        
 }
 
 PUBLIC KGC_WindowController_t *KGC_CreateWindowController()
@@ -96,8 +98,9 @@ PUBLIC KGC_WindowController_t *KGC_CreateWindowController()
 
     INIT_LIST_HEAD(&controller->list);
     
-    /* 默认控制的都是窗口 */
-    controller->type = KGC_WINCTRL_WINDOW;
+    /* 默认窗口都是可视的 */
+    controller->visible = 1;
+
     return controller;
 }
 
@@ -118,44 +121,8 @@ PUBLIC void KGC_WindowControllerAdd(KGC_WindowController_t *controller)
 
 PUBLIC void KGC_WindowControllerBindWindow(KGC_WindowController_t *controller, KGC_Window_t *window)
 {
-    controller->window = window;
-    controller->type = KGC_WINCTRL_WINDOW;
-    
+    controller->window = window;   
 }
-
-PUBLIC void KGC_WindowControllerBindContainer(KGC_WindowController_t *controller, KGC_Container_t *container)
-{
-    controller->container = container;   
-    controller->type = KGC_WINCTRL_CONTAINER;
-}
-
-/**
- * KGC_TaskBarUpdateWindowMenuShow - 更新窗口在菜单栏中的显示
- * 
- */
-PUBLIC void KGC_TaskBarUpdateWindowMenuShow(KGC_Window_t *window)
-{
-    /* 显示窗口信息 */
-    KGC_LabelSetText(kgcbar.title, window->title);
-    KGC_LabelShow(&kgcbar.title->widget);
-
-    /* 更新图标，控制按钮等 */
-}
-
-/**
- * KGC_TaskBarUpdateDesktopMenuShow - 更新桌面菜单栏中的显示
- * 
- */
-PUBLIC void KGC_TaskBarUpdateDesktopMenuShow(KGC_Container_t *container)
-{
-    /* 显示窗口信息 */
-    KGC_LabelSetText(kgcbar.title, container->name);
-    KGC_LabelShow(&kgcbar.title->widget);
-
-    /* 更新图标，控制按钮等 */
-
-}
-
 
 /**
  * KGC_WindowControllerActive - 激活窗口控制器
@@ -164,15 +131,11 @@ PUBLIC void KGC_TaskBarUpdateDesktopMenuShow(KGC_Container_t *container)
  */
 PUBLIC void KGC_WindowControllerActive(KGC_WindowController_t *controller)
 {
-    if (!controller)
-        return;
-    
     /* 激活控制器的时候，每个控制器都要检测 */
     KGC_WindowController_t *tmp;
     ListForEachOwner (tmp, &windowControllerListHead, list) {
         if (tmp == controller) {
             tmp->button.defaultColor = KGCC_ARGB(255, 128, 128, 128);
-
             tmp->button.label.backColor = tmp->button.defaultColor;
             tmp->button.label.widget.drawCounter = 0;
             KGC_ButtonShow(&tmp->button.label.widget);
@@ -182,17 +145,6 @@ PUBLIC void KGC_WindowControllerActive(KGC_WindowController_t *controller)
             tmp->button.label.widget.drawCounter = 0;
             KGC_ButtonShow(&tmp->button.label.widget);
         }
-    }
-    /* 是窗口才显示窗口信息 */
-    if (controller->type == KGC_WINCTRL_WINDOW) {
-        KGC_TaskBarUpdateWindowMenuShow(controller->window);
-    } else if (controller->type == KGC_WINCTRL_CONTAINER) {
-        KGC_TaskBarUpdateDesktopMenuShow(controller->container);
-
-        /* 当前窗口置为隐藏，选择桌面后，要把窗口隐藏才行。 */
-        if (GET_CURRENT_WINDOW())
-            KGC_ContainerZ(GET_CURRENT_WINDOW()->container, -1);
-        
     }
 }
 
@@ -253,8 +205,8 @@ PUBLIC int KGC_TaskBarDelWindow(KGC_Window_t *window)
     if (controller == NULL)
         return -1;
 
-    /* 删除一个控制器的时候，就切换到idel控制器 */
-    KGC_WindowControllerActive(kgcbar.idle);
+    /* 切换到最顶层的窗口 */
+    KGC_SwitchTopWindow();
 
     KGC_WindowControllerDel(controller);
     
@@ -305,8 +257,18 @@ PUBLIC void KGC_WindowControllerDestroy(KGC_WindowController_t *controller)
     kfree(controller);
 }
 
+PUBLIC void KGC_SwitchWindowController(KGC_WindowController_t *controller)
+{
+    /* 销毁按钮 */
+    KGC_ButtonDestroySub(&controller->button);
+
+    /* 销毁控制器 */
+    kfree(controller);
+}
+
 PUBLIC int KGC_InitTaskBar()
 {
+#if 0
     /* 创建哨兵窗口控制器 */
     kgcbar.idle = KGC_CreateWindowController();
     if (kgcbar.idle == NULL) {
@@ -317,6 +279,6 @@ PUBLIC int KGC_InitTaskBar()
     KGC_WindowControllerAdd(kgcbar.idle);
     /* 激活控制器 */
     KGC_WindowControllerActive(kgcbar.idle);
-
+#endif    
     return 0;
 }

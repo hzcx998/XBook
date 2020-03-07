@@ -12,27 +12,19 @@
 #include <lib/stdint.h>
 #include <book/list.h>
 #include <kgc/container/container.h>
-#include <kgc/controls/button.h>
+#include <kgc/widget/button.h>
 #include <kgc/window/window.h>
 
 #define KGC_TASK_BAR_HEIGHT     48
 
 #define KGC_TASK_BAR_SIZE     48
 
-typedef enum {
-    KGC_WINCTRL_WINDOW = 0,
-    KGC_WINCTRL_CONTAINER,
-} KGC_WinctrlType_t;
-
 /* 窗口控制器 */
 typedef struct KGC_WindowController {
     KGC_Button_t button;           /* 集成按钮：第一个成员 */
     struct List list;               /* 链表 */
-    KGC_WinctrlType_t type;                 /* 控制器类型 */
-    union {
-        KGC_Window_t *window;           /* 窗口 */
-        KGC_Container_t *container;     /* 非窗口就绑定容器 */
-    };
+    KGC_Window_t *window;           /* 窗口 */
+    int visible;                    /* 窗口可视 */
 } KGC_WindowController_t;
 
 PUBLIC KGC_WindowController_t *KGC_CreateWindowController();

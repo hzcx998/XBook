@@ -10,9 +10,8 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-LIB_H_DIR = ../../../src/include/lib/
-LIB_A_DIR = ../../../src/
-SYS_H_DIR = ../../../src/include/
+LIB_H_DIR = ../../../libary/libc/include
+LIB_A_DIR = ../../../libary/libc/
 
 BIN = a.out
 
@@ -31,9 +30,9 @@ HD_VHD = $(IMG_DIR)$(DISK_VHD)
 HD_VMDK = $(IMG_DIR)$(DISK_VMDK)
 
 #flags
-ASM_FLAGS	= -I $(LIB_H_DIR) -I $(SYS_H_DIR) \
+ASM_FLAGS	= -I $(LIB_H_DIR) \
 			-f elf
-C_FLAGS	= -I $(LIB_H_DIR) -I $(SYS_H_DIR) \
+C_FLAGS	= -I $(LIB_H_DIR) \
 			-c -fno-builtin -Wall -Wunused -m32
 
 #LDFLAGS		= --oformat binary -e _start -Ttext 0x00000000

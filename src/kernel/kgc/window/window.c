@@ -28,6 +28,12 @@ PROTECT LIST_HEAD(windowListHead);
 /* 当前激活的窗口 */
 PUBLIC KGC_Window_t *currentWindow;
 
+/* 创建窗口皮肤 */
+PROTECT KGC_WindowSkin_t windowSkin;
+
+/* 窗口移动 */
+PROTECT KGC_WindowMovement_t windowMovement;
+
 /**
  * KGC_WindowCreate - 创建一个窗口
  * @width: 窗口宽度
@@ -36,12 +42,18 @@ PUBLIC KGC_Window_t *currentWindow;
  * @return: 返回一个创建的窗口，失败返回NULL
  */
 PUBLIC KGC_Window_t *KGC_WindowCreate(
+    char *name,
     char *title,
+    uint32_t style,
+    int x,
+    int y,
     int width,
-    int height)
+    int height,
+    void *param)
 {
     /* 参数检测 */
-    if ((strlen(title) >= KGC_WINDOW_TITLE_NAME_LEN - 1) ||
+    if ((strlen(title) >= KGC_WINDOW_TITLE_LEN - 1) ||
+        (strlen(name) >= KGC_WINDOW_NAME_LEN - 1) ||
         !width || !height)
         return NULL;
     
@@ -50,20 +62,24 @@ PUBLIC KGC_Window_t *KGC_WindowCreate(
     if (window == NULL)
         return NULL;
     
-    memset(window->title, 0, KGC_WINDOW_TITLE_NAME_LEN);
+    memset(window->name, 0, KGC_WINDOW_NAME_LEN);
+    strcpy(window->name, name);
+    
+    memset(window->title, 0, KGC_WINDOW_TITLE_LEN);
     strcpy(window->title, title);
 
     /* 窗口的宽高 */
     window->width = width;
     window->height = height;
-    /* 把窗口添加到窗口链表 */
-    ListAddTail(&window->list, &windowListHead);
-    /* 窗口的位置是在视图中的偏移位置 */
-    window->x = 0;  
-    window->y = 0;  
+    
+    /* 窗口的位置 */
+    window->x = x;  
+    window->y = y;  
     
     /* 设置窗口显示模式为固定 */
     window->flags = KGC_WINDOW_FLAG_FIX;
+    
+    window->style = style;
     
     window->container = NULL;
 
@@ -90,15 +106,18 @@ PUBLIC int KGC_WindowAdd(KGC_Window_t *window)
     if (!window)
         return -1;
 
-    /* 绑定视图 */
+    /* 绑定容器 */
     window->container = KGC_ContainerAlloc();
     if (window->container == NULL) {
         return -1;
     }
 
-    int left = videoInfo.xResolution / 2 - window->width / 2;  
-    int top = videoInfo.yResolution / 2 - window->height / 2;  
-    
+    /* 传入的窗口位置是绝对值，现在使用后，变成偏移值 */
+    int left = window->x;  
+    int top = window->y;  
+    window->x = 0;
+    window->y = 0;
+
     if (left < 0) 
         left = 0;
     if (top < 0) 
@@ -108,17 +127,48 @@ PUBLIC int KGC_WindowAdd(KGC_Window_t *window)
     if (top < KGC_BAR_HEIGHT)
         top = KGC_BAR_HEIGHT;
 
-    KGC_ContainerInit(window->container, "window", left, top, window->width, window->height);
+    /* 由于窗口大小只是窗口显示的大小，除此之外，还应该包括一些边框或者标题栏。 */
+    if (!window->style) {   /* 使用默认配置 */
+        /* code */
+        window->style = DEFAULT_KGC_WINDOW_STYLE;
+    }
+    
+    /* 根据风格计算出窗口容器的大小 */
+    int width = window->width;
+    int height = window->height;
+    
+    /* 对风格进行判断 */
+    if (window->style & KGC_WINSTYPLE_BORDER) {
+        /* 有边框 */
+        width += 2;
+        height += 2;
+        window->x = 1;
+        window->y = 1;   
+    }
+    if (window->style & KGC_WINSTYPLE_CAPTION) {
+        /* 有标题栏 */
+        height += 24;
+        window->y += 24;
+    }
+    
+    KGC_ContainerInit(window->container, "window", left, top, width, height, window);
     /* 视图的位置根据窗口大小调整，居中设置 */
-    KGC_WindowDrawRectangle(window, 0, 0, window->width, window->height, KGCC_BLACK);
+    //KGC_WindowDrawRectangle(window, 0, 0, window->width, window->height, KGCC_BLACK);
+    KGC_WindowPaint(window);
 
-    /* 当前窗口置为隐藏 */
+    /* 当前窗口置为非激活 */
     if (GET_CURRENT_WINDOW())
-        KGC_ContainerZ(GET_CURRENT_WINDOW()->container, -1);
+        KGC_WindowPaintActive(GET_CURRENT_WINDOW(), 0);
+    
+    /* 激活新建窗口 */
+    KGC_WindowPaintActive(window, 1);
     
     /* 新窗口放在最前面 */
     KGC_ContainerAtTopZ(window->container); 
 
+    /* 把窗口添加到窗口链表 */
+    ListAddTail(&window->list, &windowListHead);
+    
     /* 设置为当前窗口 */
     SET_CURRENT_WINDOW(window);
 
@@ -135,7 +185,9 @@ PUBLIC int KGC_WindowAdd(KGC_Window_t *window)
  */
 PUBLIC int KGC_WindowDel(KGC_Window_t *window)
 {
-    
+    /* 从窗口队列中删除 */
+    ListDel(&window->list);
+       
     /* 释放窗口控制器 */
     KGC_TaskBarDelWindow(window);
     
@@ -155,9 +207,6 @@ PUBLIC int KGC_WindowDestroy(KGC_Window_t *window)
 {
     if (!window)
         return -1;
-
-    /* 从窗口队列中删除 */
-    ListDel(&window->list);
 
     /* 释放消息队列 */
     KGC_FreeMessageList(window);
@@ -206,7 +255,7 @@ PUBLIC int KGC_WindowClose(KGC_Window_t *window)
     return -1;
 }
 
-#if 1
+#if 0
 PRIVATE void ThreadWindow(void *arg)
 {
     /*KGC_Window_t *win = KGC_WindowCreate("test", 400, 300);
@@ -332,42 +381,28 @@ PUBLIC int KGC_InitWindowContainer()
 {
     /* 设置当前窗口为空 */
     currentWindow = NULL;
-    /* 创建第一个窗口 */
-    /*KGC_Window_t *win0 = KGC_WindowCreate("test1", 400, 300);
-    if (win0 == NULL)
-        return -1;
-    if (KGC_WindowAdd(win0))
-        return -1;
 
-    KGC_WindowDrawRectangle(win0, 0, 0, 400, 300, KGCC_ARGB(255, 0xaa, 0xaa, 0xaa));
-    KGC_WindowRefresh(win0, 0, 0, 400, 300);
-    
-    KGC_WindowDrawPixel(win0, 15, 20, KGCC_ARGB(255, 0xff, 0xff, 0xff));
-    KGC_WindowRefresh(win0, 10, 10, 15, 20);
-    
-    KGC_WindowDrawRectangle(win0, 50, 50, 100, 100, KGCC_ARGB(255, 0xff, 0, 0));
-    KGC_WindowRefresh(win0, 50, 50, 150, 150);*/
-    /*KGC_Window_t *win1 = KGC_WindowCreate("test2", 400, 300);
-    if (win1 == NULL)
-        return -1;
-    
-    if (KGC_WindowAdd(win1))
-        return -1;
-    
-    KGC_WindowDrawRectangle(win1, 0, 0, 400, 300, KGCC_ARGB(255, 0xaa, 0, 0xaa));
-    KGC_WindowRefresh(win1, 0, 0, 400, 300);
-    
+    /* 初始化窗口皮肤 */
+    windowSkin.boderColor = KGCC_ARGB(255, 80, 80, 80);
+    windowSkin.captionColor = KGCC_ARGB(255, 50, 50, 50);
+    windowSkin.titleColor = KGCC_ARGB(255, 128, 128, 128);
+    windowSkin.blankColor = KGCC_WHITE;
+    windowSkin.boderActiveColor = KGCC_ARGB(255, 100, 100, 100);
+    windowSkin.titleActiveColor = KGCC_WHITE;
 
-    KGC_Window_t *win2 = KGC_WindowCreate("test3", 400, 300);
-    if (win2 == NULL)
-        return -1;
+#if KGC_WINDOW_MOVEMENT_SHRINK == 1
+    /* 创建一个窗口移动时显示的容器 */
+    windowMovement.walker = KGC_ContainerAlloc();
+    /* 全屏大小 */
+    KGC_ContainerInit(windowMovement.walker, "windowMovement", 0, 0, videoInfo.xResolution, 12, NULL);
+
+    /* 全透明 */
+    KGC_ContainerDrawRectangle(windowMovement.walker, 0, 0, videoInfo.xResolution, 12, KGCC_NONE);
     
-    if (KGC_WindowAdd(win2))
-        return -1;
-    
-    KGC_WindowDrawRectangle(win2, 0, 0, 400, 300, KGCC_ARGB(255, 0, 0, 0xaa));
-    KGC_WindowRefresh(win2, 0, 0, 400, 300);
-    */
+    /* 隐藏 */    
+    KGC_ContainerZ(windowMovement.walker, -1);
+#endif /* KGC_WINDOW_MOVEMENT_SHRINK */
+
     /* 打开一个测试窗口任务 */
     //ThreadStart("window", 2, ThreadWindow, NULL);
     return 0;

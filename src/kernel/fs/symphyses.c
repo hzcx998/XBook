@@ -31,7 +31,7 @@
 #include <fs/bofs/fifo.h>
 
 /* 同步磁盘上的数据到文件系统 */
-#define SYNC_DISK_DATA
+#define SYNC_DISK_DATA 0
 
 #define DATA_BLOCK 256
 
@@ -68,13 +68,16 @@
 #elif FILE_ID == 8
 	#define FILE_NAME "root:/cal"
 	#define FILE_SECTORS 200
+#elif FILE_ID == 9
+	#define FILE_NAME "root:/test.txt"
+	#define FILE_SECTORS 1
 #endif
 
 #define FILE_SIZE (FILE_SECTORS * SECTOR_SIZE)
 
 PRIVATE void WriteDataToFS()
 {
-    #ifdef SYNC_DISK_DATA
+#if SYNC_DISK_DATA == 1
 	printk("ready load file to fs.\n");
 	
     char *buf = kmalloc(FILE_SECTORS * SECTOR_SIZE, GFP_KERNEL);
@@ -139,7 +142,7 @@ PRIVATE void WriteDataToFS()
     BlockSync();
 
     //Panic("test");
-	#endif
+#endif  /* SYNC_DISK_DATA */
 }
 
 /**
@@ -406,7 +409,7 @@ PRIVATE void ConfigFiles()
         strcpy(cfg, cfgstr);
         SysWrite(fd, cfg, strlen(cfgstr));
         printk("config file:%s\n", cfgstr);
-        close(fd);
+        SysClose(fd);
     } else {
         printk("config file exist!\n");
     }

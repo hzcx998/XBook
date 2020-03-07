@@ -15,8 +15,8 @@
 #include <kgc/color.h>
 #include <kgc/bar/taskbar.h>
 #include <kgc/bar/menubar.h>
-#include <kgc/controls/label.h>
-#include <kgc/controls/button.h>
+#include <kgc/widget/label.h>
+#include <kgc/widget/button.h>
 
 #define KGC_MENU_BAR_COLOR KGCC_ARGB(255, 50, 50, 50) 
 
@@ -25,16 +25,7 @@
 /* bar的结构 */
 typedef struct KGC_Bar {
     KGC_Container_t *container;
-
-    /* 控件 */
-    KGC_Label_t *icon;              /* 图标控件 */
-    KGC_Label_t *title;             /* 标题控件 */
-    KGC_Button_t *maxim;            /* 最大化控件 */
-    KGC_Button_t *minim;            /* 最小化控件 */
-    KGC_Button_t *close;            /* 关闭控件 */
     KGC_Button_t *time;             /* 时间控件 */
-
-    KGC_WindowController_t *idle;  /* 哨兵窗口控制器 */
 } KGC_Bar_t;
 
 EXTERN KGC_Bar_t kgcbar;

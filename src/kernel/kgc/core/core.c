@@ -27,7 +27,6 @@
 #include <kgc/draw.h>
 #include <kgc/even.h>
 #include <kgc/button.h>
-#include <kgc/input.h>
 #include <kgc/handler.h>
 #include <kgc/font/font.h>
 #include <kgc/container/container.h>

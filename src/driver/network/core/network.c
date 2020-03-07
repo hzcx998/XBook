@@ -28,17 +28,17 @@ EXTERN unsigned char *Rtl8139GetMACAddress();
 //#define NETWORK_TEST
 
 /* ip地址，以大端字序保存，也就是网络字序 */
-PRIVATE unsigned int networkIpAddress;
+PRIVATE unsigned int networkIpAddress = 0;
 
 /* 子网掩码 */
-PRIVATE uint32 networkSubnetMask;
+PRIVATE uint32 networkSubnetMask = 0;
 
 /* 网关地址 */
-PRIVATE uint32 networkGateway;
-
+PRIVATE uint32 networkGateway = 0;
+#if 0
 /* DNS服务器地址 */
 PRIVATE uint32 networkDnsAddress;
-
+#endif
 /* 数据包链表 */
 LIST_HEAD(netwrokReceiveList);
 
@@ -160,7 +160,7 @@ PUBLIC uint16 NetworkCheckSum(uint8_t *data, uint32_t len)
     /* 取反 */
     return (uint16_t) ~acc;
 }
-
+#if 0
 /**
  * NetworkConfig - 网络配置
  * 
@@ -265,7 +265,7 @@ PRIVATE void InitNetworkDrivers()
     }
 #endif
 }
-
+#endif
 PUBLIC int NetworkAddBuf(void *data, size_t len)
 {
     ASSERT(data);
@@ -288,7 +288,7 @@ PUBLIC int NetworkAddBuf(void *data, size_t len)
     
     return 0;
 }
-
+#if 0
 /**
  * TaskNetworkIn - 网络接收线程
  * @arg: 参数
@@ -317,6 +317,7 @@ PRIVATE void TaskNetworkIn(void *arg)
         }
     }
 }
+#endif
 /**
  * InitNetwork - 初始化网络模块
  * 

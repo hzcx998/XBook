@@ -19,7 +19,7 @@
 #include <lib/time.h>
 #include <lib/math.h>
 
-#define CONFIG_TIMEZONE_AUTO 1 	/* 自动转换时区 */
+#define CONFIG_TIMEZONE_AUTO 0 	/* 自动转换时区 */
 
 /* 1 ticks 对应的毫秒数 */
 #define MILLISECOND_PER_TICKS (1000 / HZ)

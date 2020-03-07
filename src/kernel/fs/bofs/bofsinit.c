@@ -112,6 +112,7 @@ PRIVATE int BOFS_MountFileSystem(struct BOFS_SuperBlock *sb)
     return 0;
 }
 
+#if 0   /* 为了避免编译警告，将目前未使用的不编译 */
 /**
  * BOFS_MountFileSystem - 挂载文件系统到内存
  * @superBlock: 超级块
@@ -130,6 +131,8 @@ PRIVATE int BOFS_UnmountFileSystem(struct BOFS_SuperBlock *sb)
     
     return 0;
 }
+
+#endif
 
 PUBLIC int InitBoFS()
 {

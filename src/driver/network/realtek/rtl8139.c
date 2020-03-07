@@ -1485,7 +1485,7 @@ PRIVATE INLINE void Rtl8139TxClear(struct Rtl8139Private *private)
 
 	/* XXX account for unsent Tx packets in tp->stats.tx_dropped */
 }
-
+#if 0
 PRIVATE int Rtl8139SetMacAddress(unsigned char *macAddr)
 {
     struct Rtl8139Private *private = &rtl8139Private;
@@ -1560,7 +1560,7 @@ PRIVATE int Rtl8139Close()
     
     return 0;
 }
-
+#endif
 PRIVATE int Rtl8139InitOne(struct Rtl8139Private *private)
 {
     static int boardIdx = -1;
