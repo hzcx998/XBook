@@ -149,10 +149,10 @@ PRIVATE INLINE pte_t *PageGetPte(address_t vaddr)
 }
 
 PUBLIC unsigned int AllocPages(unsigned int count);
-#define AllocPage() AllocPages(1);
+#define AllocPage() AllocPages(1)
 
 PUBLIC int FreePages(unsigned int page);
-#define FreePage(page) FreePages(page);
+#define FreePage(page) FreePages(page)
 
 PUBLIC int PageTableAdd(unsigned int virtualAddr,
 		unsigned int physicAddr,
@@ -163,6 +163,7 @@ PUBLIC int MapPages(unsigned int start,
 PUBLIC unsigned int RemoveFromPageTable(unsigned int virtualAddr);
 PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len);
 PUBLIC int UnmapPagesFragment(unsigned int vaddr, unsigned int len);
+PUBLIC void UnmapPagesRange(pde_t *pgdir, unsigned int start, unsigned int end);
 
 PUBLIC int MapPagesMaybeMapped(unsigned int start,
     unsigned int npages, 

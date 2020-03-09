@@ -56,16 +56,8 @@ int wavflag;
 /* 绘制缓冲区 */
 DWORD graphBuffer[NES_DISP_WIDTH*NES_DISP_HEIGHT];
 
-int main(int argc,char *argv[])
+int main(int argc, char **argv)
 {
-    
-	//printf("hello \n");
-
-  /*int fd = fopen("c:/nes", O_RDONLY);
-
-	printf("hello \n");
-	*/
-
   /*-------------------------------------------------------------------*/
   /*  Pad Control                                                      */
   /*-------------------------------------------------------------------*/
@@ -103,13 +95,7 @@ void exit_application()
 /*===================================================================*/
 void start_application( char *filename )
 {
-    char title[32] = {0};
-    sprintf(title, "infones - %s", filename);
-    /* 创建窗口 */
-    if (GUI_CreateWindow("infones", title, 0, 100, 100, 
-        NES_DISP_WIDTH, NES_DISP_HEIGHT, NULL))
-        return;
-
+    
   /* Set a ROM image name */
   strcpy( szRomName, filename );
 
@@ -124,6 +110,18 @@ void start_application( char *filename )
     if (LoadSRAM()) {
         exit_application();
     }
+
+    char title[32] = {0};
+    sprintf(title, "infones - %s", filename);
+    /* 创建窗口 */
+    if (GUI_CreateWindow("infones", title, 0, 100, 100, 
+        NES_DISP_WIDTH, NES_DISP_HEIGHT + 40, NULL))
+        return;
+    /* 绘制提示信息 */
+    GUI_DrawRectanglePlus(0, 0, NES_DISP_WIDTH, 40, GUI_ARGB(255, 0, 0, 0));
+    GUI_DrawTextPlus(0, 0, "WSAD: Move, J: Attack, K: Jump", GUI_ARGB(255, 255, 255, 255));
+    GUI_DrawTextPlus(0, 20, "N: Select(Pause), M: Switch", GUI_ARGB(255, 255, 255, 255));
+
     //printf("main ");
     InfoNES_Main();
        
@@ -445,56 +443,8 @@ void InfoNES_LoadFrame()
     }
   }
     /* 绘制到窗口中 */
-    GUI_DrawBitmapPlus(0, 0, NES_DISP_WIDTH, NES_DISP_HEIGHT, (unsigned int *)graphBuffer);
-    //graph(0, (NES_DISP_WIDTH << 16) | NES_DISP_HEIGHT, graphBuffer);
-    //printf("sum:%d", sum);
+    GUI_DrawBitmapPlus(0, 40, NES_DISP_WIDTH, NES_DISP_HEIGHT, (unsigned int *)graphBuffer);
 }
-
-/* 
-status = read(0, &key, 4);
-		
-		if (status != -1) {
-			//获取按键
-			//读取控制键状态
-			
-			if ((0 < key) || key&FLAG_PAD) {
-				//是一般字符就传输出去
-				*buf = (char)key;
-				break;
-			}
-			
-			key = -1;
-		}
-*/
-#define SDLK_RIGHT 'D'
-#define SDLK_RIGHT2 'd'
-
-#define SDLK_LEFT 'A'
-#define SDLK_LEFT2 'a'
-
-#define SDLK_DOWN 'S'
-#define SDLK_DOWN2 's'
-
-#define SDLK_UP 'W'
-#define SDLK_UP2 'w'
-
-#define SDLK_RETURN 'N'
-#define SDLK_RETURN2 'n'
-
-#define SDLK_ESCAPE 'M'
-#define SDLK_ESCAPE2 'm'
-
-#define SDLK_J 'J'
-#define SDLK_J2 'j'
-
-#define SDLK_K 'K'
-#define SDLK_K2 'k'
-
-#define SDLK_C 'C'
-#define SDLK_C2 'c'
-
-#define SDLK_R 'R'
-#define SDLK_R2 'r'
 
 // 按键处理
 void PollEvent(void)
@@ -505,52 +455,54 @@ void PollEvent(void)
         if (even.type == GUI_EVEN_KEY_DOWN) {
             switch (even.key.code)
 			{
-			case SDLK_RIGHT:
-			case SDLK_RIGHT2:
+			case GUI_KCOD_d:
+			case GUI_KCOD_D:
             	dwKeyPad1 |= (1 << 7);
 				break;
-			case SDLK_LEFT:
-            case SDLK_LEFT2:
+			case GUI_KCOD_a:
+			case GUI_KCOD_A:
             
 				dwKeyPad1 |= (1 << 6);
 				break;
-			case SDLK_DOWN:
-            case SDLK_DOWN2:
+			case GUI_KCOD_s:
+			case GUI_KCOD_S:
             
 				dwKeyPad1 |= (1 << 5);
 				break;
-			case SDLK_UP:
-			case SDLK_UP2:
+            case GUI_KCOD_w:
+			case GUI_KCOD_W:
+            
 				dwKeyPad1 |= (1 << 4);
 				break;
-			case SDLK_RETURN:
-			case SDLK_RETURN2:
+			case GUI_KCOD_n:
+            case GUI_KCOD_N:
+            
 				dwKeyPad1 |= (1 << 3);
 				break;			/* Start */
-			case SDLK_ESCAPE:
-			case SDLK_ESCAPE2:
-				dwKeyPad1 |= (1 << 2);
+			case GUI_KCOD_m:
+            case GUI_KCOD_M:
+            	dwKeyPad1 |= (1 << 2);
 				break;			/* Select */
-			case SDLK_J:
-			case SDLK_J2:
-				dwKeyPad1 |= (1 << 1);
+			case GUI_KCOD_j:
+            case GUI_KCOD_J:
+            	dwKeyPad1 |= (1 << 1);
 				break;			/* 'B' */
-			case SDLK_K:
-			case SDLK_K2:
-				dwKeyPad1 |= (1 << 0);
+			case GUI_KCOD_k:
+            case GUI_KCOD_K:
+            	dwKeyPad1 |= (1 << 0);
 				break;			/* 'A' */
-			case SDLK_C:
-			case SDLK_C2:
-				/* 切换剪裁 */
+			case GUI_KCOD_c:
+            case GUI_KCOD_C:
+            	/* 切换剪裁 */
 				PPU_UpDown_Clip = (PPU_UpDown_Clip ? 0 : 1);
 				break;
-			case SDLK_R:
-            case SDLK_R2:
+			case GUI_KCOD_v:
+            case GUI_KCOD_V:
             
 				SaveSRAM();
 				break;
-			case 'Q':
-            case 'q':
+			case GUI_KCOD_q:
+            case GUI_KCOD_Q:
                 exit_application();
                 break;
             default:
@@ -560,37 +512,37 @@ void PollEvent(void)
         } else if (even.type == GUI_EVEN_KEY_UP) {
             switch (even.key.code)
 			{
-			case SDLK_RIGHT:
-			case SDLK_RIGHT2:
-				dwKeyPad1 &= ~(1 << 7);
+			case GUI_KCOD_d:
+			case GUI_KCOD_D:
+            	dwKeyPad1 &= ~(1 << 7);
 				break;
-			case SDLK_LEFT:
-			case SDLK_LEFT2:
-				dwKeyPad1 &= ~(1 << 6);
+			case GUI_KCOD_a:
+			case GUI_KCOD_A:
+            	dwKeyPad1 &= ~(1 << 6);
 				break;
-			case SDLK_DOWN:
-			case SDLK_DOWN2:
-				dwKeyPad1 &= ~(1 << 5);
+			case GUI_KCOD_s:
+			case GUI_KCOD_S:
+            	dwKeyPad1 &= ~(1 << 5);
 				break;
-			case SDLK_UP:
-			case SDLK_UP2:
-				dwKeyPad1 &= ~(1 << 4);
+			case GUI_KCOD_w:
+			case GUI_KCOD_W:
+            	dwKeyPad1 &= ~(1 << 4);
 				break;
-			case SDLK_RETURN:
-			case SDLK_RETURN2:
-				dwKeyPad1 &= ~(1 << 3);
+			case GUI_KCOD_n:
+            case GUI_KCOD_N:
+            	dwKeyPad1 &= ~(1 << 3);
 				break;			/* Start */
-			case SDLK_ESCAPE:
-			case SDLK_ESCAPE2:
-				dwKeyPad1 &= ~(1 << 2);
+			case GUI_KCOD_m:
+            case GUI_KCOD_M:
+            	dwKeyPad1 &= ~(1 << 2);
 				break;			/* Select */
-			case SDLK_J:
-			case SDLK_J2:
-				dwKeyPad1 &= ~(1 << 1);
+			case GUI_KCOD_j:
+            case GUI_KCOD_J:
+            	dwKeyPad1 &= ~(1 << 1);
 				break;			/* 'B' */
-			case SDLK_K:
-			case SDLK_K2:
-				dwKeyPad1 &= ~(1 << 0);
+			case GUI_KCOD_k:
+            case GUI_KCOD_K:
+            	dwKeyPad1 &= ~(1 << 0);
 				break;			/* 'A' */
             default:
                 break;

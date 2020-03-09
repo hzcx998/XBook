@@ -293,7 +293,7 @@ PUBLIC int32 DoMmap(struct MemoryManager *mm, address_t addr, uint32_t len, uint
         return -1;
     }
 
-    // printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
+    //printk(PART_TIP "DoMmap: %x, %x, %x, %x\n", addr, len, prot, flags);
     // PART_END();
     return addr;
 }
@@ -411,17 +411,21 @@ PUBLIC void InitMemoryManager(struct MemoryManager *mm)
 }
 
 /** 
- * MemoryManagerRelease - 释放所有内存空间
+ * ReleaseVMSpace - 释放内存空间
  * @mm: 内存管理器
+ * @flags: 标志
+ * 
+ * 在exec时使用，根据space布局查询
  */
-PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
+PUBLIC void ReleaseVMSpace(struct MemoryManager *mm, unsigned int flags)
 {
     struct VMSpace *space = mm->spaceMap;
     while(space){
-        //printk("space: start %x end %x\n", space->start, space->end);
+        //printk("task %s all space: start %x end %x\n", CurrentTask()->name, space->start, space->end);
         space = space->next;
     }
 
+    struct VMSpace *cur;
     /* 1.释放内存映射 */
     space = mm->spaceMap;
     /* 循环把每一个vmspace从空间中释放 */
@@ -429,40 +433,82 @@ PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags)
         /*  1.有释放栈的标志，并且space是栈，才释放空间（栈）
             2.有资源标志，但space不是栈，才释放空间
          */
-        if ((flags & VMS_STACK && space->flags & VMS_STACK) ||  /* 栈 */
-            (flags & VMS_HEAP && space->flags & VMS_HEAP) ||    /* 堆 */
-            (flags & VMS_RESOURCE &&                            /* 非栈和堆（代码，数据，bss） */
-            !((space->flags & VMS_STACK) && (space->flags & VMS_HEAP)))) {    
-            
-            //printk("space: start %x end %x\n", space->start, space->end);
+        cur = space;
+        space = space->next;
+        char flag = 0;    
+        if ((flags & VMS_STACK && cur->flags & VMS_STACK)) {
+            flag = 1;
+            /*if (cur->flags & VMS_STACK)
+                printk("STACK ");*/
+        } else if (flags & VMS_HEAP && cur->flags & VMS_HEAP) {
+            flag = 1;
+            /*if (cur->flags & VMS_HEAP)
+                printk("HEAP ");*/
+        } else if (flags & VMS_RESOURCE && !(cur->flags & VMS_HEAP) && !(cur->flags & VMS_STACK)) {
+            flag = 1;
+            /*if (flags & VMS_RESOURCE)
+                printk("RESOURCE ");*/
+        }
+        if (flag ) {        
+            //printk("task %s release space: start %x end %x\n", CurrentTask()->name, cur->start, cur->end);
 
             /* 由于VMS有合并机制，这就导致了不同的虚拟地址有了记录在同一个虚拟地址上，
             但是他们的物理页却不是连续的，形成了许多片段，所以，这里用片段的方式来取消页
             的映射。 */
-            UnmapPagesFragment(space->start, space->end - space->start);
+            UnmapPagesFragment(cur->start, cur->end - cur->start);
 
-            /* 对空间中的每一个页进行释放 */
-            /*while (space->start < space->end) {
-                RemoveFromPageTable(space->start);
-                space->start += PAGE_SIZE;
-            }*/
+            /* 释放虚拟空间 */
+            kfree(cur);
         }
-        space = space->next;
-    }
-
-    //printk("space\n");
-        
-    /* 2.释放虚拟空间 */ 
-    space = mm->spaceMap;
-    /* 循环把每一个vmspace从空间中释放 */
-    while (space != NULL) {
-        struct VMSpace *del = space;
-        space = space->next;
-        kfree(del);
     }
     /* 释放完后把空间映射置空 */
     mm->spaceMap = NULL;
 }
+
+/** 
+ * ExitVMSpace - 退出虚拟空间
+ * @mm: 内存管理器
+ * 
+ * 在exit时使用，释放所有空间，遍历查询
+ */
+PUBLIC void ExitVMSpace(struct MemoryManager *mm)
+{
+    struct VMSpace *space = mm->spaceMap;
+    while(space){
+        //printk("task %s all space: start %x end %x\n", CurrentTask()->name, space->start, space->end);
+        space = space->next;
+    }
+
+    /* 取消整个范围内的映射 */
+    //UnmapPagesRange(CurrentTask()->pgdir, 0, USER_VM_SIZE + 1);
+
+    struct VMSpace *cur;
+    /* 1.释放内存映射 */
+    space = mm->spaceMap;
+    /* 循环把每一个vmspace从空间中释放 */
+    while (space != NULL) {
+        /*  1.有释放栈的标志，并且space是栈，才释放空间（栈）
+            2.有资源标志，但space不是栈，才释放空间
+         */
+        cur = space;
+        space = space->next;
+#if 0
+        if (cur->flags & VMS_STACK) {
+            printk("STACK ");
+        } else if (cur->flags & VMS_HEAP) {
+            printk("HEAP ");
+        } else {
+            printk("RESOURCE ");
+        }
+        printk("task %s release space: start %x end %x\n", CurrentTask()->name, cur->start, cur->end);
+#endif
+        /* 释放虚拟空间 */
+        kfree(cur);        
+    }
+    /* 释放完后把空间映射置空 */
+    mm->spaceMap = NULL;
+}
+
 
 /**
  * SysBrk - 设置堆的空间

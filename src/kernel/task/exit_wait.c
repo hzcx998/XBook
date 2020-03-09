@@ -36,9 +36,13 @@ PRIVATE int NotifyParent(int parentPid)
             /*printk(PART_TIP "my parent %s pid %d status %d is waitting for me, wake up him!\n",
                     parent->name, parent->pid, parent->status);
              */
+
+            /* 向父进程发送信号 */
+            //SysKill(parent->pid, SIGCHLD);
+            //printk("send SIGCHLD to parent %s-%d\n", parent->name, parent->pid);
             /* 将父进程唤醒 */
             TaskUnblock(parent);
-
+            
             ret = 0;    /* 有父进程在等待 */
             /* 唤醒后就退出查询，因为只有1个父亲，不能有多个父亲吧（偷笑） */
             break;
@@ -56,7 +60,6 @@ PRIVATE void AdopeChildren(struct Task *cur)
     /* 过继给init之后还要提醒一下init才可以 */
     NotifyParent(cur->parentPid);
 }
-
 
 /**
  * ReleaseZombie - 释放僵尸态的进程
@@ -123,7 +126,7 @@ PUBLIC void ThreadExit(struct Task *thread)
 PUBLIC void SysExit(int status)
 {
     struct Task *current = CurrentTask();
-    //printk(PART_TIP "task name %s exit now!\n", current->name);
+    //printk("task name %s exit now!\n", current->name);
     
     /* 保存之前状态并关闭中断 */
     unsigned long flags = InterruptSave();
@@ -131,29 +134,28 @@ PUBLIC void SysExit(int status)
     /* 保存退出状态 */
     current->exitStatus = status;
 
-    //printk("exit del %s %d\n", current->name, current->pid);
-    /* 从文件系统中删除任务 */
-    //DelTaskFromFS(current->name, current->pid);
+    /* 1.如果有父进程，就通知父进程我已经远去，来帮我收尸吧
+    在完成父进程唤醒之前不能调度 */
     int ret = NotifyParent(current->parentPid);
 
-    /* 1.把子进程过继给init进程 */
+    /* 2.把子进程过继给init进程 */
     if (ret != 0) { /* 如果自己的父进程没有等待自己，就把自己过继给init进程 */
         AdopeChildren(current);
     }
     
+    /* 3.取消绑定的数据 */
     CancelEverything(current);
     
-    /* 2.释放自己占用的内存资源 */
-    MemoryManagerRelease(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
-    /* 释放文件资源 */
+    /* 5.释放文件资源 */
     BOFS_ReleaseTaskFiles(current);
-    /* 3.如果有父进程，就通知父进程我已经远去，来帮我收尸吧
-    在完成父进程唤醒之前不能调度 */
+    
+    /* 4.释放自己占用的内存资源 */
+    ExitVMSpace(current->mm);
     
     /* 恢复之前的状态 */
     InterruptRestore(flags);
 
-    //printk(PART_TIP "I am gone, don't miss me!\n");
+    //printk("I am gone, don't miss me!\n");
     
     /* 4.不让自己运行，调度出去 */
     TaskBlock(TASK_ZOMBIE);
@@ -184,7 +186,8 @@ PUBLIC pid_t SysWait(int *status)
 ToRepeat:
     /* 如果说收到了KILL信号，就不再等待 */
     //printk("sig %x ", current->signalPending);
-    if (current->signalPending & (1 << SIGKILL)) { /* 如果接受到一个kill信号，就不再等待 */
+    /* 如果接受到一个kill和sigterm信号，就不再等待 */
+    if (current->signalPending & (1 << SIGKILL) || current->signalPending & (1 << SIGTERM)) { 
         //printk("recv a sig kill when wait!\n");
         goto EndWait;
     }
@@ -213,6 +216,7 @@ ToRepeat:
             *status = child->exitStatus;
         
         childPid = child->pid;
+
         /*
         printk(PART_TIP "parent %d find a zombie task %s pid %d exit status %d",
             current->pid, child->name, childPid, *status

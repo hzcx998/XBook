@@ -1,7 +1,6 @@
-#Makefile for bosh
-#auther: Jason Hu
-#time: 2019/12/8
-
+#Makefile for test
+#auther: Hu Zicheng
+#time: 2019/1/24
 
 #The tools name
 NASM 		= nasm
@@ -10,13 +9,13 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-LIB_H_DIR = ../../../library/libc/include
-LIB_A_DIR = ../../../library/libc/
+LIB_H_DIR = ../../../src/include/lib
+LIB_A_DIR = ../../../src/
 
 BIN = a.out
 
 BIN_OFF = 0 
-BIN_CNTS = 200
+BIN_CNTS = 100
 
 #img dir
 IMG_DIR = ../../../developments/image/
@@ -35,16 +34,12 @@ ASM_FLAGS	= -I $(LIB_H_DIR) \
 C_FLAGS	= -I $(LIB_H_DIR) \
 			-c -fno-builtin -Wall -Wunused -m32
 
-#LDFLAGS		= --oformat binary -e _start -Ttext 0x00000000
-
 LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 
 OBJS =  _start.o \
-		main.o \
-		cmd.o
+		main.o
 
 LD_OBJS = 	$(LIB_A_DIR)libc.a \
-			
 
 #First read here
 .PHONY: all
@@ -57,6 +52,7 @@ compile: $(OBJS)
 link: $(BIN)
 $(BIN): $(OBJS) $(LD_OBJS)
 	$(LD) $(LDFLAGS) -o $(BIN) $(OBJS) $(LD_OBJS)
+
 
 disk: img vhd vmdk
 
@@ -74,7 +70,7 @@ qemu: compile link img
 vbox: compile link vhd
 
 vmware: compile link vmdk
-
+	
 #Clean temporary files
 clean:
 	-rm *.o

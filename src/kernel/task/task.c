@@ -133,7 +133,11 @@ PUBLIC void InitSignalInTask(struct Task *task)
     SpinLockInit(&task->signals.signalLock);
     int i;
     for (i = 0; i < MAX_SIGNAL_NR; i++) {
+        /* SIGCHLD信号设置成忽略信号 */
         task->signals.action[i].handler = SIG_DFL;
+        /*if (i == SIGCHLD) {
+            task->signals.action[i - 1].handler = SIG_IGN;
+        }*/
         task->signals.action[i].flags = 0;
         task->signals.sender[i] = -1;
     }

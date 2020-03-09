@@ -12,6 +12,10 @@
 #ifndef _BOOK_CONFIG_H
 #define _BOOK_CONFIG_H
 
+/* 系统信息 */
+#define OS_NAME     "Book Operating System"
+#define OS_VERSION  " 0.7.1"
+
 /**
  * ------------------------
  * 系统宏

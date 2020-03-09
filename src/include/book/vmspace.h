@@ -13,7 +13,7 @@
 #include <book/list.h>
 #include <book/arch.h>
 
-#define USER_VM_SIZE        PAGE_OFFSET
+#define USER_VM_SIZE        (PAGE_OFFSET - 1)
 #define USER_STACK_TOP      USER_VM_SIZE
 
 #define VMS_UNMAPPED_BASE    (USER_VM_SIZE/2)
@@ -67,7 +67,7 @@ struct MemoryManager {
 
 PUBLIC void InitVMSpace();
 PUBLIC void InitMemoryManager(struct MemoryManager *mm);
-PUBLIC void MemoryManagerRelease(struct MemoryManager *mm, unsigned int flags);
+PUBLIC void ReleaseVMSpace(struct MemoryManager *mm, unsigned int flags);
 PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, 
         address_t addr, struct VMSpace *prev);
 PUBLIC struct VMSpace *FindVMSpace(struct MemoryManager *mm, address_t addr);
@@ -79,4 +79,7 @@ PUBLIC void *SysMmap(uint32_t addr, uint32_t len, uint32_t prot, uint32_t flags)
 PUBLIC int SysMunmap(uint32_t addr, uint32_t len);
 
 PUBLIC unsigned int SysBrk(unsigned int brk);
+
+PUBLIC void ExitVMSpace(struct MemoryManager *mm);
+
 #endif   /* _BOOK_VMSPACE_H */

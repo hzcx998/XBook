@@ -168,7 +168,6 @@ PUBLIC int KGC_WindowAdd(KGC_Window_t *window)
 
     /* 把窗口添加到窗口链表 */
     ListAddTail(&window->list, &windowListHead);
-    
     /* 设置为当前窗口 */
     SET_CURRENT_WINDOW(window);
 
@@ -187,13 +186,22 @@ PUBLIC int KGC_WindowDel(KGC_Window_t *window)
 {
     /* 从窗口队列中删除 */
     ListDel(&window->list);
-       
+    
     /* 释放窗口控制器 */
     KGC_TaskBarDelWindow(window);
     
     /* 销毁窗口容器 */
     KGC_ContainerFree(window->container);
     
+    /* 解除绑定 */
+    if (window->task) {
+        /* 任务窗口为空 */
+        Task_t *task = (Task_t *)window->task;
+        /* 解除任务与窗口的绑定 */
+        task->window = NULL;    
+        /* 解除窗口与任务的绑定 */
+        window->task = NULL;
+    }
     return 0;
 }
 
@@ -210,12 +218,6 @@ PUBLIC int KGC_WindowDestroy(KGC_Window_t *window)
 
     /* 释放消息队列 */
     KGC_FreeMessageList(window);
-    
-    if (window->task) {
-        /* 任务窗口为空 */
-        Task_t *task = (Task_t *)window->task;
-        task->window = NULL;    
-    }
     
     /* 释放窗口对象 */
     kfree(window);
@@ -238,13 +240,12 @@ PUBLIC int KGC_WindowClose(KGC_Window_t *window)
     if (window->task != CurrentTask())
         return -1;
 
-    /* 当前窗口置为隐藏 */
-    if (GET_CURRENT_WINDOW())
-        KGC_ContainerZ(GET_CURRENT_WINDOW()->container, -1);
-    
-    /* 窗口关闭后，不指向窗口。 */
-    currentWindow = NULL;
-    
+    /* 窗口关闭的时候，需要将窗口隐藏 */
+    KGC_ContainerZ(window->container, -1);
+    /* 如果要关闭的窗口是当前窗口 */
+    if (GET_CURRENT_WINDOW() == window)
+        currentWindow = NULL;   /* 窗口关闭后，不指向窗口。 */
+        
     /* 删除窗口 */
     if (!KGC_WindowDel(window)) {
         /* 销毁窗口 */

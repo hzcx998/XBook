@@ -26,7 +26,6 @@
 #include <fs/bofs/dir.h>
 #include <fs/bofs/file.h>
 #include <fs/bofs/device.h>
-#include <fs/bofs/task.h>
 #include <fs/bofs/pipe.h>
 #include <fs/bofs/fifo.h>
 
@@ -42,7 +41,7 @@
 #endif
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 2
+#define FILE_ID 7
 
 #if FILE_ID == 1
 	#define FILE_NAME "root:/init"
@@ -273,35 +272,6 @@ PRIVATE void MakeDeviceFile()
     printk("%x %x %x %x\n", sbuf[0], sbuf[128], sbuf[256], sbuf[511]);
     
     SysClose(fd);*/
-
-    //Spin("test");
-}
-
-
-EXTERN struct List taskGlobalList;
-
-/**
- * MakeTaskFile - 生成任务文件
- * 
- */
-PRIVATE void MakeTaskFile()
-{
-    /* 创建设备目录 */
-    if (SysMakeDir(SYS_PATH_TASK)) {
-        printk("make tsk dir failed!\n");
-        return;
-    }
-    SysSync();
-
-    /* 扫描任务 */
-    struct Task *task;
-
-    ListForEachOwner (task, &taskGlobalList, globalList) {
-        //printk("task name:%s pid:%d status:%d\n", task->name, task->pid, task->status);
-        AddTaskToFS(task->name, task->pid);
-    }
-
-    //SysListDir("tmp:/tsk");
 
     //Spin("test");
 }
@@ -612,73 +582,6 @@ PUBLIC int SysMakeDev(const char *pathname, char type,
     }
 
     return BOFS_MakeDevice(finalPath, newType, MKDEV(major, minor), size, drive->sb);
-}
-
-PUBLIC int AddTaskToFS(char *name, pid_t pid)
-{
-    char taskpath[MAX_TASK_NAMELEN + 24];
-    memset(taskpath, 0, MAX_TASK_NAMELEN + 24);
-    strcat(taskpath, SYS_PATH_TASK);
-    strcat(taskpath, "/");
-    strcat(taskpath, name);
-    strcat(taskpath, "\\");
-
-    char numstr[8];
-    memset(numstr, 0, 8);
-    char *p = &numstr[0];
-    itoa(&p, pid, 10);
-    strcat(taskpath, numstr);
-    //printk("task path %s\n", taskpath);
-    if (SysMakeTsk(taskpath, pid)) {
-        //printk("make task file at %s failed!\n", taskpath);
-        return -1;
-    }
-
-    return 0;
-}
-
-PUBLIC int DelTaskFromFS(char *name, pid_t pid)
-{
-    char taskpath[MAX_TASK_NAMELEN + 24];
-    memset(taskpath, 0, MAX_TASK_NAMELEN + 24);
-    strcat(taskpath, SYS_PATH_TASK);
-    strcat(taskpath, "/");
-    strcat(taskpath, name);
-    strcat(taskpath, "\\");
-
-    char numstr[8];
-    memset(numstr, 0, 8);
-    char *p = &numstr[0];
-    itoa(&p, pid, 10);
-    strcat(taskpath, numstr);
-    //printk("task path %s\n", taskpath);
-    if (SysRemove(taskpath)) {
-        //printk("remove task file at %s failed!\n", taskpath);
-        return -1;
-    }
-    return 0;
-}
-
-PUBLIC int SysMakeTsk(const char *pathname, pid_t pid)
-{
-    char absPath[MAX_PATH_LEN] = {0};
-
-    /* 生成绝对路径 */
-    BOFS_MakeAbsPath(pathname, absPath);
-    
-    /* 获取磁盘符 */
-    struct BOFS_Drive *drive = BOFS_GetDriveByPath(absPath);
-    if (drive == NULL) {
-        printk("get drive by path %s failed!\n", absPath);
-        return -1;
-    }
-
-    char finalPath[MAX_PATH_LEN] = {0};
-    /* 移动到第一个'/'处，也就是根目录处 */
-    char *path = strchr(absPath, '/');
-    /*现在获得了绝对路径，需要清理路径中的.和..*/ 
-    BOFS_WashPath(path, finalPath);
-    return BOFS_MakeTask(finalPath, pid, drive->sb);
 }
 
 PUBLIC int SysMakeFifo(const char *pathname, mode_t mode)
@@ -1225,7 +1128,6 @@ PUBLIC void InitFileSystem()
     WriteDataToFS();
 
     MakeDeviceFile();
-    MakeTaskFile();
     MakeDriveFile();
     MakeFifoFile();
 

@@ -10,8 +10,8 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-LIB_H_DIR = ../../../libary/libc/include
-LIB_A_DIR = ../../../libary/libc/
+LIB_H_DIR = ../../../library/libc/include
+LIB_A_DIR = ../../../library/libc/
 
 BIN = a.out
 

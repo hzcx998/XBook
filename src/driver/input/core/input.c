@@ -11,6 +11,7 @@
 #include <book/kgc.h>
 #include <input/input.h>
 #include <lib/string.h>
+#include <input/keycode.h>
 
 /* ----驱动程序初始化文件导入---- */
 EXTERN int InitPs2KeyboardDriver();
@@ -35,12 +36,10 @@ PRIVATE void KeyboardEven(void *arg)
     while (1) {
         key = DeviceGetc(DEV_KEYBOARD);
         if (key) {
-            //printk("io: %x\n", key);    
             /* 把数据交给输入系统 */
             KGC_KeyboardInput(key);
             
         }
-            
     }
 }
 
@@ -63,6 +62,21 @@ PRIVATE void MouseEven(void *arg)
             TaskBlock(TASK_BLOCKED);
         }
     }
+}
+
+PUBLIC int InputConvertKeycode(InputDevice_t *iptdev, uint32_t key)
+{
+    int i;
+    uint32_t keycode = key & IKEY_FLAG_KEY_MASK;
+
+    for (i = 0; i < IKEY_LAST; i++) {
+        /* 如果键值和表中相等，返回索引值 */
+        if (iptdev->keycodeTable[i] == keycode) {
+            /* 键值 + 按键标志 */
+            return (i | (key & (~IKEY_FLAG_KEY_MASK)));
+        }
+    }
+    return 0;
 }
 
 PUBLIC int RegisterInputDevice(InputDevice_t *iptdev,

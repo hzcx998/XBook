@@ -88,8 +88,6 @@ PUBLIC int KGC_MessageDoDraw(KGC_MessageDraw_t *message)
     case KGC_MSG_DRAW_BITMAP:
         KGC_WindowDrawBitmap(window, message->left, message->top, 
             message->width, message->height, message->bitmap);
-        /*KGC_WindowRefresh(window, message->left, message->top, 
-            message->left + message->width, message->top + message->height);*/
         retval = 0;
         break;
     case KGC_MSG_DRAW_LINE:

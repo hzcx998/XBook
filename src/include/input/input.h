@@ -63,6 +63,8 @@ typedef struct InputDevice {
 
     /* 缓冲区的长度 */
     uint32_t bufferSize;
+
+    uint32_t *keycodeTable;      /* 键盘转换码表 */
 } InputDevice_t;
 
 PUBLIC int RegisterInputDevice(InputDevice_t *iptdev,
@@ -89,6 +91,9 @@ STATIC INLINE uint32_t InputDeviceGetIoData(InputDevice_t *iptdev)
 
 PUBLIC void InputDevicePutBuffer(InputDevice_t *iptdev, InputBuffer_t *buffer);
 PUBLIC int InputDeviceGetBuffer(InputDevice_t *iptdev, InputBuffer_t *buffer, uint32_t *buffers);
+
+PUBLIC int InputConvertKeycode(InputDevice_t *iptdev, uint32_t key);
+
 
 PUBLIC int InitInputSystem();
 

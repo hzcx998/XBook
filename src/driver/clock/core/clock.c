@@ -19,7 +19,7 @@
 #include <lib/time.h>
 #include <lib/math.h>
 
-#define CONFIG_TIMEZONE_AUTO 0 	/* 自动转换时区 */
+#define CONFIG_TIMEZONE_AUTO 1 	/* 自动转换时区 */
 
 /* 1 ticks 对应的毫秒数 */
 #define MILLISECOND_PER_TICKS (1000 / HZ)
@@ -229,7 +229,7 @@ PROTECT void SchedSoftirqHandler(struct SoftirqAction *action)
 	
     /* 需要进行调度的时候才会去调度 */
 	if (current->ticks <= 0) {
-		Schedule();
+		ScheduleInClock();
 	} else {
 		
 		current->ticks--;

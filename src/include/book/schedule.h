@@ -13,5 +13,6 @@
 #include <lib/stddef.h>
 
 PUBLIC void Schedule();
+PUBLIC void ScheduleInClock();
 
 #endif   /*_BOOK_SCHEDULE_H*/

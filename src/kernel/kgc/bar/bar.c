@@ -17,6 +17,7 @@
 #include <kgc/widget/widget.h>
 #include <kgc/window/window.h>
 #include <kgc/window/switch.h>
+#include <input/keycode.h>
 
 KGC_Bar_t kgcbar;
 
@@ -64,7 +65,7 @@ PUBLIC int KGC_BarKeyDown(KGC_KeyboardEven_t *even)
 {
     //printk("bar key down\n");
     /* 1.如果是不可屏蔽快捷键，处理后就立即返回不再继续处理按键的条件。 */
-    if (even->keycode.code == KGCK_DELETE) {
+    if (even->keycode.code == IKEY_DELETE) {
         /* CTRL + ALT + DELETE: 打开系统管理界面 */
         if ((even->keycode.modify & KGC_KMOD_ALT) && 
             (even->keycode.modify & KGC_KMOD_CTRL)) {
@@ -76,7 +77,7 @@ PUBLIC int KGC_BarKeyDown(KGC_KeyboardEven_t *even)
     
     /* 2.如果是可屏蔽快捷键，查看屏蔽标志，根据屏蔽标志来判断是否继续处理按键 */
     
-    if (even->keycode.code == KGCK_TAB) {
+    if (even->keycode.code == IKEY_TAB) {
         /* CTRL + SHIFT + TAB: 向前切换任务 */
         if ((even->keycode.modify & KGC_KMOD_ALT) && 
             (even->keycode.modify & KGC_KMOD_SHIFT)) {
@@ -104,7 +105,7 @@ PUBLIC int KGC_BarKeyDown(KGC_KeyboardEven_t *even)
                 return -1;
             }
         }
-    } else if (even->keycode.code == KGCK_ESCAPE) {
+    } else if (even->keycode.code == IKEY_ESCAPE) {
         if (GET_CURRENT_WINDOW()) {
             
             /* 查看当前窗口的可否获取系统快捷键 */
@@ -127,7 +128,7 @@ PUBLIC int KGC_BarKeyUp(KGC_KeyboardEven_t *even)
 {
     //printk("bar key up\n");
     /* 1.如果是不可屏蔽快捷键，处理后就立即返回不再继续处理按键的条件。 */
-    if (even->keycode.code == KGCK_DELETE) {
+    if (even->keycode.code == IKEY_DELETE) {
         /* CTRL + ALT + DELETE: 打开系统管理界面 */
         if ((even->keycode.modify & KGC_KMOD_ALT) && 
             (even->keycode.modify & KGC_KMOD_CTRL)) {
@@ -138,7 +139,7 @@ PUBLIC int KGC_BarKeyUp(KGC_KeyboardEven_t *even)
     }
 
     /* 2.如果是可屏蔽快捷键，查看屏蔽标志，根据屏蔽标志来判断是否继续处理按键 */
-    if (even->keycode.code == KGCK_TAB) {
+    if (even->keycode.code == IKEY_TAB) {
         /* CTRL + SHIFT + TAB: 向前切换任务 */
         if ((even->keycode.modify & KGC_KMOD_ALT) && 
             (even->keycode.modify & KGC_KMOD_SHIFT)) {
@@ -164,7 +165,7 @@ PUBLIC int KGC_BarKeyUp(KGC_KeyboardEven_t *even)
                 return -1;
             }
         }
-    } else if (even->keycode.code == KGCK_SPACE) {
+    } else if (even->keycode.code == IKEY_SPACE) {
         if (GET_CURRENT_WINDOW()) {   
         
             /* 查看当前窗口的可否获取系统快捷键 */
@@ -174,7 +175,7 @@ PUBLIC int KGC_BarKeyUp(KGC_KeyboardEven_t *even)
             /* 没有屏蔽才能进行操作 */
             return -1;
         }
-    } else if (even->keycode.code == KGCK_ENTER) {
+    } else if (even->keycode.code == IKEY_ENTER) {
         if (GET_CURRENT_WINDOW()) {   
             /* 查看当前窗口的可否获取系统快捷键 */
             if (GET_CURRENT_WINDOW()->flags & KGC_WINDOW_FLAG_KEY_SHORTCUTS)

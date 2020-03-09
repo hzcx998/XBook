@@ -14,7 +14,7 @@
 #include <lib/stddef.h>
 #include <char/virtual/tty.h>
 #include <char/console/console.h>
-#include <input/keyboard/ps2.h>
+#include <input/keycode.h>
 
 #define DEVNAME "tty"
 
@@ -49,11 +49,14 @@ TTY_t ttyTable[MAX_TTY_NR];
 #define IS_CORRECT_TTYID(ttyid) \
         (ttyid >= 0 && ttyid < MAX_TTY_NR)
 
+PRIVATE TTY_t *currentTTY;
+
+#if 0
 PRIVATE void TTY_DoRead(TTY_t *tty);
 PRIVATE void TTY_DoWrite(TTY_t *tty);
+
 PRIVATE void TTY_PutKey(TTY_t *tty, u32 key);
 
-PRIVATE TTY_t *currentTTY;
 
 /**
  * SelectConsole - 选择控制台
@@ -71,7 +74,8 @@ PRIVATE void SelectTTY(int ttyID)
 
 	DeviceIoctl(currentTTY->conDevno, CON_CMD_SELECT_CON, ttyID);
 }
-
+#endif
+#if 0
 /**
  * KeyCharProcess - 对单独的按键进行处理
  * @key: 按键 
@@ -82,7 +86,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
 {
     
 	/* 没有扩展数据，就直接写入对应的key */
-	if (!(key & KBD_FLAG_EXT)) {
+	if (!(key)) {
         
         /* 如果是图形tty，就直接传输过去，让图形核心处理 */
         if (tty->deviceID == TTY_GRAPH_ID) {
@@ -90,9 +94,9 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
             TTY_PutKey(tty, key);
         } else {
             /* 只获取按下键，不处理弹起 */
-            if (!(key & KBD_FLAG_BREAK)) {
+            if (!(key & IKEY_FLAG_BREAK)) {
                 /* ctrl + 字符 */
-                if(key & KBD_FLAG_CTRL_L || key & KBD_FLAG_CTRL_R){
+                if(key & IKEY_FLAG_CTRL_L || key & IKEY_FLAG_CTRL_R){
                     char ch = key & 0xff;
                     //printk("<ctr + %c>\n", ch);
                     switch (ch)
@@ -153,14 +157,14 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
             switch(raw_code) {
 			case KBD_F1:
 				//TTY_PutKey(tty,  F1);
-				if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+				if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                     SelectTTY(0);
 					//DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 0);
 				}
 				break;
 			case KBD_F2:
 				//TTY_PutKey(tty,  F2);
-				if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+				if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                     SelectTTY(1);
                     //DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 1);
 				}
@@ -168,7 +172,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
 			case KBD_F3:
 				//shft +f4 关闭窗口程序
 				//TTY_PutKey(tty,  F3);
-				if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+				if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                     SelectTTY(2);
 					//DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 2);
 				}
@@ -176,7 +180,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
 			case KBD_F4:
 				//alt +f4 关闭程序
 				TTY_PutKey(tty,  KBD_F4);
-                if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+                if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                     SelectTTY(3);
 					//DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 3);
 				}
@@ -188,7 +192,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
             TTY_PutKey(tty, key);
         } else {
             /* 只获取按下键，不处理弹起 */
-            if (!(key & KBD_FLAG_BREAK)) {
+            if (!(key & IKEY_FLAG_BREAK)) {
                 switch(raw_code) {
                 case KBD_ENTER:
                     TTY_PutKey(tty, '\n');
@@ -202,14 +206,14 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
                     break;
                 case KBD_F1:
                     //TTY_PutKey(tty,  F1);
-                    if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+                    if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                         SelectTTY(0);
                         //DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 0);
                     }
                     break;
                 case KBD_F2:
                     //TTY_PutKey(tty,  F2);
-                    if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+                    if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                         SelectTTY(1);
                         //DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 1);
                     }
@@ -218,7 +222,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
                 case KBD_F3:
                     //shft +f4 关闭窗口程序
                     //TTY_PutKey(tty,  F3);
-                    if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+                    if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                         SelectTTY(2);
                         //DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 2);
                     }
@@ -226,7 +230,7 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
                 case KBD_F4:
                     //alt +f4 关闭程序
                     TTY_PutKey(tty,  KBD_F4);
-                    if(key & KBD_FLAG_ALT_L || key & KBD_FLAG_ALT_R){
+                    if(key & IKEY_FLAG_ALT_L || key & IKEY_FLAG_ALT_R){
                         SelectTTY(3);
                         //DeviceIoctl(tty->conDevno, CON_CMD_SELECT_CON, 3);
                     }
@@ -263,14 +267,14 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
                     
                     break;	
                 case KBD_UP:
-                    if (key & KBD_FLAG_CTRL_L || key & KBD_FLAG_CTRL_R) {
+                    if (key & IKEY_FLAG_CTRL_L || key & IKEY_FLAG_CTRL_R) {
                         DeviceIoctl(tty->conDevno, CON_CMD_SCROLL, SCREEN_UP);
                     }
                     TTY_PutKey(tty, KBD_UP);
                     
                     break;
                 case KBD_DOWN:
-                    if (key & KBD_FLAG_CTRL_L || key & KBD_FLAG_CTRL_R) {
+                    if (key & IKEY_FLAG_CTRL_L || key & IKEY_FLAG_CTRL_R) {
                         DeviceIoctl(tty->conDevno, CON_CMD_SCROLL, SCREEN_DOWN);
                     }
                     TTY_PutKey(tty, KBD_DOWN);
@@ -308,7 +312,6 @@ PUBLIC void TTY_ProcessKey(TTY_t *tty, unsigned int key)
         }
 	}
 }
-
 /**
  * TTY_PutKey - 往tty终端的队列中放入一个按键
  * @tty: tty终端
@@ -320,7 +323,6 @@ PRIVATE void TTY_PutKey(TTY_t *tty, u32 key)
     IoQueuePut(&tty->ioqueue, key);
     tty->key = key; /* 获取最新的key */
 }
-#if 0
 /**
  * TTY_DoRead - tty执行读取操作
  * @tty: tty终端
@@ -338,7 +340,7 @@ PRIVATE void TTY_DoRead(TTY_t *tty)
         key = DeviceGetc(DEV_KEYBOARD);
         
         /* 读取成功后处理按键，不是空按键才会往tty放入数据 */
-        if (key != KEYCODE_NONE) {
+        if (key != IKEY_UNKNOWN) {
             TTY_ProcessKey(tty, key);
         }
 	}
@@ -390,7 +392,7 @@ PRIVATE int TTY_Read(struct Device *device, unsigned int off, void *buffer, unsi
                 /* 获取按键成功 */
                 retval = 0;
             }
-            tty->key = KEYCODE_NONE;
+            tty->key = IKEY_UNKNOWN;
             
         } else {
             /* 不是前台任务进行读取，就会产生SIGTTIN */
@@ -413,7 +415,7 @@ PRIVATE int TTY_Getc(struct Device *device)
     struct CharDevice *chrdev = (struct CharDevice *)device;
     TTY_t *tty = (TTY_t *)chrdev->private;
     
-    int key = KEYCODE_NONE;
+    int key = IKEY_UNKNOWN;
     /* 如果是当前控制台，才会进行键盘的读取 */
 	if (IS_CURRENT_TTY(tty)) {
         /* 如果是最后一个tty，就能直接读取数据 */
@@ -423,7 +425,7 @@ PRIVATE int TTY_Getc(struct Device *device)
                 key = IoQueueGet(&tty->ioqueue);
             }*/
             key = tty->key;
-            tty->key = KEYCODE_NONE;
+            tty->key = IKEY_UNKNOWN;
             
         } else {
             /* 不是前台任务进行读取，就会产生SIGTTIN */

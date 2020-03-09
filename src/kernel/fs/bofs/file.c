@@ -826,6 +826,7 @@ PUBLIC int BOFS_Close(int fd)
                     fdec->dirEntry->type == BOFS_FILE_TYPE_CHAR) {
                     //printk("close device %x\n", fdec->inode->blocks[0]);
                     DeviceClose(fdec->inode->blocks[0]);
+                    
                 } else if (fdec->dirEntry->type == BOFS_FILE_TYPE_FIFO) {
                     if (BOFS_FifoClose((struct BOFS_Pipe *)fdec->inode->blocks[0]) == -1) {
                         printk("close fifo file failed!\n");    
@@ -847,8 +848,7 @@ PUBLIC int BOFS_Close(int fd)
 	}else{
 		printk("close fd:%d failed!\n", fd);
 	}
-    //printk("close end.\n");
-	return ret;
+    return ret;
 }
 
 PUBLIC int BOFS_Remove(const char *pathname, struct BOFS_SuperBlock *sb)

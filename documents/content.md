@@ -1,5 +1,16 @@
 # Book OS
 
+
+## 2020.3.10
+* optimize the process scheduling algorithm
+* optimize file descriptor management
+* add graphical interface with multiple Windows
+* improve user - mode graphical interface
+* separate user and system libraries
+* fixed some bugs in the system
+* simple init configuration file
+* add video and input driver framework
+
 ## 2020.3.2
 * add gtty driver
 * bosh run base on gtty

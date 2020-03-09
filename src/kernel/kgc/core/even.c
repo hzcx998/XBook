@@ -13,7 +13,7 @@
 #include <book/debug.h>
 #include <lib/string.h>
 
-/* 图形系统 */
+#include <input/keycode.h>
 #include <kgc/even.h>
 #include <kgc/button.h>
 
@@ -37,7 +37,7 @@ PUBLIC void KGC_EvenKeyboardKey(int key, KGC_KeyboardEven_t *even)
     even->state = 0;
 
     /* 按键类型 */
-    if (key & KBD_FLAG_BREAK) {
+    if (key & IKEY_FLAG_BREAK) {
         even->type = KGC_KEY_UP;
         even->state = KGC_PRESSED;
     } else {
@@ -45,42 +45,41 @@ PUBLIC void KGC_EvenKeyboardKey(int key, KGC_KeyboardEven_t *even)
         even->state = KGC_RELEASED;
     }
     /* 检测修饰符 */
-    if (key & KBD_FLAG_SHIFT_L) {
+    if (key & IKEY_FLAG_SHIFT_L) {
         even->keycode.modify |= KGC_KMOD_LSHIFT;
     }
-    if (key & KBD_FLAG_SHIFT_R) {
+    if (key & IKEY_FLAG_SHIFT_R) {
         even->keycode.modify |= KGC_KMOD_RSHIFT;
     }
-    if (key & KBD_FLAG_CTRL_L) {
+    if (key & IKEY_FLAG_CTRL_L) {
         even->keycode.modify |= KGC_KMOD_LCTRL;
     }
-    if (key & KBD_FLAG_CTRL_R) {
+    if (key & IKEY_FLAG_CTRL_R) {
         even->keycode.modify |= KGC_KMOD_RCTRL;
     }
-    if (key & KBD_FLAG_ALT_L) {
+    if (key & IKEY_FLAG_ALT_L) {
         even->keycode.modify |= KGC_KMOD_LALT;
     }
-    if (key & KBD_FLAG_ALT_R) {
+    if (key & IKEY_FLAG_ALT_R) {
         even->keycode.modify |= KGC_KMOD_RALT;
     }
-    if (key & KBD_FLAG_PAD) {
+    if (key & IKEY_FLAG_PAD) {
         even->keycode.modify |= KGC_KMOD_PAD;
     }
     
-    if (key & KBD_FLAG_NUM) {
+    if (key & IKEY_FLAG_NUM) {
         even->keycode.modify |= KGC_KMOD_NUM;
     }
-    if (key & KBD_FLAG_CAPS) {
+    if (key & IKEY_FLAG_CAPS) {
         even->keycode.modify |= KGC_KMOD_CAPS;
     }
 
     /* 除去修饰符后原来的键值 */
-    even->keycode.scanCode = key & KBD_KEY_MASK;
+    even->keycode.scanCode = key;
     
     /* 获取按键码 */
-    key &= KBD_KEY_MASK;
-    even->keycode.code =  key & (~KBD_FLAG_BREAK);
-
+    even->keycode.code =  key & IKEY_FLAG_KEY_MASK;
+    
 #ifdef DEBUG_KEYBOARD
     printk("keyboard even: type-%d, scancode-%x keycode-%x|%c modify-%x\n",
         even->type,even->keycode.scanCode,even->keycode.code,even->keycode.code, even->keycode.modify);

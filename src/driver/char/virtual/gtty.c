@@ -20,6 +20,7 @@
 #include <lib/string.h>
 #include <lib/vsprintf.h>
 #include <lib/ioctl.h>
+#include <input/keycode.h>
 
 #define DRV_NAME "gtty"
 
@@ -467,16 +468,22 @@ int GttyClose(struct Device *device)
     struct CharDevice *chrdev = (struct CharDevice *)device;
     Gtty_t *gtty = (Gtty_t *)chrdev->private;
 
+    //printk("close gtty\n");
+    
     int retval = -1;
-    gtty->holdPid = 0;
-    if (gtty->charBuffer)
-        kfree(gtty->charBuffer);
+    if (gtty->charBuffer) {
 
+        kfree(gtty->charBuffer);
+        //printk("close char buffer\n");   
+    }
     if (gtty->window) {
-        
         retval = KGC_WindowClose(gtty->window);
         gtty->window = NULL;
+        //printk("close windows\n");
     }
+    gtty->holdPid = 0;
+    //printk("close done\n");
+    
     return retval;
 }
 
@@ -560,22 +567,22 @@ PRIVATE int GttyGetc(struct Device *device)
                 if (!flags) {
                     switch (msg.key.code)
                     {
-                    case KGCK_ENTER:
+                    case IKEY_ENTER:
                         retval = '\n';
                         break;
-                    case KGCK_BACKSPACE:
+                    case IKEY_BACKSPACE:
                         retval = '\b';
                         break;
-                    /*case KGCK_TAB:    tab不是用于显示输出，而是用于控制
+                    /*case IKEY_TAB:    tab不是用于显示输出，而是用于控制
                         retval = '\t';*/
                         break;
                     /* 需要忽略的按键 */
-                    case KGCK_LSHIFT:
-                    case KGCK_RSHIFT:
-                    case KGCK_LCTRL:
-                    case KGCK_RCTRL:
-                    case KGCK_LALT:
-                    case KGCK_RALT:
+                    case IKEY_LSHIFT:
+                    case IKEY_RSHIFT:
+                    case IKEY_LCTRL:
+                    case IKEY_RCTRL:
+                    case IKEY_LALT:
+                    case IKEY_RALT:
                         retval = 0;
                         break;
                         

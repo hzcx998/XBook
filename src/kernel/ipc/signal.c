@@ -28,7 +28,6 @@ PRIVATE void GetSignalAction(Signal_t *signal, int signo, SignalAction_t *sa)
     sa->handler = signal->action[signo - 1].handler;
 }
 
-
 /**
  * CalcSignalLeft - 计算是否还有信号需要处理
  */
@@ -92,10 +91,10 @@ PRIVATE void HandleStopSignal(int signo, struct Task *task)
     case SIGTSTP:
     case SIGTTOU:
     case SIGTTIN:
-
-
         /* 如果又重新停止一次，就需要把SIGCONT屏蔽清除 */
         DelSignalFromTask(SIGCONT, &task->signalBlocked);
+        break;
+    default:
         break;
     }
 }
@@ -111,6 +110,10 @@ PRIVATE void HandleStopSignal(int signo, struct Task *task)
  */
 PRIVATE int IgnoreSignal(int signo, struct Task *task)
 {
+    /* 信号为0，就忽略之 */
+    if (!signo)
+        return 1;
+
     /* 如果已经屏蔽了，那么，就不会被忽略掉，尝试投递 */
     if (sigismember(&task->signalBlocked, signo)) {
         //printk(">>>a blocked signal.\n");
@@ -123,6 +126,7 @@ PRIVATE int IgnoreSignal(int signo, struct Task *task)
     if (handler > 1)
         return 0;
 
+    //printk(">> handler:%x\n", handler);
     /* 如果处理函数是SIG_IGN，也就是一个忽略信号 */
     if (handler == 1)
         return (signo != SIGCHLD);  /* 如果信号不是子进程那么就忽略，是就不能忽略 */
@@ -179,7 +183,8 @@ PRIVATE int DeliverSignal(int signo, pid_t sender, struct Task *task)
         task->signalLeft = 1;       /* 有信号剩余 */
         
         /* 如果是阻塞中，就唤醒它 */
-        if (task->status == TASK_BLOCKED || task->status == TASK_WAITING) {
+        if (task->status == TASK_BLOCKED || task->status == TASK_WAITING || 
+            task->status == TASK_STOPPED) {
             #ifdef _DEBUG_SIGNAL
             printk("[DeliverSignal] task %s is blocked, wake up it.", task->name);
             #endif
@@ -190,7 +195,6 @@ PRIVATE int DeliverSignal(int signo, pid_t sender, struct Task *task)
                 task->sleepTimer = NULL;
             }
             TaskUnblock(task);
-            //TaskWakeUp(task);
             /* 如果在投递过程中，任务处于休眠中，那么就要用休眠计时器去唤醒它 */
         }
     } else {
@@ -357,7 +361,12 @@ PUBLIC int DoSignal(struct TrapFrame *frame)
                 ！！！注意！！！
                 在我们的系统中，不打算用信号来处理子进程，所以该处理也将被忽略
                  */
-                
+                /* 子进程发送信号来了，进行等待。
+                多所有子进程检测，如果没有子进程，也可以返回
+                 */
+                //while ();
+                //printk("parent %s recv SIGCHLD!\n");
+
                 continue;
             }
 
@@ -419,6 +428,9 @@ PUBLIC int DoSignal(struct TrapFrame *frame)
 
             /* 处理信号 */
             HandleSignal(frame, sig);
+            
+            /* 返回成功处理一个信号 */
+            return 1;
         }
     }
     //printk("do signal exit.\n");
@@ -474,14 +486,14 @@ PUBLIC int DoSendSignal(pid_t pid, int signal, pid_t sender)
 ToOut:
     SpinUnlockIrqSave(&task->signalMaskLock, flags);
 
-    /* 发送后，如果进程处于阻塞，并且还有信号需要处理，那么就唤醒进程 */
-    if ((task->status == TASK_BLOCKED || task->status == TASK_WAITING) && (task->signalPending != 1)) {
+    /* 发送后，如果进程处于可中断状态，并且还有信号需要处理，那么就唤醒进程 */
+    if ((task->status == TASK_BLOCKED || task->status == TASK_WAITING || 
+        task->status == TASK_STOPPED) && (task->signalPending != 1)) {
         //printk("wakeup a blocked task %s after send a signal.\n", task->name);
         
-        /* 如果对于的信号没有被屏蔽才能唤醒 */
-        if (!sigismember(&task->signalBlocked, signal)) {
-            TaskWakeUp(task);
-        }
+        /* 唤醒任务 */
+        TaskWakeUp(task);
+        
         CalcSignalLeft(task);
     }
     

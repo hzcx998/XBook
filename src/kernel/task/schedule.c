@@ -10,6 +10,7 @@
 #include <book/debug.h>
 #include <book/task.h>
 #include <book/list.h>
+#include <book/interrupt.h>
 #include <lib/string.h>
 
 /* 导入主idle线程 */
@@ -91,8 +92,44 @@ PRIVATE Task_t *SchedulePickTask()
  * 把自己放入队列末尾。
  * 从优先级最高的队列中选取一个任务来执行。
  * 
+ * 其它情况下的调度
  */
 PUBLIC void Schedule()
+{
+    /* 需要关闭中断,保护队列操作 */
+    unsigned long flags = InterruptSave();
+
+    Task_t *current = CurrentTask();
+    /* 1.插入到就绪队列 */
+    ScheduleInsertQueue(current);
+
+    /* 尝试唤醒idle任务 */
+    ScheduleTryWakeupIdle();
+    
+    /* 2.从就绪队列中获取一个任务 */
+    Task_t *next = SchedulePickTask();
+
+    InterruptRestore(flags);
+
+    /* 3.激活任务的内存环境 */
+    TaskActivate(next);
+
+    /* 4.切换到该任务运行 */
+    SwitchTo(current, next);
+}
+
+
+/**
+ * ScheduleInClock - 任务调度
+ * 
+ * 当需要从一个任务调度到另一个任务时，使用这个函数来执行操作
+ * 
+ * 把自己放入队列末尾。
+ * 从优先级最高的队列中选取一个任务来执行。
+ * 
+ * 在时钟中断产生时的调度
+ */
+PUBLIC void ScheduleInClock()
 {
     Task_t *current = CurrentTask();
     /* 1.插入到就绪队列 */

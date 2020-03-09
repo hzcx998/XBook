@@ -216,7 +216,7 @@ PUBLIC unsigned int RemoveFromPageTable(unsigned int virtualAddr)
 	
 	if (!(*pde & PAGE_P_1)) {
 		printk("remove page without pde!\n");
-		return -1;
+		return 0;
 	}
 
 	pte_t *pte = PageGetPte(virtualAddr);
@@ -279,6 +279,53 @@ PUBLIC int UnmapPages(unsigned int vaddr, unsigned int len)
 }
 
 /**
+ * UnmapPages - 取消页映射
+ * @vaddr: 虚拟地址
+ * @len: 内存长度
+ */
+PUBLIC void UnmapPagesRange(pde_t *pgdir, unsigned int start, unsigned int end)
+{
+    /* 释放所有用户态内存映射 */
+    
+    /* pde */
+    unsigned short pdeCounts = end / (PAGE_SIZE * 1024), pdeIdx = start / PAGE_SIZE;
+    pde_t pdeValue = 0;
+    pde_t *pdePtr = NULL;
+
+    /* pte */
+    unsigned short pteCounts = 1024, pteIdx = 0;
+    pte_t pteValue = 0;
+    pte_t *ptePtr = NULL;
+
+    uint32_t* pteHead = NULL;   // 第一个pte的地址
+    uint32_t pagePhyAddr = 0;
+
+    /* 回收页表中用户空间的页框 */
+    while (pdeIdx < pdeCounts) {
+        pdePtr = pgdir + pdeIdx;
+        pdeValue = *pdePtr;
+        if (pdeValue & PAGE_P_1) {   // 如果页目录项p位为1,表示该页目录项下可能有页表项
+            pteHead = PageGetPte(pdeIdx * PAGE_SIZE * 1024);	  // 一个页表表示的内存容量是4M,即0x400000
+            pteIdx = 0;
+            while (pteIdx < pteCounts) {
+                ptePtr = pteHead + pteIdx;
+                pteValue = *ptePtr;
+                if (pteValue & PAGE_P_1) {
+                    /* 将pte中记录的物理页框直接在相应内存池的位图中清0 */
+                    pagePhyAddr = pteValue & PAGE_MASK;
+                    FreePage(pagePhyAddr);
+                }
+                pteIdx++;
+            }
+            /* 将pde中记录的物理页框直接在相应内存池的位图中清0 */
+            pagePhyAddr = pdeValue & PAGE_MASK;
+            FreePage(pagePhyAddr);
+        }
+        pdeIdx++;
+    }
+}
+
+/**
  * UnmapPagesFragment - 取消页映射，页之间可能不是连续的
  * @vaddr: 虚拟地址
  * @len: 内存长度
@@ -300,7 +347,7 @@ PUBLIC int UnmapPagesFragment(unsigned int vaddr, unsigned int len)
 		/* 检测每一个页的时候，尝试释放页
 		这样，再这个范围内的所有页都有可能会被释放掉
 		*/
-		if (paddr != -1)
+		if (paddr != 0)
 			FreePages(paddr);
 
 		vaddr += PAGE_SIZE;
@@ -395,7 +442,7 @@ PRIVATE int DoProtectionFault(struct VMSpace* space, address_t addr, uint32_t wr
 
 	/* 没有写标志，说明该段内存不支持内存写入，就直接返回吧 */
 	if (write) {
-		//printk(PART_TIP "have write protection\n");
+		printk(PART_TIP "have write protection\n");
 		
 		/* 只有设置写属性正确才能返回 */
 		int ret = MakePteWrite(addr);
@@ -408,7 +455,7 @@ PRIVATE int DoProtectionFault(struct VMSpace* space, address_t addr, uint32_t wr
 
 		return 0;
 	} else {
-		//printk(PART_TIP "no write protection\n");
+		printk(PART_TIP "no write protection\n");
 		
 	}
     printk(PART_ERROR "# protection fault!\n");
@@ -443,7 +490,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	// 在虚拟空间中查找这个地址
     struct VMSpace* space = FindVMSpace(current->mm, addr);
 	
-	if (addr >= USER_VM_SIZE) {
+	if (addr > USER_VM_SIZE) {
 		
 		/* 内核中引起的页故障 */
 		if (!(frame->errorCode & PAGE_ERR_USER)) {
@@ -483,7 +530,11 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 
 				// 是段故障
                 printk(PART_ERROR "stack overflow, addr: %x!\n", addr);
+                
+                //return -1;
                 ForceSignal(SIGSTKFLT, SysGetPid());
+                
+                DumpTrapFrame(frame);
                 //Panic(PART_ERROR "$ segment fault, addr: %x!\n", addr);
 				/*if (DoHandleNoPage(addr))
 					return -1; */
@@ -523,8 +574,10 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 		if (frame->errorCode & PAGE_ERR_PROTECT) {
 			//printk(PART_TIP "it is protection\n");
 
-			//printk(PART_TIP "cs %x eip %x esp %x\n", frame->cs, frame->eip, frame->esp);
-			//Panic("DoProtectionFault");
+			printk(PART_TIP "cs %x eip %x esp %x\n", frame->cs, frame->eip, frame->esp);
+			DumpTrapFrame(frame);
+                
+            //Panic("DoProtectionFault");
 			/* 执行保护故障操作 */
 			return DoProtectionFault(space, addr, (uint32_t)(frame->errorCode & PAGE_ERR_WRITE));
 		}

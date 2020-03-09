@@ -76,7 +76,7 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t memSize, uint3
         printk(PART_ERROR "SegmentLoad: MapPagesMaybeMapped failed!\n");
         return -1;
     }
-
+    
     /* 映射内存空间 */
     /*if (MapPages(vaddrFirstPage, occupyPages * PAGE_SIZE, PAGE_US_U | PAGE_RW_W)) {
         return -1;
@@ -91,10 +91,8 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t memSize, uint3
         printk(PART_ERROR "SegmentLoad: SysMmap failed!\n");
         return -1;
     }
-    //printk(PART_TIP "VMSpace: addr %x page %d\n", vaddrFirstPage, occupyPages);
+    //printk("task %s VMSpace: addr %x page %d\n",CurrentTask()->name, vaddrFirstPage, occupyPages);
     
-    //memset(vaddr, 0, fileSize);
-
     /* 读取数据到内存中 */
     if (ReadFileFrom(fd, (void *)vaddr, offset, fileSize)) {
         //printk("read failed!\n");
@@ -129,10 +127,9 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
             
             return -1;
         }
-        /*
-        printk(PART_TIP "read prog header off %x vaddr %x filesz %x memsz %x\n", 
+        /*printk(PART_TIP "read prog header off %x vaddr %x filesz %x memsz %x\n", 
             progHeader.p_offset, progHeader.p_vaddr, progHeader.p_filesz, progHeader.p_memsz);
-        */ 
+        */
         /* 如果是可加载的段就加载到内存中 */
         if (progHeader.p_type == PT_LOAD) {
             //printk(PART_TIP "prog at %x type LOAD \n", &progHeader);
@@ -147,13 +144,12 @@ PRIVATE int LoadElfBinary(struct MemoryManager *mm, struct Elf32_Ehdr *elfHeader
                     progHeader.p_filesz, progHeader.p_memsz, progHeader.p_vaddr)) {
                 return -1;
             }
-            //printk(PART_TIP "seg load success\n");
             
             /* 如果内存占用大于文件占用，就要把内存中多余的部分置0 */
             if (progHeader.p_memsz > progHeader.p_filesz) {
                 memset((void *)(progHeader.p_vaddr + progHeader.p_filesz), 0,
                     progHeader.p_memsz - progHeader.p_filesz);
-                /* printk(PART_TIP "memsz(%x) > filesz(%x)\n", 
+                /*printk("memsz(%x) > filesz(%x)\n", 
                     progHeader.p_memsz, progHeader.p_filesz);
                 */
             }
@@ -531,7 +527,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     strcpy(name, path);
     
     /* 只释放占用的栈和堆，而代码，数据，bss都不释放（当进程重新加载时可以提高速度） */
-    MemoryManagerRelease(current->mm, VMS_STACK | VMS_HEAP);
+    ReleaseVMSpace(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
     
     /* 6.加载程序段 */
     if (LoadElfBinary(current->mm, &elfHeader, fd)) {
@@ -540,10 +536,9 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         ret = -1;
         goto ToEnd;
     }
-    
+
     unsigned long flags = InterruptSave();
 
-    //printk("end load\n");
     /* 7.设置中断栈 */
     
     /* 构建新的中断栈 */
@@ -554,7 +549,10 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         ret = -1;
         goto ToEnd;
     }
-
+    
+    // 释放参数缓冲
+    kfree(argBuf);
+    
     if(InitUserHeap(current)){
         ret = -1;
         goto ToEnd;
@@ -564,10 +562,8 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     ResetRegisters(frame);
     
     /* 传递参数 */
-    frame->ebx = (uint32_t)argv;
-    frame->ecx = argc;
     frame->eip = (uint32_t)elfHeader.e_entry;
-
+    
     //printk("entry point:%x\n", frame->eip);
 
     /* 9.设置其他内容 */
@@ -576,11 +572,6 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
         current->name, current->pid, path
     ); */
     
-    /* 执行新进程之前，先把旧的进程删除 */
-    /*if (DelTaskFromFS(current->name, current->pid)) {
-        //printk("task not exist in fs!\n");
-    }*/
-    
     /* 修改进程的名字 */
     memset(current->name, 0, MAX_TASK_NAMELEN);
 
@@ -588,7 +579,6 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     如果最后面有'/'符号，就需要定位到最后一个'/'。例如: "/test", "./test", "root:/test/abc"
     如果没有，那么，就直接是名字开始，例如: "test"
      */
-
     char *p = strrchr(name, '/');
     if (p == NULL) {    /* 字符串中没有'/'符号 */
         p = name;   /* 直接指向名字 */
@@ -605,18 +595,10 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     /* 子进程的进程组默认就是父进程的id，父进程是组长 */
     current->groupPid = current->parentPid;
     
-    //printk("task name:%s\n", current->name);
-    /*
-    if (AddTaskToFS(current->name, current->pid)) {
-        ret = -1;
-        goto ToEnd;
-    }*/
-
     /*
     修改进程表
     */
-    
-    /*
+#if 0    
     printk(PART_TIP "VMspace->\n");
     printk(PART_TIP "code start:%x end:%x data start:%x end:%x\n", 
         current->mm->codeStart, current->mm->codeEnd, current->mm->dataStart, current->mm->dataEnd
@@ -625,15 +607,13 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     printk(PART_TIP "brk start and end:%x\n", current->mm->brkStart);
     printk(PART_TIP "stack start and end:%x\n", current->mm->stackStart);
     printk(PART_TIP "arg start:%x end:%x\n", current->mm->argStart, current->mm->argEnd);
-          */
+#endif          
     //Spin("test");
 
     //printk(PART_TIP "exec int the end!\n");
     /* 10.命运裁决，是返回还是运行 */
 ToEnd:
     SysClose(fd);
-    // 释放参数缓冲
-    kfree(argBuf);
 
     /* 不修改标准输入，输出，错误 */
     /*unsigned char idx = 3;

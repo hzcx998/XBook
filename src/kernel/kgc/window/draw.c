@@ -258,6 +258,12 @@ PUBLIC void WindowButtonCloseHandler(KGC_Button_t *button)
 {
     /* 给按钮对应的窗口发送消息 */
     KGC_Window_t *window = button->label.widget.container->private;
+    
+    /* 发送退出信号 */
+    if (window->task) {
+        ForceSignal(SIGTERM, ((Task_t *)window->task)->pid);
+    }
+    
     /* 给当前窗口发送关闭窗口消息 */
     if (GET_CURRENT_WINDOW() == window) {       
         KGC_MessageNode_t *node = KGC_CreateMessageNode();
