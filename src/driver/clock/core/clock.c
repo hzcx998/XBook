@@ -49,8 +49,6 @@ int IsLeap(int year)
     return 1;
 }
 
-
-
 /**
  * getWeek - 返回某天是周几 
  * @year: 年

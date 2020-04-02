@@ -69,7 +69,7 @@ PUBLIC void InitVMSpace();
 PUBLIC void InitMemoryManager(struct MemoryManager *mm);
 PUBLIC void ReleaseVMSpace(struct MemoryManager *mm, unsigned int flags);
 PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, 
-        address_t addr, struct VMSpace *prev);
+        address_t addr, struct VMSpace **prev);
 PUBLIC struct VMSpace *FindVMSpace(struct MemoryManager *mm, address_t addr);
 PUBLIC int InsertVMSpace(struct MemoryManager *mm, struct VMSpace* space);
 PUBLIC void RemoveVMSpace(struct MemoryManager *mm, struct VMSpace *space, 

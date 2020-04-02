@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.C": "c",
+        "math_private.h": "c",
+        "types.h": "c",
+        "stdint.h": "c",
+        "math.h": "c",
+        "stdlib.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}

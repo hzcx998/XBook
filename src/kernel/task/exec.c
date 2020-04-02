@@ -99,8 +99,6 @@ SegmentLoad(int  fd, uint32_t offset, uint32_t fileSize, uint32_t memSize, uint3
         return -1;
     }
 
-    //memcpy(vaddr, iobuf, fileSize);
-
     return 0;
 }
 
@@ -527,7 +525,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     strcpy(name, path);
     
     /* 只释放占用的栈和堆，而代码，数据，bss都不释放（当进程重新加载时可以提高速度） */
-    ReleaseVMSpace(current->mm, VMS_RESOURCE | VMS_STACK | VMS_HEAP);
+    ReleaseVMSpace(current->mm, VMS_STACK | VMS_HEAP);
     
     /* 6.加载程序段 */
     if (LoadElfBinary(current->mm, &elfHeader, fd)) {
@@ -574,7 +572,7 @@ PUBLIC int SysExecv(const char *path, const char *argv[])
     
     /* 修改进程的名字 */
     memset(current->name, 0, MAX_TASK_NAMELEN);
-
+    
     /* 传入的可能时绝对路径，也可能时相对路径。
     如果最后面有'/'符号，就需要定位到最后一个'/'。例如: "/test", "./test", "root:/test/abc"
     如果没有，那么，就直接是名字开始，例如: "test"

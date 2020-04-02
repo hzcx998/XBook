@@ -44,6 +44,12 @@ typedef signed short    __int16;
 typedef unsigned char   __uint8;
 typedef signed char     __int8;
 
+
+/* But these were defined by ISO C without the first `_'.  */
+typedef	unsigned char u_int8_t;
+typedef	unsigned short int u_int16_t;
+typedef	unsigned int u_int32_t;
+
 typedef int ptrdiff_t;
 typedef int intptr_t;
 

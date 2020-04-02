@@ -9,8 +9,8 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-LIB_H_DIR = ../../library/libc/include
-LIB_A_DIR = ../../library/libc/
+LIB_H_DIR = ../../../library/libc/include
+LIB_A_DIR = ../../../library/libc/
 
 BIN = a.out
 
@@ -18,7 +18,7 @@ BIN_OFF = 0
 BIN_CNTS = 100
 
 #img dir
-IMG_DIR = ../../developments/image/
+IMG_DIR = ../../../developments/image/
 
 DISK_IMG = d.img
 DISK_VHD = d.vhd
@@ -32,12 +32,14 @@ HD_VMDK = $(IMG_DIR)$(DISK_VMDK)
 ASM_FLAGS	= -I $(LIB_H_DIR) \
 			-f elf
 C_FLAGS	= -I $(LIB_H_DIR) \
-			-c -fno-builtin -Wall -Wunused -m32
+			-c -fno-builtin -Wall -Wunused -m32 -std=c99
 
 LDFLAGS		= -m elf_i386 -e _start -Ttext 0x00001000
 
-OBJS =  _start.o
-		
+OBJS =  _start.o \
+		main.o \
+		tiny_basic_interpreter.o
+
 LD_OBJS = 	$(LIB_A_DIR)libc.a \
 
 #First read here
@@ -51,7 +53,6 @@ compile: $(OBJS)
 link: $(BIN)
 $(BIN): $(OBJS) $(LD_OBJS)
 	$(LD) $(LDFLAGS) -o $(BIN) $(OBJS) $(LD_OBJS)
-
 
 disk: img vhd vmdk
 
@@ -69,6 +70,7 @@ qemu: compile link img
 vbox: compile link vhd
 
 vmware: compile link vmdk
+
 	
 #Clean temporary files
 clean:

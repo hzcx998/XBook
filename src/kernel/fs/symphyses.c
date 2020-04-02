@@ -30,7 +30,7 @@
 #include <fs/bofs/fifo.h>
 
 /* 同步磁盘上的数据到文件系统 */
-#define SYNC_DISK_DATA 0
+#define SYNC_DISK_DATA 1
 
 #define DATA_BLOCK 256
 
@@ -41,35 +41,45 @@
 #endif
 
 /* 要写入文件系统的文件 */
-#define FILE_ID 7
+#define FILE_ID 11
 
 #if FILE_ID == 1
-	#define FILE_NAME "root:/init"
+	#define FILE_NAME "root:/bin/init"
 	#define FILE_SECTORS 100
 #elif FILE_ID == 2
-	#define FILE_NAME "root:/shell"
+	#define FILE_NAME "root:/bin/bosh"
 	#define FILE_SECTORS 200
 #elif FILE_ID == 3
-	#define FILE_NAME "root:/test"
-	#define FILE_SECTORS 100
+	#define FILE_NAME "root:/bin/test"
+	#define FILE_SECTORS 100  
 #elif FILE_ID == 4
-	#define FILE_NAME "root:/test2"
-	#define FILE_SECTORS 50
+	#define FILE_NAME "root:/bin/sp"
+	#define FILE_SECTORS 600  
 #elif FILE_ID == 5
-	#define FILE_NAME "root:/infones"
+	#define FILE_NAME "root:/usr/infones"
 	#define FILE_SECTORS 640
 #elif FILE_ID == 6
-	#define FILE_NAME "root:/mario.nes"
+	#define FILE_NAME "root:/usr/mario.nes"
 	#define FILE_SECTORS 1536
 #elif FILE_ID == 7
-	#define FILE_NAME "root:/shadow.nes"
+	#define FILE_NAME "root:/usr/shadow.nes"
 	#define FILE_SECTORS 100
 #elif FILE_ID == 8
-	#define FILE_NAME "root:/cal"
+	#define FILE_NAME "root:/bin/cal"
 	#define FILE_SECTORS 200
 #elif FILE_ID == 9
-	#define FILE_NAME "root:/test.txt"
+	#define FILE_NAME "root:/usr/frame.txt"
+	#define FILE_SECTORS 7065
+#elif FILE_ID == 10
+	#define FILE_NAME "root:/usr/ba"
+	#define FILE_SECTORS 100
+#elif FILE_ID == 11
+	#define FILE_NAME "root:/usr/basic"
+	#define FILE_SECTORS 100
+#elif FILE_ID == 12
+	#define FILE_NAME "root:/usr/test.bsc"
 	#define FILE_SECTORS 1
+
 #endif
 
 #define FILE_SIZE (FILE_SECTORS * SECTOR_SIZE)
@@ -347,35 +357,38 @@ PRIVATE void MakeFifoFile()
     close(fd);*/
 }
 
+/* 系统运行必须的目录 */
+#define DIR_ETC   "root:/etc"
+#define DIR_BIN   "root:/bin"
+#define DIR_USR   "root:/usr"
+
 /**
  * ConfigFiles - 配置文件
  * 
  */
 PRIVATE void ConfigFiles()
 {
-    /* 初始化表 */
-    
-    /* 创建配置目录 */
+    /* etc, bin, usr */   
+    /* 创建etc目录 */
+    if (SysAccess(DIR_ETC, F_OK)) {
+        printk("dir %s not exist!\n", DIR_ETC);
 
-    if (SysAccess("root:/etc", F_OK)) {
-        printk("dir etc not exist!\n");
-
-        SysMakeDir("root:/etc");
+        SysMakeDir(DIR_ETC);
     } else {
-        printk("dir etc exist!\n");
+        printk("dir %s exist!\n", DIR_ETC);
     }
-
-    /* 不存在才进行创建 */
-    if (SysAccess("root:/etc/init.cfg", F_OK)) {
+    
+    /* etc/init.config */
+    if (SysAccess("root:/etc/init.config", F_OK)) {
         /* 初始化配置 */
-        int fd = SysOpen("root:/etc/init.cfg", O_CREAT | O_RDWR);
+        int fd = SysOpen("root:/etc/init.config", O_CREAT | O_RDWR);
         if (fd < 0) {
-            printk("open root:/etc/init.cfg failed!\n");
+            printk("open root:/etc/init.config failed!\n");
         }
         
-        char cfg[48];
-        memset(cfg, 0, 48);
-        char *cfgstr = "shell=root:/shell\nsharg=-i\ntty=sys:/dev/gtty0\n";
+        char cfg[64];
+        memset(cfg, 0, 64);
+        char *cfgstr = "shell=root:/bin/bosh\nsharg=-i\ntty=sys:/dev/gtty0\n";
         strcpy(cfg, cfgstr);
         SysWrite(fd, cfg, strlen(cfgstr));
         printk("config file:%s\n", cfgstr);
@@ -383,6 +396,25 @@ PRIVATE void ConfigFiles()
     } else {
         printk("config file exist!\n");
     }
+
+    /* 创建bin目录 */
+    if (SysAccess(DIR_BIN, F_OK)) {
+        printk("dir %s not exist!\n", DIR_BIN);
+
+        SysMakeDir(DIR_BIN);
+    } else {
+        printk("dir %s exist!\n", DIR_BIN);
+    }
+
+    /* 创建bin目录 */
+    if (SysAccess(DIR_USR, F_OK)) {
+        printk("dir %s not exist!\n", DIR_USR);
+
+        SysMakeDir(DIR_USR);
+    } else {
+        printk("dir %s exist!\n", DIR_USR);
+    }
+
 }
 
 
@@ -1124,15 +1156,14 @@ PUBLIC void InitFileSystem()
 #ifdef CONFIG_FILE_SYSTEM
 	
     InitBoFS();
-    
-    WriteDataToFS();
-
     MakeDeviceFile();
     MakeDriveFile();
     MakeFifoFile();
 
     ConfigFiles();
 
+    WriteDataToFS();
+    
     Test();
     /*
     int fd1 = SysOpen("/ff", O_RDWR);

@@ -89,7 +89,7 @@ long strtol(const char *cp,char **endp,unsigned int base)
 
 int isalpha(int ch)
 {
-	if (('a' <= ch && ch <= 'z') || ('a' <= ch && ch <= 'Z')) {
+	if (('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z')) {
 		return 1;
 	}
 	return 0;

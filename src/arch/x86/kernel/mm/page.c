@@ -500,8 +500,7 @@ PUBLIC int DoPageFault(struct TrapFrame *frame)
 	}
 
 	/* 没有找到空间或者是越界 */
-    if (space == NULL || space->start > addr) {
-		
+    if (space == NULL || space->start > addr) {		
         // 栈向下扩展的标志
 		uint32 expandStack = 0;
 

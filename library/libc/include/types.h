@@ -82,4 +82,9 @@
 #define CONST const
 #endif
 
+/* 空函数标识，标识函数没有实现内容，只有函数体占位，当实现内容后移除 */
+#ifndef __emptyfunc
+#define __emptyfunc
+#endif
+
 #endif  /*_LIB_TYPES_H*/

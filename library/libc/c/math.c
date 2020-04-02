@@ -6,12 +6,14 @@
  */
 
 #include <math.h>
+#include <types.h>
+
 #define PI 3.14159265358979323846
 #define e  2.7182818284590452354
 #define ln_2 0.69314718055994530942
 #define ln_10 2.30258509299404568402
 /*
- * max - 求最大值
+ * max - 求最小值
  * @a: 第一个值
  * @b: 第二个值
  * 
@@ -135,6 +137,16 @@ double cos(double x)
 	tmp *= tmp;
 	return sqrt (1 - tmp);
 }
+
+/*
+ * tan - 计算正切值
+ * @x 值
+ */
+double tan(double x) 
+{
+	return sin(x) / cos(x);
+}
+
 /*
 	* tan - 计算正切值
 	* @x 值
@@ -202,6 +214,105 @@ double atan(double x)
     if(x>1e-3) return 2*atan((sqrt(1+x*x)-1)/x);//递推地缩小自变量，使之接近0，保证泰勒公式的精度
     return x - pow(x,3)/3 + pow(x,5)/5 - pow(x,7)/7 + pow(x,9)/9;//泰勒公式
 }
+
+float carmack_sqrt(float x)
+{
+    float xhalf = 0.5f * x;
+    
+    int i = *(int*)&x;           // get bits for floating VALUE 
+    i = 0x5f3759df - (i>>1);     // gives initial guess y0
+    x = *(float*)&i;             // convert bits BACK to float
+    x = x*(1.5f - xhalf*x*x);    // Newton step, repeating increases accuracy
+    x = x*(1.5f - xhalf*x*x);    // Newton step, repeating increases accuracy
+    x = x*(1.5f - xhalf*x*x);    // Newton step, repeating increases accuracy
+    return (1 / x);
+}
+
+__emptyfunc float truncf(float arg)
+{
+    /* 特殊值判断 */
+    if (arg == NAN)
+        return NAN;
+    /* 还需要判断无穷大小 */
+
+    return (float)((int )arg);
+}
+__emptyfunc double trunc(double arg)
+{
+    /* 特殊值判断 */
+    if (arg == NAN)
+        return NAN;
+    /* 还需要判断无穷大小 */
+    
+    return (double)((long )arg);
+}
+__emptyfunc long double truncl(long double arg)
+{
+    /* 特殊值判断 */
+    if (arg == NAN)
+        return NAN;
+    /* 还需要判断无穷大小 */
+    
+    return (double)((long )arg);
+}
+
+/* 返回不小于x的最小整数 */
+__emptyfunc double ceil(double x)                
+{
+    return (double)((long)x  + 1);
+}
+
+/* 返回不大于x的最大整数 */
+__emptyfunc double floor(double x)
+{
+    return (double)((long)x);
+}
+
+/* 返回x/y的余数 */
+__emptyfunc double fmod(double x,double y)
+{
+    double z = x / y;
+    return x - (y * z);
+}
+
+/* 函数计算y/x的反正切值，按照参数的符号计算所在的象限。 */
+__emptyfunc double atan2(double y,double x)
+{
+    return 0;
+}
+
+/* 函数将参数num 分割为整数和小数，返回小数部分并将整数部分赋给i。 */
+__emptyfunc double modf(double num, double *i)
+{
+
+    return 0;
+}
+
+/*
+ * fmin - 浮点求最小值
+ * @a: 第一个值
+ * @b: 第二个值
+ * 
+ * 返回二者的小值
+ */
+float fmin(float a, float b)
+{
+	return a < b ? a : b;
+}
+
+/*
+ * fmax - 浮点求最大值
+ * @a: 第一个值
+ * @b: 第二个值
+ * 
+ * 返回二者的小值
+ */
+float fmax(float a, float b)
+{
+	return a > b ? a : b;
+}
+
+
 
 #undef PI
 #undef e

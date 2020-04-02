@@ -124,7 +124,8 @@
         "ioctl.h": "c",
         "cstdlib": "c",
         "switch.h": "c",
-        "label.h": "c"
+        "label.h": "c",
+        "parser.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

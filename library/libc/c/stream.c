@@ -164,7 +164,7 @@ int __stream_file_flush(FILE *fp)
 {
     /* 位置是0，不刷新 */
     if (!fp->pos) 
-        return EOF;
+        return 0;
     /* 位置已经超过最大了，先把缓冲区中的数据写入到文件后，在进行写入 */
     if (write(fp->fd, fp->buf, fp->pos) != fp->pos)
         return EOF; /* 写入失败 */
@@ -664,15 +664,9 @@ int fseek(FILE *stream, long offset, int fromwhere)
         __stream_error = 1;
         return -1;
     }
-    /* 先刷新进文件 */
-    if (__stream_file_flush(stream)) {
-        __stream_error = 1;
-        return -1;
-    }
-    lseek(stream->fd, offset, fromwhere);
     
     __stream_error = 0;
-    return 0;
+    return lseek(stream->fd, offset, fromwhere);
 }
 
 /**

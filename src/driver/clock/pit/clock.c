@@ -63,5 +63,5 @@ PUBLIC void InitPitClockDriver()
 
 	/* 注册时钟中断并打开中断 */	
 	RegisterIRQ(IRQ0_CLOCK, &ClockHandler, IRQF_DISABLED, "clockirq", "clock", 0);
-
+    
 }

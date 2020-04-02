@@ -450,6 +450,8 @@ PUBLIC int DoSendSignal(pid_t pid, int signal, pid_t sender)
     printk("task %d sent signal %d to task %d.\n",
                sender, signal, pid);
     #endif
+    printk("task %d sent signal %d to task %d.\n",
+               sender, signal, pid);
     
     /* 对参数进行检测 */
     if (IS_BAD_SIGNAL(signal)) {

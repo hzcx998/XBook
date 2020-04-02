@@ -29,7 +29,7 @@ char* strcpy(char* dst_, const char* src_);
 uint32_t strlen(const char* str);
 int8_t strcmp (const char *a, const char *b); 
 char *strchr(const char *s,int c);
-char* strrchr(char* str, int c);
+char* strrchr(const char* str, int c);
 char* strcat(char* strDest , const char* strSrc);
 int strncmp (const char * s1, const char * s2, int n);
 int strpos(char *str, char ch);

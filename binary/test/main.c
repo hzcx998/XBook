@@ -9,6 +9,7 @@
 #include <graph.h>
 #include <time.h>
 #include <taskscan.h>
+#include <math.h>
 
 char test[4096];
 
@@ -361,10 +362,67 @@ void taskscan_test()
     }
 }
 
+/**
+ * get_float_binary - 获取浮点数的二进制表达
+ * @num: 是要展示的float数
+ * @bin: 是保存所有二进制位的数组
+ * 
+ */
+void get_float_binary(float num, char bin[])
+{
+    int t = 1; //用来按位与操作
+    int *f = (int*)(&num);//将float的解释成int，即float的地址转成int*
+    int i;
+    for(i = 0; i < 32; i++) {
+        //从最高位开始按位与，如果为1，则bin[i]=1，如果为0，则bin[i]=0
+        //这里没有将bin存成字符，而是数字1 0
+        bin[i] = (*f)&(t << (31 - i)) ? 1 : 0;
+    }
+}
+void print_float_binary(char bin[])
+{
+    int i;
+    for(i = 0; i < 32; i++) {
+        printf("%d", bin[i]);
+        if(i == 0)
+            printf(", ");
+        if(i == 8)
+            printf(", ");
+    }
+}
+void float_test()
+{
+    printf("This is floating point test\n");
+
+    float a = 0.5f;
+    float b = 3.1415926f;
+    
+    float c = a + b;
+    printf("c=%d\n", (int)c);
+
+    char buf[32];
+    get_float_binary(11.375, buf);
+    print_float_binary(buf);
+    
+    double PI = 3.1415926;
+    printf("PI=%f\n", PI);
+
+    float d = 100.56;
+    float e = 50.12;
+    printf("add:%.2f sub:%.2f mul:%.2f div:%.2f\n", d + e,
+        d - e, d * e, d / e);
+    printf("add:%e sub:%e mul:%e div:%e\n", d + e,
+        d - e, d * e, d / e);
+
+    printf("sqrt 10=%f\n", carmack_sqrt(10));
+    printf("sin 10=%f\n", sin(10));
+    printf("cos 10=%f\n", cos(10));
+    printf("ln 10=%f\n", ln(10));
+}
+
 int main(int argc, char *argv[])
 {
-    taskscan_test();
-
+    float_test();
     return 0;
 
     gtty_test();

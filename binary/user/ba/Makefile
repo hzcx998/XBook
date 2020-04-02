@@ -9,8 +9,8 @@ LD 			= ld
 DD 			= dd
 
 #The file path
-LIB_H_DIR = ../../../src/include/lib
-LIB_A_DIR = ../../../src/
+LIB_H_DIR = ../../../library/libc/include
+LIB_A_DIR = ../../../library/libc/
 
 BIN = a.out
 
@@ -53,7 +53,6 @@ link: $(BIN)
 $(BIN): $(OBJS) $(LD_OBJS)
 	$(LD) $(LDFLAGS) -o $(BIN) $(OBJS) $(LD_OBJS)
 
-
 disk: img vhd vmdk
 
 img:
@@ -70,6 +69,7 @@ qemu: compile link img
 vbox: compile link vhd
 
 vmware: compile link vmdk
+
 	
 #Clean temporary files
 clean:

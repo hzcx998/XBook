@@ -178,9 +178,9 @@ PUBLIC struct VMSpace *FindVMSpace(struct MemoryManager *mm, address_t addr)
  * 查找第一个满足 addr < space->end, 并且不是NULL的空间，
  * 并且把space的前一个空间保存到prev
  */
-PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, address_t addr, struct VMSpace *prev)
+PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, address_t addr, struct VMSpace **prev)
 {
-    prev = NULL;
+    *prev = NULL;
     struct VMSpace* space = mm->spaceMap;
     while (space != NULL) {
         /* 如果地址比查询的空间的结束地址小既 [addr, space->end] */
@@ -188,7 +188,7 @@ PUBLIC struct VMSpace *FindVMSpacePrev(struct MemoryManager *mm, address_t addr,
             return space;
         
         /* 保存空间的前一个空间 */
-        prev = space;
+        *prev = space;
         space = space->next;
     }
     return NULL;
@@ -326,7 +326,7 @@ PUBLIC int DoMunmap(struct MemoryManager *mm, uint32 addr, uint32 len)
         
     /* 找到addr < space->end 的空间 */
     struct VMSpace* prev = NULL;
-    struct VMSpace* space = FindVMSpacePrev(mm, addr, prev);
+    struct VMSpace* space = FindVMSpacePrev(mm, addr, &prev);
     /* 没找到空间就返回 */
     if (!space) {      
         printk(PART_ERROR "DoMunmap: not found the space!\n");

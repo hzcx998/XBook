@@ -18,7 +18,8 @@ DIR_INCLUDE = 	./include/
 
 # flags
 ARFLAGS := -r
-C_FLAGS	:=  -fno-builtin -nostdinc -Wall -Wunused -fno-PIE -m32 -fno-stack-protector -I $(DIR_INCLUDE) -c
+C_FLAGS	:=  -fno-builtin -nostdinc -Wall -Wunused -fno-PIE -m32 \
+			-fno-stack-protector -I $(DIR_INCLUDE) -c -std=c99
 NASM_FLAGS	:= -I $(DIR_INCLUDE)
 
 # out file
@@ -67,6 +68,7 @@ OBJS_C := 	$(DIR_C)asctime.o \
 			$(DIR_C)system.o \
 			$(DIR_C)vsprintf.o	
 
+			
 # objects
 OBJS = $(OBJS_ASM) $(OBJS_C) 
 
@@ -91,3 +93,5 @@ clean:
 	-$(RM) $(LIBC_A)
 	-$(RM) $(DIR_ASM)/*.o
 	-$(RM) $(DIR_C)/*.o
+	-$(RM) $(DIR_GLIBC)/*.o
+	

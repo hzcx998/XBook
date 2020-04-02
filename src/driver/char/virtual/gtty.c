@@ -358,6 +358,8 @@ PRIVATE void GttyOutChar(Gtty_t *gtty, char ch)
                 CursorMove(gtty, gtty->cursor.x + 1, gtty->cursor.y);
             }
 			break;
+        case '\r':  /* 不处理 */
+            break;
 		default :
 			CharSet(gtty, ch, gtty->cursor.x, gtty->cursor.y);
 
@@ -625,7 +627,7 @@ PRIVATE int GttyPutc(struct Device *device, unsigned int ch)
     Gtty_t *gtty = (Gtty_t *)chrdev->private;
     
     if (gtty->holdPid == CurrentTask()->pid) {    
-        //printk("%c", ch);
+        printk("%c", ch);
         GttyOutChar(gtty, ch);
     } else {
         /* 其它进程可以向此tty输出信息。 */

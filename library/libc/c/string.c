@@ -159,7 +159,7 @@ int memcmp(const void * s1, const void *s2, int n)
 	}
 	return 0;
 }
-char* strrchr(char* str, int c)
+char* strrchr(const char* str, int c)
 {
    
     char* ret = NULL;

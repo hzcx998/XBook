@@ -10,6 +10,8 @@
 //#define CONFIG_MORE_TTY
 
 
+#define FILE_INIT_CONFIG "root:/etc/init.config"
+
 /* 最多32个配置参数 */
 char *config_arg[32] = {0};
 
@@ -19,7 +21,7 @@ void match_config_arg(char *buf);
 int main(int argc, char *argv[])
 {
     /* 读取配置文件，根据配置文件打开终端 */
-    int fd = open("root:/etc/init.cfg", O_RDONLY);
+    int fd = open(FILE_INIT_CONFIG, O_RDONLY);
     if (fd < 0) {
         return -1;  /* 如果打开文件失败，就退出 */
     }
@@ -68,22 +70,18 @@ int main(int argc, char *argv[])
 #endif  /* CONFIG_MORE_TTY */
                 
                 /* 打开标准输入，输出，错误 */
-                int stdinno = open("sys:/dev/tty0", O_RDONLY);
+                int stdinno = open("sys:/dev/com1", O_RDONLY);
                 if (stdinno < 0)
                     return -1;
-
-                int stdoutno = open("sys:/dev/tty0", O_WRONLY);
+                /* 输出到串口 */
+                int stdoutno = open("sys:/dev/com1", O_WRONLY);
                 if (stdoutno < 0)
                     return -1;
                 
-                int stderrno = open("sys:/dev/tty0", O_WRONLY);
+                int stderrno = open("sys:/dev/com1", O_WRONLY);
                 if (stderrno < 0)
                     return -1;
-                    
-                /* 关闭文件描述符 */
-                /*close(stdout);
-                close(stdin);*/
-
+                
                 //printf("I am parent, my pid is %d my child is %d.\n", getpid(), pid);
                 /* init进程就不断等待子进程，然后把他们回收 */
                 while (1) {

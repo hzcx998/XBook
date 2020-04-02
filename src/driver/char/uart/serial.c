@@ -485,7 +485,7 @@ PRIVATE int SerialInitOne(struct SerialPrivate *self)
 
     /* 添加字符设备 */
     
-    /* 设置一个字符设备号 */
+    /* 设置一个字符设备号 */  
     self->chrdev = AllocCharDevice(MKDEV(COM_MAJOR, id));
 	if (self->chrdev == NULL) {
 		printk(PART_ERROR "alloc char device for serial failed!\n");

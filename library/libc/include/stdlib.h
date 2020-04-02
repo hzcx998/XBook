@@ -12,6 +12,7 @@
 #include "stddef.h"
 #include "types.h"
 #include "unistd.h"
+#include "vsprintf.h"
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
@@ -44,7 +45,7 @@ void graph(int offset, int size, void *buffer);
 
 int system(const char *command);
 void qsort( void  * base, size_t n_elements, size_t el_size, int  (* compare ) (void const *, void const *) );
-int reboot();
+int reboot(void );
 
 void getver(char *buf, int buflen);
 

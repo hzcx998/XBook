@@ -27,7 +27,6 @@ unsigned int memNodeBase;
 
 /* 物理内存总大小 */
 PRIVATE unsigned int totalPhysicMemorySize;
-    
 
 /*
  * MapDirectMemory - 物理地址和虚拟地址一对一映射

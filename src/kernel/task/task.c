@@ -93,7 +93,7 @@ PUBLIC uint32_t *CreatePageDir()
     /* 复制页表内容,只复制内核部分 */
     memcpy((void *)((unsigned char *)pageDirAddr + 2048), 
             (void *)(PAGE_DIR_VIR_ADDR + 2048), 2048);
-
+    
     /* 更新页目录表的页目录的物理地址，因为页目录表的最后一项时页目录表的物理地址 */
     uint32_t paddr = Vir2PhyByTable((uint32_t )pageDirAddr);
     /* 属性是 存在，系统，可写 */
@@ -258,7 +258,6 @@ PUBLIC void FreeTaskMemory(struct Task *task)
     if (task->mm)
         kfree(task->mm);
 }
-
 
 /**
  * TaskPriorityQueueAddTail - 把任务添加到特权级队列末尾
@@ -784,7 +783,7 @@ PUBLIC void DumpTask(struct Task *task)
 }
 
 /* 配置直接运行应用程序，可用于应用开发调试 */
-#define CONFIG_APP_DIRECT 1
+#define CONFIG_APP_DIRECT 0
 
 PRIVATE char *initArgv[3];
 
@@ -796,7 +795,7 @@ PUBLIC void InitUserProcess()
     /* 暂时的提示语言 */
 #if CONFIG_APP_DIRECT == 0
 	/* 加载init进程 */
-    initArgv[0] =  "root:/init";
+    initArgv[0] =  "root:/bin/init";
     initArgv[1] =  0;
 #else
     /* 直接加载应用程序 */
