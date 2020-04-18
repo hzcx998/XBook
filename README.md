@@ -76,6 +76,9 @@ make lib
 # remove a libary file（删除库文件）
 make rmlib 
 ```
+## 注意！！！  
+为了提高每次下载的速度，已经把image镜像从github中移除，但是可以在发布的版本中找到该文件。
+如果编译遇到缺少"image/x.img"文件，那么，你就需要下载一个发布的版本，然后将对应的文件复制过去。
 
 ## window
  可以直接运行`launch_cmd.bat`打开命令行，输入`make run`即可运行。
