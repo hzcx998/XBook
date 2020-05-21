@@ -10,7 +10,7 @@
 
 一次偶然机会看到了操作系统居然可以自制，于是就感兴趣，从入门到放弃，再从放弃到入门，反反复复，折腾了几年，终于在2019年6月份定下了开发xbook。把自己感兴趣的部分，想要实现的部分都添加进来，并且希望在众多自制操作系统中有所突出，在学习他人的基础上，也添加了自己的许多想法。
 
-号外！新的模型的内核xbook2正在开发中，感兴趣可以前来围观！www.github.com/hzcx998/xbook2
+### 号外！新的模型的内核xbook2正在开发中，感兴趣可以前来围观！www.github.com/hzcx998/xbook2
 
 目前已经支持的内容在[内容总览](https://github.com/huzichengdevelop/XBook/blob/master/documents/content.md)文件中查看。部分内容如下：
 * 分页机制
